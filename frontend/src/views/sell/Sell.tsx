@@ -18,7 +18,7 @@ export default function Sell() {
   const [selectedProducts, setSelectedProducts] = useState<ProductQuantity[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
+  // const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isDebt, setIsDebt] = useState(false);
