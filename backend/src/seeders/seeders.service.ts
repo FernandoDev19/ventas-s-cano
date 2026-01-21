@@ -25,8 +25,8 @@ export class SeedersService {
       throw new Error('❌ No se puede ejecutar seed fuera de development');
     }
 
-    // await this.productSeeder();
-    // await this.customerSeeder();
+    await this.productSeeder();
+    await this.customerSeeder();
     await this.userSeeder();
   }
 
