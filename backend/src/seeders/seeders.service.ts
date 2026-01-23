@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/mongoose';
+import { Console } from 'console';
 import { Model } from 'mongoose';
 import { Customer } from 'src/modules/customers/entities/customer.entity';
 import { Product } from 'src/modules/products/entities/product.entity';
@@ -22,7 +23,8 @@ export class SeedersService {
         .get<'development' | 'production'>('NODE_ENV')
         ?.toLowerCase() !== 'development'
     ) {
-      throw new Error('❌ No se puede ejecutar seed fuera de development');
+      console.error('❌ No se puede ejecutar seed fuera de development');
+      return;
     }
 
     await this.productSeeder();
