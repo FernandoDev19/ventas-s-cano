@@ -23,12 +23,12 @@ export class SeedersService {
         .get<'development' | 'production'>('NODE_ENV')
         ?.toLowerCase() !== 'development'
     ) {
-      console.error('❌ No se puede ejecutar seed fuera de development');
+      await this.productSeeder();
+      await this.customerSeeder();
+      await this.userSeeder();
       return;
     }
 
-    await this.productSeeder();
-    await this.customerSeeder();
     await this.userSeeder();
   }
 
