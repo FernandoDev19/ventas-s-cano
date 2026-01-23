@@ -22,7 +22,7 @@ async function bootstrap() {
   }))
 
   app.enableCors({
-    origin: ['https'],
+    origin: ['https://ventas-scano.netlify.app'],
     credentials: true,
     allowedHeaders: 'Content-Type, Authorization',
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
