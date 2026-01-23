@@ -21,7 +21,7 @@ export class SeedersService {
     if (
       this.configService
         .get<'development' | 'production'>('NODE_ENV')
-        ?.toLowerCase() !== 'development'
+        ?.toLowerCase() === 'development'
     ) {
       await this.productSeeder();
       await this.customerSeeder();
