@@ -189,6 +189,20 @@ export default function Sell() {
   const completeSale = async () => {
     setIsLoading(true);
     try {
+      // Validar stock antes de registrar la venta
+      for (const item of selectedProducts) {
+        const product = products.find((p) => p._id === item.product);
+        if (!product) {
+          MySwal.fire('Error', 'Producto no encontrado', 'error');
+          return;
+        }
+
+        if (item.quantity > product.stock) {
+          MySwal.fire('Stock insuficiente', `No hay suficiente stock de ${product.name}`, 'warning');
+          return;
+        }
+      }
+
       const saleData: Omit<Sale, '_id' | 'createdAt'> = {
         products: selectedProducts,
         customer: selectedCustomer?._id || '',
@@ -199,6 +213,18 @@ export default function Sell() {
       };
 
       await saleService.createSale(saleData);
+
+      // Descontar stock por cada producto vendido
+      await Promise.all(
+        selectedProducts.map(async (item) => {
+          const product = products.find((p) => p._id === item.product);
+          if (!product?._id) return;
+          const newStock = product.stock - item.quantity;
+          await productService.updateProduct(product._id, { stock: newStock });
+        })
+      );
+
+      await loadProducts();
       
       await MySwal.fire({
         title: '¡Venta Registrada!',

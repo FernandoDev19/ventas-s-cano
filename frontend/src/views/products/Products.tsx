@@ -102,7 +102,7 @@ export default function Products() {
               
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Stock</label>
-                <input id="swal-input3" class="swal2-input" style="margin: 0px; width: 100%;" placeholder="Stock" value="${product.stock}" />
+                <input id="swal-input3" type="number" class="swal2-input" style="margin: 0px; width: 100%;" placeholder="Stock" value="${product.stock}" />
               </div>
             </div>
           `,
@@ -134,7 +134,7 @@ export default function Products() {
                   timer: 2000,
                   showConfirmButton: false
                 });
-                loadProducts(); // Recargar la lista
+                loadProducts();
               })
               .catch((error) => {
                 MySwal.fire({
