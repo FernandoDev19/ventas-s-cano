@@ -12,10 +12,11 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import type { Customer, Expense, Sale } from "../../models";
+import type { Customer, Expense, Product, Sale } from "../../models";
 import saleService from "../../services/sale.service";
 import customerService from "../../services/customer.service";
 import expenseService from "../../services/expense.service";
+import productService from "../../services/product.service";
 
 ChartJS.register(
   CategoryScale,
@@ -79,6 +80,7 @@ export default function Reports() {
   const [sales, setSales] = useState<Sale[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -90,14 +92,16 @@ export default function Reports() {
       try {
         setIsLoading(true);
         setError(null);
-        const [salesData, customersData, expensesData] = await Promise.all([
+        const [salesData, customersData, expensesData, productsData] = await Promise.all([
           saleService.getSales(),
           customerService.getCustomers(),
           expenseService.getAllExpenses(),
+          productService.getProducts(),
         ]);
         setSales(salesData);
         setCustomers(customersData);
         setExpenses(expensesData);
+        setProducts(productsData);
       } catch (e) {
         console.error(e);
         setError("No se pudieron cargar las estadísticas");
@@ -290,6 +294,66 @@ export default function Reports() {
     [kpis.cashSales, kpis.creditSales]
   );
 
+  const productUnits = useMemo(() => {
+    const yearSales = sales.filter((s) => getYear(s.createdAt) === selectedYear);
+    const byProductId = new Map<string, number>();
+
+    yearSales.forEach((sale) => {
+      sale.products.forEach((item) => {
+        const productId =
+          typeof item.product === "string" ? item.product : item.product?._id;
+        if (!productId) return;
+        byProductId.set(productId, (byProductId.get(productId) || 0) + item.quantity);
+      });
+    });
+
+    const nameById = new Map<string, string>(
+      products.filter((p) => !!p._id).map((p) => [p._id as string, p.name])
+    );
+
+    const rows = Array.from(byProductId.entries()).map(([productId, qty]) => ({
+      productId,
+      name: nameById.get(productId) || "Producto",
+      quantity: qty,
+    }));
+
+    rows.sort((a, b) => b.quantity - a.quantity);
+    return rows;
+  }, [products, sales, selectedYear]);
+
+  const topProducts = useMemo(() => productUnits.slice(0, 10), [productUnits]);
+  const bottomProducts = useMemo(
+    () => [...productUnits].reverse().slice(0, 5),
+    [productUnits]
+  );
+
+  const topProductsData = useMemo(
+    () => ({
+      labels: topProducts.map((p) => p.name),
+      datasets: [
+        {
+          label: `Unidades vendidas (Top 10 - ${selectedYear})`,
+          data: topProducts.map((p) => p.quantity),
+          backgroundColor: "rgba(99, 102, 241, 0.6)",
+          borderColor: "#4f46e5",
+          borderWidth: 1,
+        },
+      ],
+    }),
+    [selectedYear, topProducts]
+  );
+
+  const topProductsOptions = useMemo(
+    () => ({
+      ...commonOptions,
+      indexAxis: "y" as const,
+      plugins: {
+        legend: { display: false },
+      },
+    }),
+    [commonOptions]
+  );
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -398,6 +462,51 @@ export default function Reports() {
         <div className="bg-white rounded-lg shadow-md p-4 lg:col-span-2">
           <h2 className="text-lg font-semibold mb-3">Gastos por mes</h2>
           <Chart type="bar" data={expensesData} options={commonOptions} datasetIdKey="gastos" />
+        </div>
+
+        <div className="bg-white rounded-lg shadow-md p-4 lg:col-span-2">
+          <h2 className="text-lg font-semibold mb-3">Productos más vendidos</h2>
+
+          {topProducts.length === 0 ? (
+            <div className="text-gray-500">No hay ventas registradas para este año.</div>
+          ) : (
+            <>
+              <div className="w-full">
+                <Chart
+                  type="bar"
+                  data={topProductsData}
+                  options={topProductsOptions}
+                  datasetIdKey="top-products"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                <div>
+                  <div className="font-semibold mb-2">Top 5</div>
+                  <div className="space-y-1">
+                    {topProducts.slice(0, 5).map((p) => (
+                      <div key={p.productId} className="flex justify-between text-sm">
+                        <span className="truncate pr-2">{p.name}</span>
+                        <span className="font-semibold">{p.quantity}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="font-semibold mb-2">Menos vendidos (Bottom 5)</div>
+                  <div className="space-y-1">
+                    {bottomProducts.map((p) => (
+                      <div key={p.productId} className="flex justify-between text-sm">
+                        <span className="truncate pr-2">{p.name}</span>
+                        <span className="font-semibold">{p.quantity}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
