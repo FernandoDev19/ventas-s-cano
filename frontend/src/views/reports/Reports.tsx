@@ -1,8 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { Chart } from "react-chartjs-2";
+import { Line, Bar, Doughnut } from "react-chartjs-2";
 import {
+  CategoryScale,
   Chart as ChartJS,
-  registerables
+  LinearScale,
+  PointElement,
+  LineElement,
+  ArcElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
 } from "chart.js";
 import type { Customer, Expense, Product, Sale } from "../../models";
 import saleService from "../../services/sale.service";
@@ -10,7 +18,17 @@ import customerService from "../../services/customer.service";
 import expenseService from "../../services/expense.service";
 import productService from "../../services/product.service";
 
-ChartJS.register(...registerables);
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  ArcElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 const MONTHS = [
   "Ene",
@@ -423,27 +441,27 @@ export default function Reports() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-white rounded-lg shadow-md p-4">
           <h2 className="text-lg font-semibold mb-3">Ventas por mes</h2>
-          <Chart type="line" data={salesData} options={commonOptions} datasetIdKey="ventas" />
+          <Line data={salesData} options={commonOptions} datasetIdKey="ventas" />
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-4">
           <h2 className="text-lg font-semibold mb-3">Ganancia neta por mes (Ventas - Gastos)</h2>
-          <Chart type="line" data={netProfitData} options={commonOptions} datasetIdKey="ganancia" />
+          <Line data={netProfitData} options={commonOptions} datasetIdKey="ganancia" />
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-4">
           <h2 className="text-lg font-semibold mb-3">Clientes nuevos por mes</h2>
-          <Chart type="bar" data={customersData} options={commonOptions} datasetIdKey="clientes" />
+          <Bar data={customersData} options={commonOptions} datasetIdKey="clientes" />
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-4">
           <h2 className="text-lg font-semibold mb-3">% Efectivo vs % Crédito</h2>
-          <Chart style={{ maxHeight: 'auto' }} type="doughnut" data={paymentMixData} options={commonOptions} datasetIdKey="mix" />
+          <Doughnut style={{ maxHeight: 'auto' }} data={paymentMixData} options={commonOptions} datasetIdKey="mix" />
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-4 lg:col-span-2">
           <h2 className="text-lg font-semibold mb-3">Gastos por mes</h2>
-          <Chart type="bar" data={expensesData} options={commonOptions} datasetIdKey="gastos" />
+          <Bar data={expensesData} options={commonOptions} datasetIdKey="gastos" />
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-4 lg:col-span-2">
@@ -454,8 +472,7 @@ export default function Reports() {
           ) : (
             <>
               <div className="w-full">
-                <Chart
-                  type="bar"
+                <Bar
                   data={topProductsData}
                   options={topProductsOptions}
                   datasetIdKey="top-products"
