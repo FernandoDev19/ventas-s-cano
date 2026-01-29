@@ -9,7 +9,7 @@ import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
 import { Link } from "react-router";
 
-export default function Sale() {
+export default function Sales() {
   const [totalDay, setTotalDay] = useState(0);
   const [totalReceived, setTotalReceived] = useState(0);
   const [totalPending, setTotalPending] = useState(0);

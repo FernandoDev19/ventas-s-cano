@@ -466,8 +466,8 @@ export default function Expenses() {
             onClick={handleCreateExpense}
             className="flex items-center space-x-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90"
           >
-            <Plus className="w-4 h-4" />
-            <span>Nuevo Gasto</span>
+            <Plus className="w-5 h-5 md:w-4 md:h-4" />
+            <span className="hidden md:inline">Nuevo Gasto</span>
           </button>
         </div>
       </div>
@@ -599,7 +599,8 @@ export default function Expenses() {
       </div>
 
       <div className="bg-white rounded-lg shadow-md p-4 mb-4">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col md:flex-row justify-between items-center">
+
           <div className="flex items-center space-x-2">
             <Receipt className="w-5 h-5 text-primary" />
             <span className="text-lg font-semibold">
@@ -607,12 +608,14 @@ export default function Expenses() {
               {filteredExpenses.length !== 1 ? "s" : ""}
             </span>
           </div>
+
           <div className="flex items-center space-x-2">
             <DollarSign className="w-5 h-5 text-red-600" />
             <span className="text-lg font-bold text-red-600">
-              Total: ${getTotalExpenses().toLocaleString()} COP
+              Total: {getTotalExpenses().toLocaleString()} COP
             </span>
           </div>
+
         </div>
       </div>
 

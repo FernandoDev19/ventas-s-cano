@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router';
 import Swal from 'sweetalert2';
-import authService from '../services/auth.service';
+import authService from '../../services/auth.service';
 
 export default function LogoutButton() {
   const navigate = useNavigate();

@@ -3,7 +3,7 @@ import type { Product } from "../../models";
 import productService from "../../services/product.service";
 import Swal from "sweetalert2";
 import withReactContent from "sweetalert2-react-content";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, Trash2 } from "lucide-react";
 import { screenWidth } from "../../utils/screen-width.util";
 
 const MySwal = withReactContent(Swal);
@@ -16,7 +16,7 @@ export default function Products() {
 
   useEffect(() => {
     loadProducts();
-    window.scrollTo({top: 0, behavior: 'smooth'});
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
   const loadProducts = async () => {
@@ -38,8 +38,8 @@ export default function Products() {
     }
   };
 
-  const filteredProducts = products.filter((p) => 
-    p.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredProducts = products.filter((p) =>
+    p.name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   const handleClickProduct = (product: Product) => {
@@ -54,7 +54,7 @@ export default function Products() {
           
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Stock disponible</label>
-            <p class="text-lg font-semibold ${product.stock > 10 ? 'text-green-600' : product.stock > 0 ? 'text-yellow-600' : 'text-red-600'}">
+            <p class="text-lg font-semibold ${product.stock > 10 ? "text-green-600" : product.stock > 0 ? "text-yellow-600" : "text-red-600"}">
               ${product.stock} unidades
             </p>
           </div>
@@ -62,13 +62,13 @@ export default function Products() {
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
             <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-              product.stock > 10 
-                ? 'bg-green-100 text-green-800' 
-                : product.stock > 0 
-                  ? 'bg-yellow-100 text-yellow-800' 
-                  : 'bg-red-100 text-red-800'
+              product.stock > 10
+                ? "bg-green-100 text-green-800"
+                : product.stock > 0
+                  ? "bg-yellow-100 text-yellow-800"
+                  : "bg-red-100 text-red-800"
             }">
-              ${product.stock > 10 ? 'Disponible' : product.stock > 0 ? 'Stock bajo' : 'Agotado'}
+              ${product.stock > 10 ? "Disponible" : product.stock > 0 ? "Stock bajo" : "Agotado"}
             </span>
           </div>
           
@@ -78,16 +78,16 @@ export default function Products() {
           </div>
         </div>
       `,
-      icon: 'info',
+      icon: "info",
       showCancelButton: true,
-      confirmButtonText: 'Editar producto',
-      cancelButtonText: 'Cerrar',
-      confirmButtonColor: '#3b82f6',
-      cancelButtonColor: '#6b7280',
+      confirmButtonText: "Editar producto",
+      cancelButtonText: "Cerrar",
+      confirmButtonColor: "#3b82f6",
+      cancelButtonColor: "#6b7280",
       reverseButtons: true,
       preConfirm: () => {
         return MySwal.fire({
-          title: 'Editar producto',
+          title: "Editar producto",
           html: `
             <div class="text-left space-y-4">
               <div>
@@ -108,51 +108,60 @@ export default function Products() {
           `,
           focusConfirm: false,
           showCancelButton: true,
-          confirmButtonText: 'Guardar cambios',
-          cancelButtonText: 'Cancelar',
+          confirmButtonText: "Guardar cambios",
+          cancelButtonText: "Cancelar",
           preConfirm: () => {
-            const name = (document.getElementById('swal-input1') as HTMLInputElement).value;
-            const price = (document.getElementById('swal-input2') as HTMLInputElement).value;
-            const stock = (document.getElementById('swal-input3') as HTMLInputElement).value;
-            
+            const name = (
+              document.getElementById("swal-input1") as HTMLInputElement
+            ).value;
+            const price = (
+              document.getElementById("swal-input2") as HTMLInputElement
+            ).value;
+            const stock = (
+              document.getElementById("swal-input3") as HTMLInputElement
+            ).value;
+
             if (!name || !price || !stock) {
-              MySwal.showValidationMessage('Por favor completa todos los campos');
+              MySwal.showValidationMessage(
+                "Por favor completa todos los campos",
+              );
               return false;
             }
-            
+
             return { name, price: Number(price), stock: Number(stock) };
-          }
+          },
         }).then((result) => {
           if (result.isConfirmed) {
             // Aquí iría la lógica para actualizar el producto
-            productService.updateProduct(product._id!, result.value)
+            productService
+              .updateProduct(product._id!, result.value)
               .then(() => {
                 MySwal.fire({
-                  title: '¡Actualizado!',
-                  text: 'El producto ha sido actualizado correctamente',
-                  icon: 'success',
+                  title: "¡Actualizado!",
+                  text: "El producto ha sido actualizado correctamente",
+                  icon: "success",
                   timer: 2000,
-                  showConfirmButton: false
+                  showConfirmButton: false,
                 });
                 loadProducts();
               })
               .catch((error) => {
                 MySwal.fire({
-                  title: 'Error',
-                  text: 'No se pudo actualizar el producto',
-                  icon: 'error'
+                  title: "Error",
+                  text: "No se pudo actualizar el producto",
+                  icon: "error",
                 });
-                console.error('Error updating product:', error);
+                console.error("Error updating product:", error);
               });
           }
         });
-      }
+      },
     });
   };
 
   const handleCreateProduct = () => {
     MySwal.fire({
-      title: 'Crear nuevo producto',
+      title: "Crear nuevo producto",
       html: `
         <div class="text-left space-y-4">
           <div>
@@ -173,43 +182,85 @@ export default function Products() {
       `,
       focusConfirm: false,
       showCancelButton: true,
-      confirmButtonText: 'Crear producto',
-      cancelButtonText: 'Cancelar',
+      confirmButtonText: "Crear producto",
+      cancelButtonText: "Cancelar",
       preConfirm: () => {
-        const name = (document.getElementById('swal-input1') as HTMLInputElement).value;
-        const price = (document.getElementById('swal-input2') as HTMLInputElement).value;
-        const stock = (document.getElementById('swal-input3') as HTMLInputElement).value;
-        
+        const name = (
+          document.getElementById("swal-input1") as HTMLInputElement
+        ).value;
+        const price = (
+          document.getElementById("swal-input2") as HTMLInputElement
+        ).value;
+        const stock = (
+          document.getElementById("swal-input3") as HTMLInputElement
+        ).value;
+
         if (!name || !price || !stock) {
-          MySwal.showValidationMessage('Por favor completa todos los campos');
+          MySwal.showValidationMessage("Por favor completa todos los campos");
           return false;
         }
-        
+
         return { name, price: Number(price), stock: Number(stock) };
-      }
+      },
     }).then((result) => {
       if (result.isConfirmed) {
-        productService.createProduct(result.value)
+        productService
+          .createProduct(result.value)
           .then(() => {
             MySwal.fire({
-              title: '¡Creado!',
-              text: 'El producto ha sido creado correctamente',
-              icon: 'success',
+              title: "¡Creado!",
+              text: "El producto ha sido creado correctamente",
+              icon: "success",
               timer: 2000,
-              showConfirmButton: false
+              showConfirmButton: false,
             });
             loadProducts(); // Recargar la lista
           })
           .catch((error) => {
             MySwal.fire({
-              title: 'Error',
-              text: 'No se pudo crear el producto',
-              icon: 'error'
+              title: "Error",
+              text: "No se pudo crear el producto",
+              icon: "error",
             });
-            console.error('Error creating product:', error);
+            console.error("Error creating product:", error);
           });
       }
     });
+  };
+
+  const handleDeleteProduct = async (product: Product) => {
+    const result = await MySwal.fire({
+      title: "¿Eliminar Producto?",
+      text: `¿Estás seguro de eliminar "${product.name}"?`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#ef4444",
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await productService.deleteProduct(product._id!);
+
+        setProducts(products.filter((p) => p._id !== product._id));
+
+        MySwal.fire({
+          title: "¡Eliminado!",
+          text: "El producto ha sido eliminado",
+          icon: "success",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      } catch (error) {
+        MySwal.fire({
+          title: "Error",
+          text: "No se pudo eliminar el gasto",
+          icon: "error",
+        });
+        console.error("Error deleting expense:", error);
+      }
+    }
   };
 
   if (isLoading) {
@@ -242,8 +293,8 @@ export default function Products() {
           onClick={handleCreateProduct}
           className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
         >
-          <Plus className='w-5 h-6 md:w-4 md:h-4' />
-          { screenWidth.isMobile ? '' : 'Crear producto' }
+          <Plus className="w-5 h-6 md:w-4 md:h-4" />
+          {screenWidth.isMobile ? "" : "Crear producto"}
         </button>
       </div>
 
@@ -270,9 +321,22 @@ export default function Products() {
             <div
               key={product._id}
               onClick={() => handleClickProduct(product)}
-              className="p-4 border rounded-lg shadow-md hover:shadow-lg transition-all duration-200 ease-in-out hover:bg-primary/10 transform hover:scale-105 cursor-pointer"
+              className="flex justify-between gap-3 p-4 border rounded-lg shadow-md hover:shadow-lg transition-all duration-200 ease-in-out hover:bg-primary/10 transform hover:scale-105 cursor-pointer"
             >
-              <h3 className="font-semibold text-lg mb-2">{product.name}</h3>
+              <div className="flex-1">
+                <h3 className="font-semibold text-lg mb-2">{product.name}</h3>
+              </div>
+              <div className="flex space-x-1">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeleteProduct(product);
+                  }}
+                  className="p-1 text-red-600 hover:bg-red-100 rounded"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           ))}
         </div>
