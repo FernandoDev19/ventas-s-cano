@@ -58,7 +58,7 @@ export class SeedersService {
     await this.userModel.deleteMany({});
 
     await this.userModel.insertMany([
-      { username: 'Admin', email: 'admin@gmail.com', password: await hashPassword('123456') },
+      { username: this.configService.get('ADMIN_USERNAME'), email: this.configService.get('ADMIN_EMAIL'), password: await hashPassword(this.configService.get('ADMIN_PASSWORD') || '123456') },
     ]);
 
     console.log('Users seeded');
