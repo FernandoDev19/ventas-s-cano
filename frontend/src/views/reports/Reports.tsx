@@ -1,34 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Line, Bar, Doughnut } from "react-chartjs-2";
-import {
-  CategoryScale,
-  Chart as ChartJS,
-  LinearScale,
-  PointElement,
-  LineElement,
-  ArcElement,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-} from "chart.js";
+import ChartJS from 'chart.js/auto';
 import type { Customer, Expense, Product, Sale } from "../../models";
 import saleService from "../../services/sale.service";
 import customerService from "../../services/customer.service";
 import expenseService from "../../services/expense.service";
 import productService from "../../services/product.service";
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  ArcElement,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend
-);
 
 const MONTHS = [
   "Ene",
