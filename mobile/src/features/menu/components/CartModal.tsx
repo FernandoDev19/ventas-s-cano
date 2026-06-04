@@ -8,7 +8,7 @@ import {
   PaymentMethodsType,
 } from "@/src/shared/types/payment-methods.type";
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   FlatList,
@@ -22,6 +22,8 @@ import {
 } from "react-native";
 import { SalesService } from "../../sales/services/sales.service";
 import { SaleType } from "../../sales/types/sale.type";
+import { ClientType } from "../../clients/types/client.type";
+import { ClientsService } from "../../clients/services/clients.service";
 
 type Props = {
   onSaleCreated: () => void;
@@ -36,14 +38,25 @@ const CartModal = ({ onSaleCreated }: Props) => {
     0,
   );
 
-  const [amountDebt, setAmountDebt] = useState<number>(totalPrecio);
+  const [clients, setClients] = useState<ClientType[]>([]);
+  const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
+  const [showClientPicker, setShowClientPicker] = useState(false);
+
   const [isDebt, setIsDebt] = useState(false);
   const [note, setNote] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
+  const [amountDebt, setAmountDebt] = useState<number>(totalPrecio);
   const [paymentMethod, setPaymentMethod] =
     useState<PaymentMethodsType>("cash");
 
+  useEffect(() => {
+    if (modalVisible) {
+      ClientsService.getAll().then(setClients);
+    }
+  }, [modalVisible]);
+
   if (totalItems === 0) return null;
+
 
   const buildSale = (): SaleType => ({
     total: totalPrecio,
@@ -52,6 +65,7 @@ const CartModal = ({ onSaleCreated }: Props) => {
     debt_amount: isDebt ? (amountDebt > 0 ? amountDebt : totalPrecio) : 0,
     debt_date: isDebt ? new Date().toISOString().split("T")[0] : null,
     payment_method: paymentMethod,
+    client_id: isDebt ? selectedClientId : null,
   });
 
   const handleCheckout = async (sale: SaleType, order: OrderItem[]) => {
@@ -102,90 +116,92 @@ const CartModal = ({ onSaleCreated }: Props) => {
         visible={modalVisible}
         onRequestClose={() => setModalVisible(false)}
       >
-        <View className="flex-1 bg-black/60 justify-end">
-          {/* Contenedor del carrito que sube */}
-          <View className="bg-neutral-900 rounded-t-[32px] h-[92%] px-6 pt-6 shadow-2xl border-t border-neutral-800">
-            <View className="flex-row items-center justify-between mb-6">
-              <View className="flex-row items-center gap-2">
-                <Text className="text-2xl font-black text-white">Mi Orden</Text>
-                <Text className="text-primary font-bold text-lg">
-                  ({totalItems})
-                </Text>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={{ flex: 1 }}
+        >
+          <View className="flex-1 bg-black/60 justify-end">
+            {/* Contenedor del carrito que sube */}
+            <View className="bg-neutral-900 rounded-t-[32px] h-[92%] px-6 pt-6 shadow-2xl border-t border-neutral-800">
+              <View className="flex-row items-center justify-between mb-6">
+                <View className="flex-row items-center gap-2">
+                  <Text className="text-2xl font-black text-white">
+                    Mi Orden
+                  </Text>
+                  <Text className="text-primary font-bold text-lg">
+                    ({totalItems})
+                  </Text>
+                </View>
+
+                <Pressable
+                  onPress={() => setModalVisible(false)}
+                  className="p-2 bg-neutral-800 rounded-full active:opacity-70"
+                >
+                  <Ionicons name="close" size={24} color="white" />
+                </Pressable>
               </View>
 
-              <Pressable
-                onPress={() => setModalVisible(false)}
-                className="p-2 bg-neutral-800 rounded-full active:opacity-70"
-              >
-                <Ionicons name="close" size={24} color="white" />
-              </Pressable>
-            </View>
+              <FlatList
+                data={order}
+                keyExtractor={(item) => item.product.id.toString()}
+                contentContainerStyle={{ gap: 16, paddingBottom: 24 }}
+                showsVerticalScrollIndicator={false}
+                renderItem={({ item }) => (
+                  <View className="flex-row bg-neutral-800 p-4 rounded-2xl items-center justify-between">
+                    <View className="flex-row items-center flex-1 mr-4">
+                      <Image
+                        source={
+                          item.product.image_url
+                            ? { uri: item.product.image_url }
+                            : require("@/assets/images/default-food.png")
+                        }
+                        className="w-14 h-14 rounded-xl bg-neutral-700 mr-3"
+                        resizeMode="cover"
+                      />
+                      <View className="flex-1">
+                        <Text
+                          className="text-white font-bold text-base"
+                          numberOfLines={1}
+                        >
+                          {item.product.name}
+                        </Text>
+                        <Text className="text-primary font-bold mt-0.5">
+                          {priceFormat(item.product.price * item.quantity)}
+                        </Text>
+                      </View>
+                    </View>
 
-            <FlatList
-              data={order}
-              keyExtractor={(item) => item.product.id.toString()}
-              contentContainerStyle={{ gap: 16, paddingBottom: 24 }}
-              showsVerticalScrollIndicator={false}
-              renderItem={({ item }) => (
-                <View className="flex-row bg-neutral-800 p-4 rounded-2xl items-center justify-between">
-                  <View className="flex-row items-center flex-1 mr-4">
-                    <Image
-                      source={
-                        item.product.image_url
-                          ? { uri: item.product.image_url }
-                          : require("@/assets/images/default-food.png")
-                      }
-                      className="w-14 h-14 rounded-xl bg-neutral-700 mr-3"
-                      resizeMode="cover"
-                    />
-                    <View className="flex-1">
-                      <Text
-                        className="text-white font-bold text-base"
-                        numberOfLines={1}
+                    {/* Controles de unidades */}
+                    <View className="flex-row items-center bg-neutral-900 rounded-xl p-1 gap-2.5">
+                      <Pressable
+                        onPress={() => removeFromOrder(item.product.id)}
+                        className="p-1 active:opacity-60"
                       >
-                        {item.product.name}
+                        <Ionicons
+                          name="remove-circle-outline"
+                          size={24}
+                          color="white"
+                        />
+                      </Pressable>
+                      <Text className="text-white font-black text-sm min-w-[14px] text-center">
+                        {item.quantity}
                       </Text>
-                      <Text className="text-primary font-bold mt-0.5">
-                        {priceFormat(item.product.price * item.quantity)}
-                      </Text>
+                      <Pressable
+                        onPress={() => addToOrder(item.product)}
+                        className="p-1 active:opacity-60"
+                      >
+                        <Ionicons
+                          name="add-circle-outline"
+                          size={24}
+                          color="white"
+                        />
+                      </Pressable>
                     </View>
                   </View>
+                )}
+              />
 
-                  {/* Controles de unidades */}
-                  <View className="flex-row items-center bg-neutral-900 rounded-xl p-1 gap-2.5">
-                    <Pressable
-                      onPress={() => removeFromOrder(item.product.id)}
-                      className="p-1 active:opacity-60"
-                    >
-                      <Ionicons
-                        name="remove-circle-outline"
-                        size={24}
-                        color="white"
-                      />
-                    </Pressable>
-                    <Text className="text-white font-black text-sm min-w-[14px] text-center">
-                      {item.quantity}
-                    </Text>
-                    <Pressable
-                      onPress={() => addToOrder(item.product)}
-                      className="p-1 active:opacity-60"
-                    >
-                      <Ionicons
-                        name="add-circle-outline"
-                        size={24}
-                        color="white"
-                      />
-                    </Pressable>
-                  </View>
-                </View>
-              )}
-            />
-
-            {/* Footer fijo con total y acción */}
-            <KeyboardAvoidingView
-              behavior={Platform.OS === "ios" ? "padding" : "height"}
-              style={{ flex: 1 }}
-            >
+              {/* Footer fijo con total y acción */}
               <View className="border-t border-neutral-800 pt-4 pb-10">
                 {/* Nota o nombre del cliente */}
                 <View className="mb-4">
@@ -247,10 +263,51 @@ const CartModal = ({ onSaleCreated }: Props) => {
                 {/* Input de deuda solo si es fiado */}
                 {isDebt && (
                   <View className="mb-4">
+                    <Pressable
+                      onPress={() => setShowClientPicker(true)}
+                      style={{
+                        backgroundColor: "#1a1a1a",
+                        borderRadius: 12,
+                        padding: 14,
+                        marginBottom: 12,
+                        borderWidth: 1,
+                        borderColor: selectedClientId ? "#ff5722" : "#2a2a2a",
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 8,
+                        }}
+                      >
+                        <Ionicons
+                          name="person-outline"
+                          size={18}
+                          color={selectedClientId ? "#ff5722" : "#737373"}
+                        />
+                        <Text
+                          style={{
+                            color: selectedClientId ? "#fff" : "#737373",
+                            fontSize: 15,
+                          }}
+                        >
+                          {selectedClientId
+                            ? clients.find((c) => c.id === selectedClientId)
+                                ?.name
+                            : "Asignar cliente (opcional)"}
+                        </Text>
+                      </View>
+                      <Ionicons name="chevron-down" size={16} color="#555" />
+                    </Pressable>
+
                     <Input
                       type="number"
                       placeholder="Monto que quedan debiendo"
-                      value={String(amountDebt || totalPrecio)}
+                      value={String(amountDebt)}
                       onChangeText={(text) => {
                         if (typeof Number(text) != "number") {
                           Alert.alert(
@@ -265,6 +322,131 @@ const CartModal = ({ onSaleCreated }: Props) => {
                     />
                   </View>
                 )}
+
+                <Modal
+                  visible={showClientPicker}
+                  transparent
+                  animationType="slide"
+                >
+                  <View
+                    style={{
+                      flex: 1,
+                      backgroundColor: "rgba(0,0,0,0.6)",
+                      justifyContent: "flex-end",
+                    }}
+                  >
+                    <View
+                      style={{
+                        backgroundColor: "#141414",
+                        borderTopLeftRadius: 28,
+                        borderTopRightRadius: 28,
+                        padding: 24,
+                        maxHeight: "60%",
+                        paddingBottom: 40,
+                      }}
+                    >
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginBottom: 16,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            color: "#fff",
+                            fontSize: 18,
+                            fontWeight: "800",
+                          }}
+                        >
+                          Seleccionar Cliente
+                        </Text>
+                        <Pressable
+                          onPress={() => setShowClientPicker(false)}
+                          style={{
+                            backgroundColor: "#2a2a2a",
+                            borderRadius: 20,
+                            padding: 8,
+                          }}
+                        >
+                          <Ionicons name="close" size={18} color="#fff" />
+                        </Pressable>
+                      </View>
+                      <FlatList
+                        data={clients}
+                        keyExtractor={(c) => String(c.id)}
+                        renderItem={({ item }) => (
+                          <Pressable
+                            onPress={() => {
+                              setSelectedClientId(item.id);
+                              setShowClientPicker(false);
+                            }}
+                            style={{
+                              padding: 14,
+                              borderRadius: 12,
+                              marginBottom: 8,
+                              backgroundColor:
+                                selectedClientId === item.id
+                                  ? "#ff572222"
+                                  : "#1a1a1a",
+                              borderWidth: 1,
+                              borderColor:
+                                selectedClientId === item.id
+                                  ? "#ff5722"
+                                  : "#2a2a2a",
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 10,
+                            }}
+                          >
+                            <View
+                              style={{
+                                width: 36,
+                                height: 36,
+                                borderRadius: 18,
+                                backgroundColor: "#ff572233",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              <Text
+                                style={{ color: "#ff5722", fontWeight: "800" }}
+                              >
+                                {item.name[0].toUpperCase()}
+                              </Text>
+                            </View>
+                            <View>
+                              <Text
+                                style={{ color: "#fff", fontWeight: "600" }}
+                              >
+                                {item.name}
+                              </Text>
+                              {item.phone && (
+                                <Text
+                                  style={{ color: "#737373", fontSize: 12 }}
+                                >
+                                  {item.phone}
+                                </Text>
+                              )}
+                            </View>
+                          </Pressable>
+                        )}
+                        ListEmptyComponent={
+                          <Text
+                            style={{
+                              color: "#555",
+                              textAlign: "center",
+                              marginTop: 20,
+                            }}
+                          >
+                            No hay clientes registrados
+                          </Text>
+                        }
+                      />
+                    </View>
+                  </View>
+                </Modal>
 
                 {/* Contenedor para el total y el botón de confirmar */}
                 <View className="flex-row justify-between items-center mb-6">
@@ -285,9 +467,9 @@ const CartModal = ({ onSaleCreated }: Props) => {
                   </Text>
                 </Pressable>
               </View>
-            </KeyboardAvoidingView>
+            </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </>
   );

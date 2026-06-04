@@ -21,6 +21,13 @@ const DATABASE = {
           FOREIGN KEY (category_id) REFERENCES categories (id)
         );
 
+        CREATE TABLE IF NOT EXISTS clients (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          phone TEXT,
+          notes TEXT
+        );
+
         CREATE TABLE IF NOT EXISTS sales (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           total REAL NOT NULL,
@@ -29,7 +36,9 @@ const DATABASE = {
           debt_amount REAL,
           debt_date DATE,
           payment_method TEXT DEFAULT 'cash',
-          created_at TEXT NOT NULL
+          created_at TEXT NOT NULL,
+          client_id INTEGER,
+          FOREIGN KEY (client_id) REFERENCES clients (id)
         );
 
         CREATE TABLE IF NOT EXISTS sale_products (
@@ -56,7 +65,9 @@ const DATABASE = {
       console.log("Database initialized successfully");
       console.log(
         "Database tables:",
-        DATABASE.db.getAllSync("SELECT name FROM sqlite_master WHERE type='table';")
+        DATABASE.db.getAllSync(
+          "SELECT name FROM sqlite_master WHERE type='table';",
+        ),
       );
     } catch (error) {
       console.error("Error initializing database:", error);

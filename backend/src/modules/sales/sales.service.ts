@@ -26,8 +26,8 @@ export class SalesService {
     return await sale.save();
   }
 
-  async findAll(): Promise<Sale[]> {
-    return await this.saleModel.find().exec();
+  async findAll(page: number = 1, limit: number = 10): Promise<Sale[]> {
+    return await this.saleModel.find().skip((page - 1) * limit).limit(limit).exec();
   }
 
   async findAllByCustomerId(customerId: string): Promise<Sale[]> {

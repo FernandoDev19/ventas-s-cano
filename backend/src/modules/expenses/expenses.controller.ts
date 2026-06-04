@@ -14,8 +14,8 @@ export class ExpensesController {
   }
 
   @Get()
-  findAll() {
-    return this.expensesService.findAll();
+  findAll(@Query('page') page: number = 1, @Query('limit') limit: number = 10) {
+    return this.expensesService.findAll(page, limit);
   }
 
   @Get(':id')

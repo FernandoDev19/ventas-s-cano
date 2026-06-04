@@ -1,6 +1,7 @@
 import DATABASE from "@/src/core/config/db";
 import { SaleType } from "../types/sale.type";
 
+// TODO: Agregar nombre del cliente al getSaleById
 export const SalesService = {
   createSale: async (
     sale: Omit<SaleType, "id" | "created_at">,
@@ -15,7 +16,7 @@ export const SalesService = {
 
     await DATABASE.db.withTransactionAsync(async () => {
       const result = await DATABASE.db.runAsync(
-        "INSERT INTO sales (total, note, is_debt, debt_amount, debt_date, payment_method, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO sales (total, note, is_debt, debt_amount, debt_date, payment_method, client_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
         [
           sale.total,
           sale.note || "",
@@ -23,6 +24,7 @@ export const SalesService = {
           sale.debt_amount || 0,
           debtDateStr,
           sale.payment_method || "cash",
+          sale.client_id || null,
           createdAtStr,
         ],
       );
@@ -74,7 +76,15 @@ export const SalesService = {
   }> => {
     const todayStr = new Date().toISOString().split("T")[0];
 
-    // Calcular fecha de hace 7 días
+    // Primer y último día del mes actual
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
+      .toISOString()
+      .split("T")[0];
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+      .toISOString()
+      .split("T")[0];
+
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
     const startDateStr = sevenDaysAgo.toISOString().split("T")[0];
@@ -82,18 +92,22 @@ export const SalesService = {
     const [rowDay, rowMonth, rowDebt, rowPaid, weeklySales, recentSalesRaw] =
       await Promise.all([
         DATABASE.db.getFirstAsync(
-          "SELECT SUM(total) as total FROM sales WHERE created_at = ?",
-          [todayStr],
+          "SELECT SUM(total) as total FROM sales WHERE created_at LIKE ?",
+          [`${todayStr}%`],
         ),
-        DATABASE.db.getFirstAsync("SELECT SUM(total) as total FROM sales"),
+        DATABASE.db.getFirstAsync(
+          "SELECT SUM(total) as total FROM sales WHERE created_at BETWEEN ? AND ?",
+          [firstDay, lastDay],
+        ), // fix
         DATABASE.db.getFirstAsync(
           "SELECT SUM(debt_amount) as total FROM sales WHERE is_debt = 1",
         ),
         DATABASE.db.getFirstAsync(
-          "SELECT SUM(total) as total FROM sales WHERE is_debt = 0",
+          "SELECT SUM(total) as total FROM sales WHERE is_debt = 0 AND created_at LIKE ?",
+          [`${todayStr}%`],
         ),
         DATABASE.db.getAllAsync(
-          "SELECT created_at as dateStr, SUM(total) as total FROM sales WHERE created_at >= ? GROUP BY created_at",
+          "SELECT substr(created_at, 1, 10) as dateStr, SUM(total) as total FROM sales WHERE created_at >= ? GROUP BY substr(created_at, 1, 10)",
           [startDateStr],
         ),
         DATABASE.db.getAllAsync(
@@ -118,11 +132,89 @@ export const SalesService = {
     };
   },
 
+  getReportByRange: async (
+    startDate: string,
+    endDate: string,
+  ): Promise<{
+    totalSales: number;
+    totalPaid: number;
+    totalDebt: number;
+    salesCount: number;
+    salesByDay: { dateStr: string; total: number; count: number }[];
+    topProducts: { name: string; quantity: number; total: number }[];
+    sales: SaleType[];
+  }> => {
+    const end = `${endDate}T23:59:59`;
+
+    const [rowTotal, rowPaid, rowDebt, rowCount, byDay, topProducts, salesRaw] =
+      await Promise.all([
+        DATABASE.db.getFirstAsync(
+          "SELECT SUM(total) as total FROM sales WHERE created_at BETWEEN ? AND ?",
+          [startDate, end],
+        ),
+        DATABASE.db.getFirstAsync(
+          "SELECT SUM(total) as total FROM sales WHERE is_debt = 0 AND created_at BETWEEN ? AND ?",
+          [startDate, end],
+        ),
+        DATABASE.db.getFirstAsync(
+          "SELECT SUM(debt_amount) as total FROM sales WHERE is_debt = 1 AND created_at BETWEEN ? AND ?",
+          [startDate, end],
+        ),
+        DATABASE.db.getFirstAsync(
+          "SELECT COUNT(*) as count FROM sales WHERE created_at BETWEEN ? AND ?",
+          [startDate, end],
+        ),
+        DATABASE.db.getAllAsync(
+          `SELECT substr(created_at, 1, 10) as dateStr, SUM(total) as total, COUNT(*) as count 
+       FROM sales WHERE created_at BETWEEN ? AND ? 
+       GROUP BY substr(created_at, 1, 10) ORDER BY dateStr ASC`,
+          [startDate, end],
+        ),
+        DATABASE.db.getAllAsync(
+          `SELECT p.name, SUM(sp.quantity) as quantity, SUM(sp.quantity * sp.price) as total
+       FROM sale_products sp
+       JOIN products p ON sp.product_id = p.id
+       JOIN sales s ON sp.sale_id = s.id
+       WHERE s.created_at BETWEEN ? AND ?
+       GROUP BY sp.product_id ORDER BY quantity DESC LIMIT 5`,
+          [startDate, end],
+        ),
+        DATABASE.db.getAllAsync(
+          "SELECT * FROM sales WHERE created_at BETWEEN ? AND ? ORDER BY created_at DESC",
+          [startDate, end],
+        ),
+      ]);
+
+    return {
+      totalSales: (rowTotal as any)?.total || 0,
+      totalPaid: (rowPaid as any)?.total || 0,
+      totalDebt: (rowDebt as any)?.total || 0,
+      salesCount: (rowCount as any)?.count || 0,
+      salesByDay: (byDay || []) as any[],
+      topProducts: (topProducts || []) as any[],
+      sales: (salesRaw || []).map((s: any) => ({
+        ...s,
+        is_debt: Boolean(s.is_debt),
+        created_at: new Date(s.created_at),
+        debt_date: s.debt_date ? new Date(s.debt_date) : null,
+      })),
+    };
+  },
+
   getSaleById: async (
     id: number,
-  ): Promise<(SaleType & { products: any[] }) | null> => {
+  ): Promise<
+    | (SaleType & { products: any[]; client: { id: number; name: string } })
+    | null
+  > => {
     const sale: any = await DATABASE.db.getFirstAsync(
-      "SELECT * FROM sales WHERE id = ?",
+      `SELECT 
+        s.*,
+        c.id as client_id,
+        c.name as client_name
+        FROM sales s
+        LEFT JOIN clients c ON s.client_id = c.id
+        WHERE s.id = ?`,
       [id],
     );
     if (!sale) return null;
@@ -141,6 +233,12 @@ export const SalesService = {
       created_at: new Date(sale.created_at),
       debt_date: sale.debt_date ? new Date(sale.debt_date) : null,
       products,
+      client: sale.client_id
+        ? {
+            id: sale.client_id,
+            name: sale.client_name,
+          }
+        : null,
     };
   },
 

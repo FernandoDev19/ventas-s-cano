@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { SaleType } from "../types/sale.type";
 
 type Props = {
-    sale: SaleType;
+    sale: SaleType & {client: { id: number; name: string } };
     onMarkAsPaid: (saleId: number) => void;
     payingId: number | null;
     onPress: () => void;
@@ -98,6 +98,12 @@ export default function SaleCard({ sale, onMarkAsPaid, payingId, onPress }: Prop
                         </Text>
                     </View>
                 </View>
+
+                {sale.client && (
+                    <Text className="text-white text-sm mb-3" numberOfLines={1}>
+                        {sale.client.name}
+                    </Text>
+                )}
 
                 {/* Note */}
                 {sale.note ? (

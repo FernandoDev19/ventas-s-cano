@@ -13,8 +13,8 @@ export class ExpensesService {
     return newExpense.save();
   }
 
-  async findAll(): Promise<Expense[]> {
-    return this.expenseModel.find().sort({ date: -1 }).exec();
+  async findAll(page: number = 1, limit: number = 10): Promise<Expense[]> {
+    return this.expenseModel.find().skip((page - 1) * limit).limit(limit).sort({ date: -1 }).exec();
   }
 
   async findOne(id: string): Promise<Expense | null> {

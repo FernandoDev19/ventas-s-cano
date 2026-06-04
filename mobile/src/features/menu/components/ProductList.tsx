@@ -1,4 +1,4 @@
-import { FlatList, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, RefreshControl, Text, View } from "react-native";
 import { CategoryType } from "../../categories/types/category.type";
 import { ProductType } from "../../products/types/product.type";
 import MenuHeader from "./MenuHeader";
@@ -11,6 +11,10 @@ type Props = {
   setFilter: (filter: number) => void;
   search: string;
   setSearch: (s: string) => void;
+  isLoading: boolean;
+  isRefreshing: boolean;
+  setIsRefreshing: (i: boolean) => void
+  loadData: (d: boolean) => void
 };
 
 const ProductList = ({
@@ -20,10 +24,29 @@ const ProductList = ({
   setFilter,
   search,
   setSearch,
+  isLoading,
+  isRefreshing,
+  setIsRefreshing,
+  loadData
 }: Props) => {
+  if (isLoading)
+    return (
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#0f0f0f",
+        }}
+      >
+        <ActivityIndicator size="large" color="#ff5722" />
+      </View>
+    );
+
   return (
     <FlatList
       data={products}
+      refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => { setIsRefreshing(true); loadData(true); }} tintColor="#ff5722" />}
       ListHeaderComponent={
         <MenuHeader
           categories={categories}

@@ -143,14 +143,15 @@ export const seeders = {
       }
     }
 
-    await categoriesTable();
     
     if (env === "development" && count === 0) {
+      await seeders.reset();
       await productsTable();
       await salesTable();
       await expensesTable();
       count += 1;
     }
+    await categoriesTable();
   },
 
   reset: async () => {
