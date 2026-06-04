@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+
+  html,
+  body,
+  #root {
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0;
+    height: 100%;
+  }
+}
+
+:root {
+  /* Primary */
+  --color-primary: #ff5722;
+
+  /* Background */
+  --color-background: #0f0f0f;
+
+  /* Typography */
+  --font-family-body: "Nunito", system-ui, sans-serif;
+}
