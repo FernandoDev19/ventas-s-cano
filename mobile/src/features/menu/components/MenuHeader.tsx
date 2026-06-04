@@ -6,14 +6,27 @@ type Props = {
   categories: Partial<CategoryType>[];
   filter: number;
   setFilter: (filter: number) => void;
+  search: string;
+  setSearch: (s: string) => void;
 };
 
-export default function MenuHeader({ categories, filter, setFilter }: Props) {
+export default function MenuHeader({
+  categories,
+  filter,
+  setFilter,
+  search,
+  setSearch,
+}: Props) {
   return (
     <View className="mb-2 mt-4 gap-2">
       <Text className="text-2xl font-extrabold text-white">Menú</Text>
 
-      <Input type="search" placeholder="Buscar productos..." />
+      <Input
+        type="search"
+        placeholder="Buscar productos..."
+        value={search}
+        onChangeText={setSearch}
+      />
 
       <ScrollView
         horizontal
@@ -28,12 +41,16 @@ export default function MenuHeader({ categories, filter, setFilter }: Props) {
                 onPress={() => setFilter(category.id!)}
                 className="px-4 py-2 rounded-full"
                 style={{
-                  backgroundColor: filter === category.id ? "#ff5722" : "#1a1a1a",
+                  backgroundColor:
+                    filter === category.id ? "#ff5722" : "#1a1a1a",
                   borderWidth: 1,
                   borderColor: filter === category.id ? "#ff5722" : "#333",
                 }}
               >
-                <Text className="text-sm font-semibold" style={{ color: filter === category.id ? "#fff" : "#a3a3a3" }}>
+                <Text
+                  className="text-sm font-semibold"
+                  style={{ color: filter === category.id ? "#fff" : "#a3a3a3" }}
+                >
                   {category.name}
                 </Text>
               </Pressable>

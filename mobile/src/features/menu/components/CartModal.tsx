@@ -13,7 +13,9 @@ import {
   Alert,
   FlatList,
   Image,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   Text,
   View,
@@ -23,7 +25,7 @@ import { SaleType } from "../../sales/types/sale.type";
 
 type Props = {
   onSaleCreated: () => void;
-}
+};
 
 const CartModal = ({ onSaleCreated }: Props) => {
   const { order, addToOrder, removeFromOrder, clearOrder } = useOrder();
@@ -36,11 +38,10 @@ const CartModal = ({ onSaleCreated }: Props) => {
 
   const [amountDebt, setAmountDebt] = useState<number>(totalPrecio);
   const [isDebt, setIsDebt] = useState(false);
-  const [note, setNote] = useState('');
+  const [note, setNote] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
   const [paymentMethod, setPaymentMethod] =
     useState<PaymentMethodsType>("cash");
-
 
   if (totalItems === 0) return null;
 
@@ -50,12 +51,12 @@ const CartModal = ({ onSaleCreated }: Props) => {
     is_debt: isDebt,
     debt_amount: isDebt ? (amountDebt > 0 ? amountDebt : totalPrecio) : 0,
     debt_date: isDebt ? new Date().toISOString().split("T")[0] : null,
-    created_at: new Date().toISOString().split("T")[0],
+    payment_method: paymentMethod,
   });
 
   const handleCheckout = async (sale: SaleType, order: OrderItem[]) => {
     try {
-      const productsToSave = order.map(o => ({
+      const productsToSave = order.map((o) => ({
         product_id: o.product.id,
         quantity: o.quantity,
         price: o.product.price * o.quantity,
@@ -76,7 +77,7 @@ const CartModal = ({ onSaleCreated }: Props) => {
       console.error(error);
       Alert.alert(
         "Error",
-        `El pedido no ha podido ser creado, detalles: \n${error?.message}`
+        `El pedido no ha podido ser creado, detalles: \n${error?.message}`,
       );
     }
   };
@@ -181,106 +182,110 @@ const CartModal = ({ onSaleCreated }: Props) => {
             />
 
             {/* Footer fijo con total y acción */}
-            <View className="border-t border-neutral-800 pt-4 pb-10">
-              {/* Nota o nombre del cliente */}
-              <View className="mb-4">
-                <Input
-                  type="text"
-                  onChangeText={(text) => setNote(text)}
-                  placeholder="Nota o nombre del cliente"
-                  value={note}
-                />
-              </View>
-
-              {/* Contenedor para los métodos de pago */}
-              <View className="flex-row justify-between gap-3 mb-4">
-                {Object.values(PaymentMethods).map((method) => (
-                  <Button
-                    key={method}
-                    color="filter"
-                    active={paymentMethod === method}
-                    onPress={() => setPaymentMethod(method)}
-                    className="!rounded-xl flex-1"
-                  >
-                    <View className="flex-col items-center justify-center gap-1 w-full">
-                      {method === PaymentMethods.NEQUI ? (
-                        <Image
-                          source={require("../../../../assets/icons/nequi.png")}
-                          style={{ width: 22, height: 22 }}
-                        />
-                      ) : (
-                        <Ionicons
-                          name={method}
-                          size={22}
-                          color="white"
-                        />
-                      )}
-                      <Text className="text-white text-xs font-medium">
-                        {method === PaymentMethods.CASH
-                          ? "Efectivo"
-                          : method === PaymentMethods.NEQUI
-                            ? "Nequi"
-                            : "Tarjeta"}
-                      </Text>
-                    </View>
-                  </Button>
-                ))}
-              </View>
-
-              {/* Is Debt buttons */}
-              <View className="flex-row items-center gap-6 mb-4">
-                <Pressable
-                  onPress={() => setIsDebt(false)}
-                  className={`flex-1 flex-row items-center p-3 rounded-xl border ${!isDebt ? 'border-primary' : 'border-neutral-700'} active:opacity-70`}
-                >
-                  <Text className="text-white font-semibold">Contado</Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => setIsDebt(true)}
-                  className={`flex-1 flex-row items-center p-3 rounded-xl border ${isDebt ? 'border-primary' : 'border-neutral-700'} active:opacity-70`}
-                >
-                  <Text className="text-white font-semibold">Fiado</Text>
-                </Pressable>
-              </View>
-
-              {/* Input de deuda solo si es fiado */}
-              {isDebt && (
+            <KeyboardAvoidingView
+              behavior={Platform.OS === "ios" ? "padding" : "height"}
+              style={{ flex: 1 }}
+            >
+              <View className="border-t border-neutral-800 pt-4 pb-10">
+                {/* Nota o nombre del cliente */}
                 <View className="mb-4">
                   <Input
-                    type="number"
-                    placeholder="Monto que quedan debiendo"
-                    value={String(amountDebt || totalPrecio)}
-                    onChangeText={(text) => {
-                      if (typeof Number(text) != "number") {
-                        Alert.alert("Error", "Este campo solo admite numeros");
-                        return;
-                      }
-
-                      setAmountDebt(Number(text))
-                    }}
+                    type="text"
+                    onChangeText={(text) => setNote(text)}
+                    placeholder="Nota o nombre del cliente"
+                    value={note}
                   />
                 </View>
-              )}
 
-              {/* Contenedor para el total y el botón de confirmar */}
-              <View className="flex-row justify-between items-center mb-6">
-                <Text className="text-gray-400 text-lg font-medium">
-                  Total de la orden
-                </Text>
-                <Text className="text-white text-3xl font-black">
-                  {priceFormat(totalPrecio)}
-                </Text>
+                {/* Contenedor para los métodos de pago */}
+                <View className="flex-row justify-between gap-3 mb-4">
+                  {Object.values(PaymentMethods).map((method) => (
+                    <Button
+                      key={method}
+                      color="filter"
+                      active={paymentMethod === method}
+                      onPress={() => setPaymentMethod(method)}
+                      className="!rounded-xl flex-1"
+                    >
+                      <View className="flex-col items-center justify-center gap-1 w-full">
+                        {method === PaymentMethods.NEQUI ? (
+                          <Image
+                            source={require("../../../../assets/icons/nequi.png")}
+                            style={{ width: 22, height: 22 }}
+                          />
+                        ) : (
+                          <Ionicons name={method} size={22} color="white" />
+                        )}
+                        <Text className="text-white text-xs font-medium">
+                          {method === PaymentMethods.CASH
+                            ? "Efectivo"
+                            : method === PaymentMethods.NEQUI
+                              ? "Nequi"
+                              : "Tarjeta"}
+                        </Text>
+                      </View>
+                    </Button>
+                  ))}
+                </View>
+
+                {/* Is Debt buttons */}
+                <View className="flex-row items-center gap-6 mb-4">
+                  <Pressable
+                    onPress={() => setIsDebt(false)}
+                    className={`flex-1 flex-row items-center p-3 rounded-xl border ${!isDebt ? "border-primary" : "border-neutral-700"} active:opacity-70`}
+                  >
+                    <Text className="text-white font-semibold">Contado</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setIsDebt(true)}
+                    className={`flex-1 flex-row items-center p-3 rounded-xl border ${isDebt ? "border-primary" : "border-neutral-700"} active:opacity-70`}
+                  >
+                    <Text className="text-white font-semibold">Fiado</Text>
+                  </Pressable>
+                </View>
+
+                {/* Input de deuda solo si es fiado */}
+                {isDebt && (
+                  <View className="mb-4">
+                    <Input
+                      type="number"
+                      placeholder="Monto que quedan debiendo"
+                      value={String(amountDebt || totalPrecio)}
+                      onChangeText={(text) => {
+                        if (typeof Number(text) != "number") {
+                          Alert.alert(
+                            "Error",
+                            "Este campo solo admite numeros",
+                          );
+                          return;
+                        }
+
+                        setAmountDebt(Number(text));
+                      }}
+                    />
+                  </View>
+                )}
+
+                {/* Contenedor para el total y el botón de confirmar */}
+                <View className="flex-row justify-between items-center mb-6">
+                  <Text className="text-gray-400 text-lg font-medium">
+                    Total de la orden
+                  </Text>
+                  <Text className="text-white text-3xl font-black">
+                    {priceFormat(totalPrecio)}
+                  </Text>
+                </View>
+
+                <Pressable
+                  onPress={() => handleCheckout(buildSale(), order)}
+                  className="bg-primary py-4 rounded-2xl items-center justify-center active:opacity-90 shadow-xl"
+                >
+                  <Text className="text-white text-xl font-black">
+                    Confirmar Pedido
+                  </Text>
+                </Pressable>
               </View>
-
-              <Pressable
-                onPress={() => handleCheckout(buildSale(), order)}
-                className="bg-primary py-4 rounded-2xl items-center justify-center active:opacity-90 shadow-xl"
-              >
-                <Text className="text-white text-xl font-black">
-                  Confirmar Pedido
-                </Text>
-              </Pressable>
-            </View>
+            </KeyboardAvoidingView>
           </View>
         </View>
       </Modal>

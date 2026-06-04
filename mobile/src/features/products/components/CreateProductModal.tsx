@@ -4,7 +4,9 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -102,270 +104,279 @@ export default function CreateProductModal({
       transparent
       onRequestClose={handleClose}
     >
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: "rgba(0,0,0,0.6)",
-          justifyContent: "flex-end",
-        }}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
       >
         <View
           style={{
-            backgroundColor: "#141414",
-            borderTopLeftRadius: 28,
-            borderTopRightRadius: 28,
-            padding: 24,
-            paddingBottom: 40,
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.6)",
+            justifyContent: "flex-end",
           }}
         >
-          {/* Header */}
           <View
             style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 24,
+              backgroundColor: "#141414",
+              borderTopLeftRadius: 28,
+              borderTopRightRadius: 28,
+              padding: 24,
+              paddingBottom: 40,
             }}
           >
-            <Text style={{ color: "#fff", fontSize: 20, fontWeight: "800" }}>
-              Nuevo Producto
-            </Text>
-            <Pressable
-              onPress={handleClose}
+            {/* Header */}
+            <View
               style={{
-                backgroundColor: "#2a2a2a",
-                borderRadius: 20,
-                padding: 8,
-              }}
-            >
-              <Ionicons name="close" size={20} color="#fff" />
-            </Pressable>
-          </View>
-
-          {/* Selector de imagen */}
-          <View style={{ alignItems: "center", marginBottom: 20 }}>
-            <Pressable
-              onPress={handlePickImage}
-              disabled={isPickingImage}
-              style={{
-                width: 90,
-                height: 90,
-                borderRadius: 16,
-                backgroundColor: "#1a1a1a",
-                borderWidth: 2,
-                borderColor: imageUri ? "#ff5722" : "#2a2a2a",
-                borderStyle: imageUri ? "solid" : "dashed",
+                flexDirection: "row",
+                justifyContent: "space-between",
                 alignItems: "center",
-                justifyContent: "center",
-                overflow: "hidden",
+                marginBottom: 24,
               }}
             >
-              {isPickingImage ? (
-                <ActivityIndicator color="#ff5722" />
-              ) : imageUri ? (
-                <Image
-                  source={{ uri: imageUri }}
-                  style={{ width: 90, height: 90, borderRadius: 14 }}
-                />
-              ) : (
-                <View style={{ alignItems: "center", gap: 4 }}>
-                  <Ionicons name="camera-outline" size={28} color="#555" />
-                  <Text style={{ color: "#555", fontSize: 10 }}>Foto</Text>
-                </View>
-              )}
-            </Pressable>
-            {imageUri && (
-              <Pressable
-                onPress={() => setImageUri(null)}
-                style={{ marginTop: 6 }}
-              >
-                <Text style={{ color: "#555", fontSize: 11 }}>Quitar imagen</Text>
-              </Pressable>
-            )}
-          </View>
-
-          {/* Nombre */}
-          <Text
-            style={{
-              color: "#737373",
-              fontSize: 11,
-              textTransform: "uppercase",
-              letterSpacing: 1,
-              marginBottom: 6,
-            }}
-          >
-            Nombre
-          </Text>
-          <View
-            style={{
-              backgroundColor: "#1a1a1a",
-              borderRadius: 12,
-              paddingHorizontal: 14,
-              paddingVertical: 4,
-              marginBottom: 16,
-              borderWidth: 1,
-              borderColor: "#2a2a2a",
-            }}
-          >
-            <TextInput
-              placeholder="Ej. Pechuga de pollo"
-              placeholderTextColor="#555"
-              value={name}
-              onChangeText={setName}
-              style={{ color: "#fff", fontSize: 16, height: 46 }}
-            />
-          </View>
-
-          {/* Precio y Stock en fila */}
-          <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
-            <View style={{ flex: 1 }}>
-              <Text
-                style={{
-                  color: "#737373",
-                  fontSize: 11,
-                  textTransform: "uppercase",
-                  letterSpacing: 1,
-                  marginBottom: 6,
-                }}
-              >
-                Precio
+              <Text style={{ color: "#fff", fontSize: 20, fontWeight: "800" }}>
+                Nuevo Producto
               </Text>
-              <View
+              <Pressable
+                onPress={handleClose}
                 style={{
-                  backgroundColor: "#1a1a1a",
-                  borderRadius: 12,
-                  paddingHorizontal: 14,
-                  paddingVertical: 4,
-                  borderWidth: 1,
-                  borderColor: "#2a2a2a",
-                  flexDirection: "row",
-                  alignItems: "center",
+                  backgroundColor: "#2a2a2a",
+                  borderRadius: 20,
+                  padding: 8,
                 }}
               >
+                <Ionicons name="close" size={20} color="#fff" />
+              </Pressable>
+            </View>
+
+            {/* Selector de imagen */}
+            <View style={{ alignItems: "center", marginBottom: 20 }}>
+              <Pressable
+                onPress={handlePickImage}
+                disabled={isPickingImage}
+                style={{
+                  width: 90,
+                  height: 90,
+                  borderRadius: 16,
+                  backgroundColor: "#1a1a1a",
+                  borderWidth: 2,
+                  borderColor: imageUri ? "#ff5722" : "#2a2a2a",
+                  borderStyle: imageUri ? "solid" : "dashed",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  overflow: "hidden",
+                }}
+              >
+                {isPickingImage ? (
+                  <ActivityIndicator color="#ff5722" />
+                ) : imageUri ? (
+                  <Image
+                    source={{ uri: imageUri }}
+                    style={{ width: 90, height: 90, borderRadius: 14 }}
+                  />
+                ) : (
+                  <View style={{ alignItems: "center", gap: 4 }}>
+                    <Ionicons name="camera-outline" size={28} color="#555" />
+                    <Text style={{ color: "#555", fontSize: 10 }}>Foto</Text>
+                  </View>
+                )}
+              </Pressable>
+              {imageUri && (
+                <Pressable
+                  onPress={() => setImageUri(null)}
+                  style={{ marginTop: 6 }}
+                >
+                  <Text style={{ color: "#555", fontSize: 11 }}>
+                    Quitar imagen
+                  </Text>
+                </Pressable>
+              )}
+            </View>
+
+            {/* Nombre */}
+            <Text
+              style={{
+                color: "#737373",
+                fontSize: 11,
+                textTransform: "uppercase",
+                letterSpacing: 1,
+                marginBottom: 6,
+              }}
+            >
+              Nombre
+            </Text>
+            <View
+              style={{
+                backgroundColor: "#1a1a1a",
+                borderRadius: 12,
+                paddingHorizontal: 14,
+                paddingVertical: 4,
+                marginBottom: 16,
+                borderWidth: 1,
+                borderColor: "#2a2a2a",
+              }}
+            >
+              <TextInput
+                placeholder="Ej. Pechuga de pollo"
+                placeholderTextColor="#555"
+                value={name}
+                onChangeText={setName}
+                style={{ color: "#fff", fontSize: 16, height: 46 }}
+              />
+            </View>
+
+            {/* Precio y Stock en fila */}
+            <View style={{ flexDirection: "row", gap: 12, marginBottom: 16 }}>
+              <View style={{ flex: 1 }}>
                 <Text
                   style={{
-                    color: "#ff5722",
-                    fontSize: 16,
-                    fontWeight: "800",
-                    marginRight: 4,
+                    color: "#737373",
+                    fontSize: 11,
+                    textTransform: "uppercase",
+                    letterSpacing: 1,
+                    marginBottom: 6,
                   }}
                 >
-                  $
+                  Precio
                 </Text>
-                <TextInput
-                  placeholder="0"
-                  placeholderTextColor="#555"
-                  value={price}
-                  onChangeText={setPrice}
-                  keyboardType="numeric"
-                  style={{ color: "#fff", fontSize: 16, flex: 1, height: 46 }}
-                />
-              </View>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text
-                style={{
-                  color: "#737373",
-                  fontSize: 11,
-                  textTransform: "uppercase",
-                  letterSpacing: 1,
-                  marginBottom: 6,
-                }}
-              >
-                Stock inicial
-              </Text>
-              <View
-                style={{
-                  backgroundColor: "#1a1a1a",
-                  borderRadius: 12,
-                  paddingHorizontal: 14,
-                  paddingVertical: 4,
-                  borderWidth: 1,
-                  borderColor: "#2a2a2a",
-                }}
-              >
-                <TextInput
-                  placeholder="0"
-                  placeholderTextColor="#555"
-                  value={stock}
-                  onChangeText={setStock}
-                  keyboardType="numeric"
-                  style={{ color: "#fff", fontSize: 16, height: 46 }}
-                />
-              </View>
-            </View>
-          </View>
-
-          {/* Categoría */}
-          <Text
-            style={{
-              color: "#737373",
-              fontSize: 11,
-              textTransform: "uppercase",
-              letterSpacing: 1,
-              marginBottom: 10,
-            }}
-          >
-            Categoría
-          </Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={{ marginBottom: 24 }}
-          >
-            <View style={{ flexDirection: "row", gap: 8 }}>
-              {categories.map((cat) => {
-                const isActive = categoryId === cat.id;
-                return (
-                  <Pressable
-                    key={cat.id}
-                    onPress={() => setCategoryId(cat.id)}
+                <View
+                  style={{
+                    backgroundColor: "#1a1a1a",
+                    borderRadius: 12,
+                    paddingHorizontal: 14,
+                    paddingVertical: 4,
+                    borderWidth: 1,
+                    borderColor: "#2a2a2a",
+                    flexDirection: "row",
+                    alignItems: "center",
+                  }}
+                >
+                  <Text
                     style={{
-                      paddingHorizontal: 14,
-                      paddingVertical: 8,
-                      borderRadius: 20,
-                      backgroundColor: isActive ? "#ff5722" : "#1a1a1a",
-                      borderWidth: 1,
-                      borderColor: isActive ? "#ff5722" : "#333",
+                      color: "#ff5722",
+                      fontSize: 16,
+                      fontWeight: "800",
+                      marginRight: 4,
                     }}
                   >
-                    <Text
+                    $
+                  </Text>
+                  <TextInput
+                    placeholder="0"
+                    placeholderTextColor="#555"
+                    value={price}
+                    onChangeText={setPrice}
+                    keyboardType="numeric"
+                    style={{ color: "#fff", fontSize: 16, flex: 1, height: 46 }}
+                  />
+                </View>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={{
+                    color: "#737373",
+                    fontSize: 11,
+                    textTransform: "uppercase",
+                    letterSpacing: 1,
+                    marginBottom: 6,
+                  }}
+                >
+                  Stock inicial
+                </Text>
+                <View
+                  style={{
+                    backgroundColor: "#1a1a1a",
+                    borderRadius: 12,
+                    paddingHorizontal: 14,
+                    paddingVertical: 4,
+                    borderWidth: 1,
+                    borderColor: "#2a2a2a",
+                  }}
+                >
+                  <TextInput
+                    placeholder="0"
+                    placeholderTextColor="#555"
+                    value={stock}
+                    onChangeText={setStock}
+                    keyboardType="numeric"
+                    style={{ color: "#fff", fontSize: 16, height: 46 }}
+                  />
+                </View>
+              </View>
+            </View>
+
+            {/* Categoría */}
+            <Text
+              style={{
+                color: "#737373",
+                fontSize: 11,
+                textTransform: "uppercase",
+                letterSpacing: 1,
+                marginBottom: 10,
+              }}
+            >
+              Categoría
+            </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={{ marginBottom: 24 }}
+            >
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                {categories.map((cat) => {
+                  const isActive = categoryId === cat.id;
+                  return (
+                    <Pressable
+                      key={cat.id}
+                      onPress={() => setCategoryId(cat.id)}
                       style={{
-                        color: isActive ? "#fff" : "#a3a3a3",
-                        fontSize: 13,
-                        fontWeight: "600",
+                        paddingHorizontal: 14,
+                        paddingVertical: 8,
+                        borderRadius: 20,
+                        backgroundColor: isActive ? "#ff5722" : "#1a1a1a",
+                        borderWidth: 1,
+                        borderColor: isActive ? "#ff5722" : "#333",
                       }}
                     >
-                      {cat.name.split(" ")[0]}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </ScrollView>
+                      <Text
+                        style={{
+                          color: isActive ? "#fff" : "#a3a3a3",
+                          fontSize: 13,
+                          fontWeight: "600",
+                        }}
+                      >
+                        {cat.name.split(" ")[0]}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </ScrollView>
 
-          {/* Botón guardar */}
-          <Pressable
-            onPress={handleSave}
-            disabled={isSaving}
-            style={{
-              backgroundColor: "#ff5722",
-              paddingVertical: 16,
-              borderRadius: 16,
-              alignItems: "center",
-              opacity: isSaving ? 0.7 : 1,
-            }}
-          >
-            {isSaving ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={{ color: "#fff", fontSize: 17, fontWeight: "800" }}>
-                Guardar Producto
-              </Text>
-            )}
-          </Pressable>
+            {/* Botón guardar */}
+            <Pressable
+              onPress={handleSave}
+              disabled={isSaving}
+              style={{
+                backgroundColor: "#ff5722",
+                paddingVertical: 16,
+                borderRadius: 16,
+                alignItems: "center",
+                opacity: isSaving ? 0.7 : 1,
+              }}
+            >
+              {isSaving ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text
+                  style={{ color: "#fff", fontSize: 17, fontWeight: "800" }}
+                >
+                  Guardar Producto
+                </Text>
+              )}
+            </Pressable>
+          </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

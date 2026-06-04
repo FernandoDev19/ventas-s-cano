@@ -6,14 +6,21 @@ import { View } from "react-native";
 
 export default function MenuTab() {
   const { filter, categories, setFilter } = useMenu();
-  const { products, loadProducts } = useProductList(filter);
+  const { products, loadProducts, search, setSearch } = useProductList(filter);
 
   // TODO: Luego de la venta debe recargar correctamente los productos, cambiar context por zustand para estado global
 
   return (
     <View className="flex-1 bg-background">
       <View className="px-6">
-        <ProductList products={products} categories={categories} filter={filter} setFilter={setFilter} />
+        <ProductList
+          products={products}
+          categories={categories}
+          filter={filter}
+          setFilter={setFilter}
+          search={search}
+          setSearch={setSearch}
+        />
       </View>
 
       <CartModal onSaleCreated={loadProducts} />

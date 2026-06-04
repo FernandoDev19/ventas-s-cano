@@ -6,6 +6,11 @@ import { ProductType } from "../../products/types/product.type";
 
 export const useProductList = (filter: number) => {
   const [products, setProducts] = useState<ProductType[]>([]);
+  const [search, setSearch] = useState("");
+
+  const filteredProducts = products.filter((p) =>
+    p.name.toLowerCase().includes(search.toLowerCase()),
+  );
 
   const loadProducts = useCallback(async () => {
     try {
@@ -22,11 +27,13 @@ export const useProductList = (filter: number) => {
   useFocusEffect(
     useCallback(() => {
       loadProducts();
-    }, [loadProducts])
+    }, [loadProducts]),
   );
 
   return {
-    products,
+    products: filteredProducts,
     loadProducts,
+    search,
+    setSearch,
   };
 };

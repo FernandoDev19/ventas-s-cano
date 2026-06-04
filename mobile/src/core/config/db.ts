@@ -28,7 +28,8 @@ const DATABASE = {
           is_debt BOOLEAN NOT NULL,
           debt_amount REAL,
           debt_date DATE,
-          created_at DATE NOT NULL
+          payment_method TEXT DEFAULT 'cash',
+          created_at TEXT NOT NULL
         );
 
         CREATE TABLE IF NOT EXISTS sale_products (
