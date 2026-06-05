@@ -10,7 +10,8 @@
       "@/components/*": [
         "./src/shared/components/*"
       ]
-    }
+    },
+    "types": ["xlsx"]
   },
   "ignores": [
     "node_modules",
