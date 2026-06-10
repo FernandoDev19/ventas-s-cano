@@ -38,9 +38,6 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: {
-          marginBottom: 20,
-        },
       }}
     >
       {tabs.map((tab) => (
@@ -63,7 +60,7 @@ export default function TabLayout() {
                 >
                   <View
                     style={{ borderRadius: 10 }}
-                    className={`${isActive ? "bg-primary" : ""} flex-col justify-center items-center rounded-lg py-4 w-max`}
+                    className={`${isActive ? "bg-primary" : ""} flex-col justify-center items-center rounded-lg py-2 w-max`}
                   >
                     <Ionicons name={tab.icon as any} size={20} color="white" />
                     <Text className="text-white text-xs">{tab.title}</Text>

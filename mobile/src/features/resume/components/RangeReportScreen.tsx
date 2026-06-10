@@ -1,20 +1,18 @@
-// mobile/src/features/resume/components/RangeReportScreen.tsx
+import { ExpensesService } from "@/src/features/expenses/services/expense.service";
+import { SalesService } from "@/src/features/sales/services/sales.service";
+import { priceFormat } from "@/src/shared/helpers/price-format.helper";
+import { ExportService } from "@/src/shared/services/export.service";
 import { Ionicons } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  FlatList,
   Pressable,
   ScrollView,
   Text,
   View,
 } from "react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import { SalesService } from "@/src/features/sales/services/sales.service";
-import { ExpensesService } from "@/src/features/expenses/services/expense.service";
-import { priceFormat } from "@/src/shared/helpers/price-format.helper";
-import { ExportService } from "@/src/shared/services/export.service";
 
 const PRESETS = [
   {

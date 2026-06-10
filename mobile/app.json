@@ -35,10 +35,6 @@
     "plugins": [
       "expo-router",
       [
-        "expo-print",
-        { "iCloudContainerEnvironment": "Production" }
-      ],
-      [
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",

@@ -1,8 +1,8 @@
 // mobile/src/features/resume/services/export.service.ts
+import { Paths, File } from "expo-file-system";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import * as XLSX from "xlsx";
-import * as FileSystem from "expo-file-system";
 
 type ReportData = {
   startDate: string;
@@ -11,7 +11,10 @@ type ReportData = {
   totalPaid: number;
   totalDebt: number;
   salesCount: number;
-  expenses: { total: number; byCategory: { category: string; total: number }[] };
+  expenses: {
+    total: number;
+    byCategory: { category: string; total: number }[];
+  };
   topProducts: { name: string; quantity: number; total: number }[];
   salesByDay: { dateStr: string; total: number; count: number }[];
   sales: any[];
@@ -19,13 +22,17 @@ type ReportData = {
 
 function formatCOP(n: number) {
   return new Intl.NumberFormat("es-CO", {
-    style: "currency", currency: "COP", minimumFractionDigits: 0,
+    style: "currency",
+    currency: "COP",
+    minimumFractionDigits: 0,
   }).format(n);
 }
 
 function formatDate(str: string) {
   return new Date(str).toLocaleDateString("es-CO", {
-    day: "2-digit", month: "long", year: "numeric",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
   });
 }
 
@@ -35,31 +42,46 @@ export const ExportService = {
     const netProfit = data.totalSales - data.expenses.total;
     const profitColor = netProfit >= 0 ? "#22c55e" : "#ef4444";
 
-    const topProductsRows = data.topProducts.map((p, i) => `
+    const topProductsRows = data.topProducts
+      .map(
+        (p, i) => `
       <tr>
         <td>#${i + 1}</td>
         <td>${p.name}</td>
         <td style="text-align:center">${p.quantity}</td>
         <td style="text-align:right">${formatCOP(p.total)}</td>
       </tr>
-    `).join("");
+    `,
+      )
+      .join("");
 
-    const salesByDayRows = data.salesByDay.map(d => `
+    const salesByDayRows = data.salesByDay
+      .map(
+        (d) => `
       <tr>
         <td>${formatDate(d.dateStr)}</td>
         <td style="text-align:center">${d.count}</td>
         <td style="text-align:right">${formatCOP(d.total)}</td>
       </tr>
-    `).join("");
+    `,
+      )
+      .join("");
 
-    const expenseCatRows = data.expenses.byCategory.map(c => `
+    const expenseCatRows = data.expenses.byCategory
+      .map(
+        (c) => `
       <tr>
         <td>${c.category}</td>
         <td style="text-align:right" class="danger">-${formatCOP(c.total)}</td>
       </tr>
-    `).join("");
+    `,
+      )
+      .join("");
 
-    const salesRows = data.sales.slice(0, 20).map(s => `
+    const salesRows = data.sales
+      .slice(0, 20)
+      .map(
+        (s) => `
       <tr>
         <td>#${String(s.id).padStart(3, "0")}</td>
         <td>${s.note || "—"}</td>
@@ -70,7 +92,9 @@ export const ExportService = {
         </td>
         <td style="text-align:right">${formatCOP(s.total)}</td>
       </tr>
-    `).join("");
+    `,
+      )
+      .join("");
 
     const html = `
       <!DOCTYPE html>
@@ -145,41 +169,57 @@ export const ExportService = {
           <span class="amount">${netProfit >= 0 ? "" : "-"}${formatCOP(Math.abs(netProfit))}</span>
         </div>
 
-        ${data.topProducts.length > 0 ? `
+        ${
+          data.topProducts.length > 0
+            ? `
         <div class="section">
           <h2>Top Productos</h2>
           <table>
             <thead><tr><th>#</th><th>Producto</th><th style="text-align:center">Unidades</th><th style="text-align:right">Total</th></tr></thead>
             <tbody>${topProductsRows}</tbody>
           </table>
-        </div>` : ""}
+        </div>`
+            : ""
+        }
 
-        ${data.salesByDay.length > 0 ? `
+        ${
+          data.salesByDay.length > 0
+            ? `
         <div class="section">
           <h2>Ventas por Día</h2>
           <table>
             <thead><tr><th>Fecha</th><th style="text-align:center">Ventas</th><th style="text-align:right">Total</th></tr></thead>
             <tbody>${salesByDayRows}</tbody>
           </table>
-        </div>` : ""}
+        </div>`
+            : ""
+        }
 
-        ${data.expenses.byCategory.length > 0 ? `
+        ${
+          data.expenses.byCategory.length > 0
+            ? `
         <div class="section">
           <h2>Gastos por Categoría</h2>
           <table>
             <thead><tr><th>Categoría</th><th style="text-align:right">Total</th></tr></thead>
             <tbody>${expenseCatRows}</tbody>
           </table>
-        </div>` : ""}
+        </div>`
+            : ""
+        }
 
-        ${data.sales.length > 0 ? `
+        ${
+          data.sales.length > 0
+            ? `
         <div class="section">
           <h2>Detalle de Ventas ${data.sales.length > 20 ? "(últimas 20)" : ""}</h2>
           <table>
             <thead><tr><th>#</th><th>Nota</th><th style="text-align:center">Estado</th><th style="text-align:right">Total</th></tr></thead>
             <tbody>${salesRows}</tbody>
           </table>
-        </div>` : ""}
+        </div>`
+            : ""
+        }
 
         <div class="footer">
           Generado por FASTPOS · ${new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "long", year: "numeric" })}
@@ -192,17 +232,20 @@ export const ExportService = {
 
     // Renombrar con fecha
     const fileName = `fastpos_reporte_${data.startDate}_${data.endDate}.pdf`;
-    const newUri = `${FileSystem.documentDirectory}${fileName}`;
-    await FileSystem.moveAsync({ from: uri, to: newUri });
+    const file = new File(Paths.document, fileName);
+    file.write(uri);
 
     if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(newUri, { mimeType: "application/pdf", dialogTitle: "Exportar reporte PDF" });
+      await Sharing.shareAsync(file.uri, {
+        mimeType: "application/pdf",
+        dialogTitle: "Exportar reporte PDF",
+      });
     }
   },
 
   // ─── EXCEL ─────────────────────────────────────────────
   exportExcel: async (data: ReportData): Promise<void> => {
-    const wb = XLSX.utils.book();
+    const wb = XLSX.utils.book_new();
 
     // Hoja 1: Resumen
     const resumen = [
@@ -218,6 +261,7 @@ export const ExportService = {
       ["Cantidad de Ventas", data.salesCount],
     ];
     const wsResumen = XLSX.utils.aoa_to_sheet(resumen);
+    
     wsResumen["!cols"] = [{ wch: 30 }, { wch: 20 }];
     XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen");
 
@@ -225,7 +269,11 @@ export const ExportService = {
     if (data.salesByDay.length > 0) {
       const byDayData = [
         ["Fecha", "Cantidad Ventas", "Total"],
-        ...data.salesByDay.map(d => [formatDate(d.dateStr), d.count, d.total]),
+        ...data.salesByDay.map((d) => [
+          formatDate(d.dateStr),
+          d.count,
+          d.total,
+        ]),
       ];
       const wsByDay = XLSX.utils.aoa_to_sheet(byDayData);
       wsByDay["!cols"] = [{ wch: 25 }, { wch: 18 }, { wch: 18 }];
@@ -236,17 +284,26 @@ export const ExportService = {
     if (data.sales.length > 0) {
       const salesData = [
         ["ID", "Nota", "Estado", "Total", "Deuda", "Fecha"],
-        ...data.sales.map(s => [
+        ...data.sales.map((s) => [
           `#${String(s.id).padStart(3, "0")}`,
           s.note || "",
           s.is_debt ? "Fiado" : "Pagado",
           s.total,
           s.debt_amount || 0,
-          s.created_at ? new Date(s.created_at).toLocaleDateString("es-CO") : "",
+          s.created_at
+            ? new Date(s.created_at).toLocaleDateString("es-CO")
+            : "",
         ]),
       ];
       const wsSales = XLSX.utils.aoa_to_sheet(salesData);
-      wsSales["!cols"] = [{ wch: 8 }, { wch: 30 }, { wch: 10 }, { wch: 16 }, { wch: 16 }, { wch: 20 }];
+      wsSales["!cols"] = [
+        { wch: 8 },
+        { wch: 30 },
+        { wch: 10 },
+        { wch: 16 },
+        { wch: 16 },
+        { wch: 20 },
+      ];
       XLSX.utils.book_append_sheet(wb, wsSales, "Ventas");
     }
 
@@ -254,7 +311,7 @@ export const ExportService = {
     if (data.topProducts.length > 0) {
       const prodsData = [
         ["Producto", "Unidades Vendidas", "Total"],
-        ...data.topProducts.map(p => [p.name, p.quantity, p.total]),
+        ...data.topProducts.map((p) => [p.name, p.quantity, p.total]),
       ];
       const wsProds = XLSX.utils.aoa_to_sheet(prodsData);
       wsProds["!cols"] = [{ wch: 30 }, { wch: 18 }, { wch: 18 }];
@@ -265,7 +322,7 @@ export const ExportService = {
     if (data.expenses.byCategory.length > 0) {
       const expData = [
         ["Categoría", "Total Gastos"],
-        ...data.expenses.byCategory.map(c => [c.category, c.total]),
+        ...data.expenses.byCategory.map((c) => [c.category, c.total]),
         [],
         ["TOTAL", data.expenses.total],
       ];
@@ -277,15 +334,16 @@ export const ExportService = {
     // Guardar y compartir
     const wbout = XLSX.write(wb, { type: "base64", bookType: "xlsx" });
     const fileName = `fastpos_reporte_${data.startDate}_${data.endDate}.xlsx`;
-    const fileUri = `${FileSystem.documentDirectory}${fileName}`;
+    const file = new File(Paths.document, fileName);
 
-    await FileSystem.writeAsStringAsync(fileUri, wbout, {
-      encoding: FileSystem.EncodingType.Base64,
+    file.write(wbout, {
+      encoding: "base64",
     });
 
     if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(fileUri, {
-        mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      await Sharing.shareAsync(file.uri, {
+        mimeType:
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         dialogTitle: "Exportar reporte Excel",
       });
     }
