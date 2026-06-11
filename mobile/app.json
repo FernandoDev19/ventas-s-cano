@@ -1,16 +1,21 @@
 {
   "expo": {
-    "name": "FastPOS",
-    "slug": "fastpos",
+    "name": "Sabor Express",
+    "slug": "sabor-express",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "fastpos",
+    "scheme": "sabor-express",
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#94170c"
+    },
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.fernando-cano.fastpos",
+      "bundleIdentifier": "com.fernando-cano.sabor_express",
       "infoPlist": {
         "UIFileSharingEnabled": true,
         "LSSupportsOpeningDocumentsInPlace": true
@@ -18,14 +23,12 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#94170c",
+        "foregroundImage": "./assets/images/icon.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.fernando_cano.fastpos"
+      "package": "com.fernando_cano.sabor_express"
     },
     "web": {
       "output": "static",
