@@ -8,7 +8,6 @@ import {
   Modal,
   Platform,
   Pressable,
-  ScrollView,
   Text,
   TextInput,
   View,
@@ -16,6 +15,7 @@ import {
 import { ProductsService } from "../services/products.service";
 import { Ionicons } from "@expo/vector-icons";
 import { useFiles } from "@/src/shared/hooks/useFiles";
+import CategoriesModal from "../../categories/components/CategoriesModal";
 
 type CreateProductModalProps = {
   visible: boolean;
@@ -37,6 +37,7 @@ export default function CreateProductModal({
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isPickingImage, setIsPickingImage] = useState(false);
+  const [isCategoriesModalOpen, setIsCategoriesModalOpen] = useState(false);
 
   const { elegirImagenProducto } = useFiles();
 
@@ -316,41 +317,48 @@ export default function CreateProductModal({
             >
               Categoría
             </Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={{ marginBottom: 24 }}
+            <Pressable
+              onPress={() => setIsCategoriesModalOpen(true)}
+              className="h-16 bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl px-4 flex-row items-center gap-2 mb-6"
             >
-              <View style={{ flexDirection: "row", gap: 8 }}>
-                {categories.map((cat) => {
-                  const isActive = categoryId === cat.id;
-                  return (
-                    <Pressable
-                      key={cat.id}
-                      onPress={() => setCategoryId(cat.id)}
-                      style={{
-                        paddingHorizontal: 14,
-                        paddingVertical: 8,
-                        borderRadius: 20,
-                        backgroundColor: isActive ? "#ff5722" : "#1a1a1a",
-                        borderWidth: 1,
-                        borderColor: isActive ? "#ff5722" : "#333",
-                      }}
-                    >
-                      <Text
-                        style={{
-                          color: isActive ? "#fff" : "#a3a3a3",
-                          fontSize: 13,
-                          fontWeight: "600",
-                        }}
-                      >
-                        {cat.name.split(" ")[0]}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <Ionicons
+                  name="folder-outline"
+                  size={18}
+                  color={categoryId ? "#ff5722" : "#737373"}
+                />
+                <Text
+                  style={{
+                    color: categoryId ? "#fff" : "#737373",
+                    fontSize: 15,
+                  }}
+                >
+                  {categoryId
+                    ? categories.find((c) => c.id === categoryId)?.name
+                    : "Selecciona una categoría"}
+                </Text>
               </View>
-            </ScrollView>
+              <Ionicons name="chevron-down" size={16} color="#555" />
+            </Pressable>
+
+            <CategoriesModal
+              onSelect={(id) => {
+                setIsCategoriesModalOpen(false);
+                setCategoryId(id)
+              }}
+              visible={isCategoriesModalOpen}
+              onCreated={(id) => {
+                setIsCategoriesModalOpen(false);
+                setCategoryId(id)
+              }}
+              onClose={() => setIsCategoriesModalOpen(false)}
+            />
 
             {/* Botón guardar */}
             <Pressable

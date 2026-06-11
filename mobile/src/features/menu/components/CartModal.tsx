@@ -24,19 +24,23 @@ import { SalesService } from "../../sales/services/sales.service";
 import { SaleType } from "../../sales/types/sale.type";
 import { ClientType } from "../../clients/types/client.type";
 import { ClientsService } from "../../clients/services/clients.service";
+import { ProductsService } from "../../products/services/products.service";
+import { RecipesService } from "../../recipes/services/recipes.service";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 type Props = {
   onSaleCreated: () => void;
 };
 
 const CartModal = ({ onSaleCreated }: Props) => {
-  const { order, addToOrder, removeFromOrder, clearOrder } = useOrder();
+  const { order, addToOrder, addRecipeToOrder, removeFromOrder, clearOrder } = useOrder();
 
   const totalItems = order.reduce((sum, item) => sum + item.quantity, 0);
-  const totalPrecio = order.reduce(
-    (sum, item) => sum + item.product.price * item.quantity,
-    0,
-  );
+  const totalPrecio = order.reduce((sum, item) => {
+    if (item.type === "product") return sum + item.product.price * item.quantity;
+    if (item.type === "recipe") return sum + item.recipe.selling_price * item.quantity;
+    return sum;
+  }, 0);
 
   const [clients, setClients] = useState<ClientType[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
@@ -45,48 +49,106 @@ const CartModal = ({ onSaleCreated }: Props) => {
   const [isDebt, setIsDebt] = useState(false);
   const [note, setNote] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
-  const [amountDebt, setAmountDebt] = useState<number>(totalPrecio);
-  const [paymentMethod, setPaymentMethod] =
-    useState<PaymentMethodsType>("cash");
+  const [amountDebt, setAmountDebt] = useState<number>(0);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodsType>("cash");
+  const [debtDate, setDebtDate] = useState<Date>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7);
+    return d;
+  });
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   useEffect(() => {
     if (modalVisible) {
       ClientsService.getAll().then(setClients);
+      setAmountDebt(totalPrecio);
     }
-  }, [modalVisible]);
+  }, [modalVisible, totalPrecio]);
 
   if (totalItems === 0) return null;
-
 
   const buildSale = (): SaleType => ({
     total: totalPrecio,
     note,
     is_debt: isDebt,
     debt_amount: isDebt ? (amountDebt > 0 ? amountDebt : totalPrecio) : 0,
-    debt_date: isDebt ? new Date().toISOString().split("T")[0] : null,
+    debt_date: isDebt ? debtDate.toISOString().split("T")[0] : null,
     payment_method: paymentMethod,
     client_id: isDebt ? selectedClientId : null,
   });
 
   const handleCheckout = async (sale: SaleType, order: OrderItem[]) => {
     try {
-      const productsToSave = order.map((o) => ({
-        product_id: o.product.id,
-        quantity: o.quantity,
-        price: o.product.price * o.quantity,
-      }));
+      // Build sale_products from order (recipes contribute via a proxy product approach,
+      // we record the recipe's selling_price as if it were a single line item with product_id = 0)
+      // Instead: we record each recipe as a special sale line, using product_id from first ingredient OR placeholder
+      // Better approach: store recipe items as sale_products with a "recipe sale product" approach.
+      // We create a flat list for the sale: recipe lines use product_id of the recipe id (negative) – but since
+      // sale_products requires a valid product_id FK, we simply record them as a sum without product detail.
+      // The simplest correct approach: 
+      //  - For products: normal flow
+      //  - For recipes: deduct stock via RecipesService.deductStock, don't add to sale_products
+
+      const productItems = order.filter((i) => i.type === "product");
+      const recipeItems = order.filter((i) => i.type === "recipe");
+
+      const productsToSave = productItems.map((o) => {
+        if (o.type !== "product") return null as any;
+        return {
+          product_id: o.product.id,
+          quantity: o.quantity,
+          price: o.product.price * o.quantity,
+        };
+      }).filter(Boolean);
 
       await SalesService.createSale(sale, productsToSave);
 
+      // Deduct stock for recipe ingredients
+      for (const item of recipeItems) {
+        if (item.type !== "recipe") continue;
+        await RecipesService.deductStock(item.recipe.id!, item.quantity);
+      }
+
       onSaleCreated();
+
+      // Check low stock: products
+      const lowStockAlerts: string[] = [];
+      for (const item of productItems) {
+        if (item.type !== "product") continue;
+        const prod = await ProductsService.getProductById(item.product.id);
+        if (prod && prod.stock <= 10) {
+          lowStockAlerts.push(`${prod.name} (Quedan: ${prod.stock})`);
+        }
+      }
+      // Check low stock: recipe ingredients
+      for (const item of recipeItems) {
+        if (item.type !== "recipe") continue;
+        const low = await RecipesService.checkLowStock(item.recipe.id!);
+        for (const l of low) {
+          lowStockAlerts.push(`${l.name} (Quedan: ${l.stock})`);
+        }
+      }
 
       clearOrder();
       setIsDebt(false);
       setAmountDebt(0);
       setNote("");
       setModalVisible(false);
+      setSelectedClientId(null);
+      setDebtDate(() => {
+        const d = new Date();
+        d.setDate(d.getDate() + 7);
+        return d;
+      });
 
-      Alert.alert("¡Pedido creado correctamente!");
+      if (lowStockAlerts.length > 0) {
+        Alert.alert(
+          "¡Pedido creado correctamente!",
+          `⚠️ ¡Alerta de Stock Bajo!\nLos siguientes productos tienen stock bajo:\n\n${lowStockAlerts.map(a => `• ${a}`).join("\n")}`
+        );
+      } else {
+        Alert.alert("¡Pedido creado correctamente!");
+      }
     } catch (error: any) {
       console.error(error);
       Alert.alert(
@@ -95,6 +157,32 @@ const CartModal = ({ onSaleCreated }: Props) => {
       );
     }
   };
+
+  const getItemLabel = (item: OrderItem) => {
+    if (item.type === "product") return item.product.name;
+    return `🍽 ${item.recipe.name}`;
+  };
+
+  const getItemImage = (item: OrderItem) => {
+    if (item.type === "product") return item.product.image_url;
+    return item.recipe.image_url;
+  };
+
+  const getItemPrice = (item: OrderItem) => {
+    if (item.type === "product") return item.product.price * item.quantity;
+    return item.recipe.selling_price * item.quantity;
+  };
+
+  const handleIncrement = (item: OrderItem) => {
+    if (item.type === "product") addToOrder(item.product);
+    else addRecipeToOrder(item.recipe);
+  };
+
+  const handleDecrement = (item: OrderItem) => {
+    if (item.type === "product") removeFromOrder(item.product.id, "product");
+    else removeFromOrder(item.recipe.id!, "recipe");
+  };
+
   return (
     <>
       <Button
@@ -143,7 +231,11 @@ const CartModal = ({ onSaleCreated }: Props) => {
 
               <FlatList
                 data={order}
-                keyExtractor={(item) => item.product.id.toString()}
+                keyExtractor={(item, idx) =>
+                  item.type === "product"
+                    ? `p-${item.product.id}`
+                    : `r-${item.recipe.id}-${idx}`
+                }
                 contentContainerStyle={{ gap: 16, paddingBottom: 24 }}
                 showsVerticalScrollIndicator={false}
                 renderItem={({ item }) => (
@@ -151,22 +243,35 @@ const CartModal = ({ onSaleCreated }: Props) => {
                     <View className="flex-row items-center flex-1 mr-4">
                       <Image
                         source={
-                          item.product.image_url
-                            ? { uri: item.product.image_url }
+                          getItemImage(item)
+                            ? { uri: getItemImage(item) }
                             : require("@/assets/images/default-food.png")
                         }
                         className="w-14 h-14 rounded-xl bg-neutral-700 mr-3"
                         resizeMode="cover"
                       />
                       <View className="flex-1">
-                        <Text
-                          className="text-white font-bold text-base"
-                          numberOfLines={1}
-                        >
-                          {item.product.name}
-                        </Text>
+                        <View className="flex-row items-center gap-1 flex-1">
+                          {item.type === "recipe" && (
+                            <View style={{
+                              backgroundColor: "#ff572220",
+                              borderRadius: 4,
+                              paddingHorizontal: 5,
+                              paddingVertical: 2,
+                              marginRight: 4,
+                            }}>
+                              <Text style={{ color: "#ff5722", fontSize: 9, fontWeight: "800" }}>RECETA</Text>
+                            </View>
+                          )}
+                          <Text
+                            className="text-white font-bold text-base flex-1"
+                            numberOfLines={1}
+                          >
+                            {getItemLabel(item)}
+                          </Text>
+                        </View>
                         <Text className="text-primary font-bold mt-0.5">
-                          {priceFormat(item.product.price * item.quantity)}
+                          {priceFormat(getItemPrice(item))}
                         </Text>
                       </View>
                     </View>
@@ -174,7 +279,7 @@ const CartModal = ({ onSaleCreated }: Props) => {
                     {/* Controles de unidades */}
                     <View className="flex-row items-center bg-neutral-900 rounded-xl p-1 gap-2.5">
                       <Pressable
-                        onPress={() => removeFromOrder(item.product.id)}
+                        onPress={() => handleDecrement(item)}
                         className="p-1 active:opacity-60"
                       >
                         <Ionicons
@@ -187,7 +292,7 @@ const CartModal = ({ onSaleCreated }: Props) => {
                         {item.quantity}
                       </Text>
                       <Pressable
-                        onPress={() => addToOrder(item.product)}
+                        onPress={() => handleIncrement(item)}
                         className="p-1 active:opacity-60"
                       >
                         <Ionicons
@@ -203,17 +308,38 @@ const CartModal = ({ onSaleCreated }: Props) => {
 
               {/* Footer fijo con total y acción */}
               <View className="border-t border-neutral-800 pt-4 pb-10">
-                {/* Nota o nombre del cliente */}
+                <View className="mb-4">
+                  <Pressable
+                    onPress={() => setShowClientPicker(true)}
+                    className="h-16 bg-neutral-800 shadow-lg rounded-lg px-4 flex-row items-center gap-2"
+                  >
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                      <Ionicons
+                        name="person-outline"
+                        size={18}
+                        color={selectedClientId ? "#ff5722" : "#737373"}
+                      />
+                      <Text style={{ color: selectedClientId ? "#fff" : "#737373", fontSize: 15 }}>
+                        {selectedClientId
+                          ? clients.find((c) => c.id === selectedClientId)?.name
+                          : "Asignar cliente (opcional)"}
+                      </Text>
+                    </View>
+                    <Ionicons name="chevron-down" size={16} color="#555" />
+                  </Pressable>
+                </View>
+
+                {/* Nota */}
                 <View className="mb-4">
                   <Input
                     type="text"
                     onChangeText={(text) => setNote(text)}
-                    placeholder="Nota o nombre del cliente"
+                    placeholder="Nota"
                     value={note}
                   />
                 </View>
 
-                {/* Contenedor para los métodos de pago */}
+                {/* Métodos de pago */}
                 <View className="flex-row justify-between gap-3 mb-4">
                   {Object.values(PaymentMethods).map((method) => (
                     <Button
@@ -244,7 +370,7 @@ const CartModal = ({ onSaleCreated }: Props) => {
                   ))}
                 </View>
 
-                {/* Is Debt buttons */}
+                {/* Contado / Fiado */}
                 <View className="flex-row items-center gap-6 mb-4">
                   <Pressable
                     onPress={() => setIsDebt(false)}
@@ -253,122 +379,88 @@ const CartModal = ({ onSaleCreated }: Props) => {
                     <Text className="text-white font-semibold">Contado</Text>
                   </Pressable>
                   <Pressable
-                    onPress={() => setIsDebt(true)}
+                    onPress={() => {
+                      setIsDebt(true);
+                      setAmountDebt(totalPrecio);
+                    }}
                     className={`flex-1 flex-row items-center p-3 rounded-xl border ${isDebt ? "border-primary" : "border-neutral-700"} active:opacity-70`}
                   >
                     <Text className="text-white font-semibold">Fiado</Text>
                   </Pressable>
                 </View>
 
-                {/* Input de deuda solo si es fiado */}
+                {/* Deuda */}
                 {isDebt && (
-                  <View className="mb-4">
-                    <Pressable
-                      onPress={() => setShowClientPicker(true)}
-                      style={{
-                        backgroundColor: "#1a1a1a",
-                        borderRadius: 12,
-                        padding: 14,
-                        marginBottom: 12,
-                        borderWidth: 1,
-                        borderColor: selectedClientId ? "#ff5722" : "#2a2a2a",
-                        flexDirection: "row",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          gap: 8,
-                        }}
-                      >
-                        <Ionicons
-                          name="person-outline"
-                          size={18}
-                          color={selectedClientId ? "#ff5722" : "#737373"}
-                        />
-                        <Text
-                          style={{
-                            color: selectedClientId ? "#fff" : "#737373",
-                            fontSize: 15,
-                          }}
-                        >
-                          {selectedClientId
-                            ? clients.find((c) => c.id === selectedClientId)
-                                ?.name
-                            : "Asignar cliente (opcional)"}
-                        </Text>
-                      </View>
-                      <Ionicons name="chevron-down" size={16} color="#555" />
-                    </Pressable>
-
+                  <View style={{ gap: 12, marginBottom: 16 }}>
                     <Input
                       type="number"
                       placeholder="Monto que quedan debiendo"
                       value={String(amountDebt)}
                       onChangeText={(text) => {
-                        if (typeof Number(text) != "number") {
-                          Alert.alert(
-                            "Error",
-                            "Este campo solo admite numeros",
-                          );
-                          return;
-                        }
-
                         setAmountDebt(Number(text));
                       }}
                     />
+
+                    <View>
+                      <Text style={{ color: "#a3a3a3", fontSize: 13, fontWeight: "600", marginBottom: 6 }}>
+                        Fecha Límite de Pago
+                      </Text>
+                      <Pressable
+                        onPress={() => setShowDatePicker(true)}
+                        style={{
+                          height: 56,
+                          backgroundColor: "#262626",
+                          borderRadius: 12,
+                          borderWidth: 1,
+                          borderColor: "#3f3f46",
+                          paddingHorizontal: 16,
+                          flexDirection: "row",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <Text style={{ color: "#fff", fontSize: 15, fontWeight: "700" }}>
+                          {debtDate.toLocaleDateString("es-CO", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </Text>
+                        <Ionicons name="calendar-outline" size={20} color="#ff5722" />
+                      </Pressable>
+                      {showDatePicker && (
+                        <DateTimePicker
+                          value={debtDate}
+                          mode="date"
+                          minimumDate={new Date()}
+                          onChange={(event, selectedDate) => {
+                            setShowDatePicker(Platform.OS === "ios");
+                            if (selectedDate) {
+                              setDebtDate(selectedDate);
+                            }
+                          }}
+                        />
+                      )}
+                    </View>
                   </View>
                 )}
 
-                <Modal
-                  visible={showClientPicker}
-                  transparent
-                  animationType="slide"
-                >
-                  <View
-                    style={{
-                      flex: 1,
-                      backgroundColor: "rgba(0,0,0,0.6)",
-                      justifyContent: "flex-end",
-                    }}
-                  >
-                    <View
-                      style={{
-                        backgroundColor: "#141414",
-                        borderTopLeftRadius: 28,
-                        borderTopRightRadius: 28,
-                        padding: 24,
-                        maxHeight: "60%",
-                        paddingBottom: 40,
-                      }}
-                    >
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          marginBottom: 16,
-                        }}
-                      >
-                        <Text
-                          style={{
-                            color: "#fff",
-                            fontSize: 18,
-                            fontWeight: "800",
-                          }}
-                        >
-                          Seleccionar Cliente
-                        </Text>
+                {/* Client picker modal */}
+                <Modal visible={showClientPicker} transparent animationType="slide">
+                  <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" }}>
+                    <View style={{
+                      backgroundColor: "#141414",
+                      borderTopLeftRadius: 28,
+                      borderTopRightRadius: 28,
+                      padding: 24,
+                      maxHeight: "60%",
+                      paddingBottom: 40,
+                    }}>
+                      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                        <Text style={{ color: "#fff", fontSize: 18, fontWeight: "800" }}>Seleccionar Cliente</Text>
                         <Pressable
                           onPress={() => setShowClientPicker(false)}
-                          style={{
-                            backgroundColor: "#2a2a2a",
-                            borderRadius: 20,
-                            padding: 8,
-                          }}
+                          style={{ backgroundColor: "#2a2a2a", borderRadius: 20, padding: 8 }}
                         >
                           <Ionicons name="close" size={18} color="#fff" />
                         </Pressable>
@@ -378,68 +470,30 @@ const CartModal = ({ onSaleCreated }: Props) => {
                         keyExtractor={(c) => String(c.id)}
                         renderItem={({ item }) => (
                           <Pressable
-                            onPress={() => {
-                              setSelectedClientId(item.id);
-                              setShowClientPicker(false);
-                            }}
+                            onPress={() => { setSelectedClientId(item.id); setShowClientPicker(false); }}
                             style={{
                               padding: 14,
                               borderRadius: 12,
                               marginBottom: 8,
-                              backgroundColor:
-                                selectedClientId === item.id
-                                  ? "#ff572222"
-                                  : "#1a1a1a",
+                              backgroundColor: selectedClientId === item.id ? "#ff572222" : "#1a1a1a",
                               borderWidth: 1,
-                              borderColor:
-                                selectedClientId === item.id
-                                  ? "#ff5722"
-                                  : "#2a2a2a",
+                              borderColor: selectedClientId === item.id ? "#ff5722" : "#2a2a2a",
                               flexDirection: "row",
                               alignItems: "center",
                               gap: 10,
                             }}
                           >
-                            <View
-                              style={{
-                                width: 36,
-                                height: 36,
-                                borderRadius: 18,
-                                backgroundColor: "#ff572233",
-                                alignItems: "center",
-                                justifyContent: "center",
-                              }}
-                            >
-                              <Text
-                                style={{ color: "#ff5722", fontWeight: "800" }}
-                              >
-                                {item.name[0].toUpperCase()}
-                              </Text>
+                            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: "#ff572233", alignItems: "center", justifyContent: "center" }}>
+                              <Text style={{ color: "#ff5722", fontWeight: "800" }}>{item.name[0].toUpperCase()}</Text>
                             </View>
                             <View>
-                              <Text
-                                style={{ color: "#fff", fontWeight: "600" }}
-                              >
-                                {item.name}
-                              </Text>
-                              {item.phone && (
-                                <Text
-                                  style={{ color: "#737373", fontSize: 12 }}
-                                >
-                                  {item.phone}
-                                </Text>
-                              )}
+                              <Text style={{ color: "#fff", fontWeight: "600" }}>{item.name}</Text>
+                              {item.phone && <Text style={{ color: "#737373", fontSize: 12 }}>{item.phone}</Text>}
                             </View>
                           </Pressable>
                         )}
                         ListEmptyComponent={
-                          <Text
-                            style={{
-                              color: "#555",
-                              textAlign: "center",
-                              marginTop: 20,
-                            }}
-                          >
+                          <Text style={{ color: "#555", textAlign: "center", marginTop: 20 }}>
                             No hay clientes registrados
                           </Text>
                         }
@@ -448,7 +502,7 @@ const CartModal = ({ onSaleCreated }: Props) => {
                   </View>
                 </Modal>
 
-                {/* Contenedor para el total y el botón de confirmar */}
+                {/* Total y confirmar */}
                 <View className="flex-row justify-between items-center mb-6">
                   <Text className="text-gray-400 text-lg font-medium">
                     Total de la orden

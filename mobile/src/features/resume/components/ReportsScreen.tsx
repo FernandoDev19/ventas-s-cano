@@ -10,7 +10,7 @@ import {
   View,
 } from "react-native";
 import { SalesService } from "@/src/features/sales/services/sales.service";
-import { ExpensesService } from "@/src/features/expenses/services/expense.service";
+import ExpensesService from "@/src/features/expenses/services/expense.service";
 import { SaleType } from "@/src/features/sales/types/sale.type";
 import { useRouter } from "expo-router";
 import SaleDetailModal from "@/src/features/sales/components/SaleDetailModal";
@@ -68,7 +68,7 @@ export default function ReportsScreen() {
 
       setTotalDay(summary.totalDay);
       setTotalMonth(summary.totalMonth);
-      setTotalExpenses(allExpenses.reduce((s, e) => s + e.amount, 0));
+      setTotalExpenses(allExpenses.reduce((s: number, e: any) => s + e.amount, 0));
       setDebtTotal(summary.debtTotal);
       setPaidTotal(summary.paidTotal);
     } catch (err) {
@@ -92,7 +92,7 @@ export default function ReportsScreen() {
 
   // Calculate Last 7 Days Activity (Sales vs Expenses)
   const weeklyData = useMemo(() => {
-    const days = [];
+    const days: any[] = [];
     const today = new Date();
 
     for (let i = 6; i >= 0; i--) {
@@ -177,7 +177,7 @@ export default function ReportsScreen() {
 
             {/* Hero KPI - Ventas hoy */}
             <Pressable
-              onPress={() => router.push("/(orders)/orders")}
+              onPress={() => router.push("/(orders)/orders" as any)}
               className="mx-4 mb-4 p-5 rounded-2xl active:opacity-90"
               style={{ backgroundColor: "#1a1a1a" }}
             >
@@ -204,7 +204,7 @@ export default function ReportsScreen() {
             <View className="flex-row mx-4 gap-3 mb-3">
               {/* Total cobrado */}
               <Pressable
-                onPress={() => router.push("/(orders)/orders")}
+                onPress={() => router.push("/(orders)/orders" as any)}
                 className="flex-1 p-4 rounded-2xl active:opacity-90"
                 style={{
                   backgroundColor: "#22c55e15",
@@ -238,7 +238,7 @@ export default function ReportsScreen() {
 
               {/* Por cobrar (fiados) */}
               <Pressable
-                onPress={() => router.push("/(orders)/orders")}
+                onPress={() => router.push("/(orders)/orders" as any)}
                 className="flex-1 p-4 rounded-2xl active:opacity-90"
                 style={{
                   backgroundColor: "#f59e0b15",
@@ -270,7 +270,7 @@ export default function ReportsScreen() {
             <View className="flex-row mx-4 gap-3 mb-5">
               {/* Total gastos */}
               <Pressable
-                onPress={() => router.push("/(expenses)/expenses")}
+                onPress={() => router.push("/(expenses)/expenses" as any)}
                 className="flex-1 p-4 rounded-2xl active:opacity-90"
                 style={{
                   backgroundColor: "#ef444415",
@@ -467,7 +467,7 @@ export default function ReportsScreen() {
                 Pedidos Recientes
               </Text>
               <Pressable
-                onPress={() => router.push("/(orders)/orders")}
+                onPress={() => router.push("/(orders)/orders" as any)}
                 hitSlop={12}
               >
                 <Text className="text-xs font-semibold" style={{ color: "#ff5722" }}>

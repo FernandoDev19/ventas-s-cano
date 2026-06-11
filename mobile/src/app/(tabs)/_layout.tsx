@@ -11,6 +11,11 @@ const tabs = [
     icon: "book",
   },
   {
+    name: "(recipes)/recipes",
+    title: "Recetas",
+    icon: "restaurant-outline",
+  },
+  {
     name: "(orders)/orders",
     title: "Pedidos",
     icon: "list",

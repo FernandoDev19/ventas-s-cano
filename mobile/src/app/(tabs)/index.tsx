@@ -6,7 +6,7 @@ import { View } from "react-native";
 
 export default function MenuTab() {
   const { filter, categories, setFilter } = useMenu();
-  const { products, loadProducts, search, setSearch, isLoading, isRefreshing, setIsRefreshing } = useProductList(filter);
+  const { products, recipes, loadProducts, search, setSearch, isLoading, isRefreshing, setIsRefreshing } = useProductList(filter);
 
   // TODO: Luego de la venta debe recargar correctamente los productos, cambiar context por zustand para estado global
 
@@ -15,6 +15,7 @@ export default function MenuTab() {
       <View className="px-6">
         <ProductList
           products={products}
+          recipes={recipes}
           categories={categories}
           filter={filter}
           setFilter={setFilter}
@@ -31,3 +32,4 @@ export default function MenuTab() {
     </View>
   );
 }
+

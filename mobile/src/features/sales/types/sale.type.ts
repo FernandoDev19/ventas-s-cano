@@ -8,4 +8,8 @@ export type SaleType = {
   payment_method?: string;
   client_id?: number | null;
   created_at?: Date | string | null;
+  client?: { id: number; name: string } | null;
+  status?: "active" | "cancelled";
+  cancel_reason?: string | null;
+  edit_reason?: string | null;
 };

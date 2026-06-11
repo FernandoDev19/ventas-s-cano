@@ -8,6 +8,7 @@ export const CategoriesService = {
     );
     return categories;
   },
+
   create: async (name: string): Promise<CategoryType> => {
     const result = await DATABASE.db.runAsync(
       "INSERT INTO categories (name) VALUES (?)",
@@ -18,6 +19,7 @@ export const CategoriesService = {
       name,
     };
   },
+
   createMany: async (categories: CategoryType[]) => {
     const categoriesCount: { count: number } | null = await DATABASE.db.getFirstAsync(
       "SELECT COUNT(*) as count FROM categories",
@@ -36,17 +38,29 @@ export const CategoriesService = {
       });
     }
   },
+
   update: async (id: number, name: string): Promise<void> => {
     await DATABASE.db.runAsync(
       "UPDATE categories SET name = ? WHERE id = ?",
       [name, id],
     );
   },
+
   delete: async (id: number): Promise<void> => {
-    await DATABASE.db.runAsync(
-      "DELETE FROM categories WHERE id = ?",
-      [id],
-    );
+    await DATABASE.db.withTransactionAsync(async () => {
+      await DATABASE.db.runAsync(
+        "DELETE FROM products WHERE category_id = ?",
+        [id],
+      );
+      await DATABASE.db.runAsync(
+        "DELETE FROM expenses WHERE category_id = ?",
+        [id],
+      );
+      await DATABASE.db.runAsync(
+        "DELETE FROM categories WHERE id = ?",
+        [id],
+      );
+    });
   },
 
   reset: async () => {

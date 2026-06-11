@@ -144,20 +144,62 @@ export const seeders = {
     }
 
     
+    async function recipesTable() {
+      const recipesCount: { count: number } | null = await DATABASE.db.getFirstAsync(
+        "SELECT COUNT(*) as count FROM recipes"
+      );
+
+      if (recipesCount?.count === 0) {
+        await DATABASE.db.withTransactionAsync(async () => {
+          // Recipe 1: Combo Familiar
+          await DATABASE.db.runAsync(
+            "INSERT INTO recipes (id, name, description, image_url, selling_price, category_id) VALUES (?, ?, ?, ?, ?, ?)",
+            [1, "Combo Familiar", "1 Pollo Entero + 2 Gaseosas de 1.5L", "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRkK108d_a0kSjD7f60s9D5f6H2G8zJ9i6wYg&s", 15000, 1]
+          );
+          // ingredients: 1x Pollo Entero (id=1), let's assume we don't have gaseosas in products seeded yet so we just put Pollo Entero for demo
+          await DATABASE.db.runAsync(
+            "INSERT INTO recipe_ingredients (recipe_id, product_id, quantity) VALUES (?, ?, ?)",
+            [1, 1, 1] 
+          );
+
+          // Recipe 2: Picada Sencilla
+          await DATABASE.db.runAsync(
+            "INSERT INTO recipes (id, name, description, image_url, selling_price, category_id) VALUES (?, ?, ?, ?, ?, ?)",
+            [2, "Picada Sencilla", "1/2 Pollo + 1/4 Pollo", "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTVbQ7yB7sA7nL-Gv8S1vG7gG_s7G6yE0K7bA&s", 20000, 2]
+          );
+          await DATABASE.db.runAsync(
+            "INSERT INTO recipe_ingredients (recipe_id, product_id, quantity) VALUES (?, ?, ?)",
+            [2, 2, 1] // 1x Pollo 1/2
+          );
+          await DATABASE.db.runAsync(
+            "INSERT INTO recipe_ingredients (recipe_id, product_id, quantity) VALUES (?, ?, ?)",
+            [2, 3, 1] // 1x Pollo 1/4
+          );
+        });
+
+        console.log("Recipes seeded successfully");
+      }
+    }
+    
     if (env === "development" && count === 0) {
       await seeders.reset();
+      await categoriesTable();
       await productsTable();
+      await recipesTable();
       await salesTable();
       await expensesTable();
       count += 1;
+    } else {
+      await categoriesTable();
     }
-    await categoriesTable();
   },
 
   reset: async () => {
     if (env === "development") {
       await CategoriesService.reset();
       await ProductsService.reset();
+      await DATABASE.db.execAsync("DELETE FROM recipe_ingredients");
+      await DATABASE.db.execAsync("DELETE FROM recipes");
       await DATABASE.db.execAsync("DELETE FROM sale_products");
       await DATABASE.db.execAsync("DELETE FROM sales");
       await DATABASE.db.execAsync("DELETE FROM expenses");
@@ -165,3 +207,4 @@ export const seeders = {
     }
   },
 };
+

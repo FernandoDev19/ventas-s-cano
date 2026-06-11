@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { SaleType } from "../types/sale.type";
 
 type Props = {
-    sale: SaleType & {client: { id: number; name: string } };
+    sale: SaleType;
     onMarkAsPaid: (saleId: number) => void;
     payingId: number | null;
     onPress: () => void;

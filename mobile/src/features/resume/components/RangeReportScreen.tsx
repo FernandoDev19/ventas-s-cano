@@ -786,9 +786,7 @@ export default function RangeReportScreen() {
         ) : (
           <View style={{ alignItems: "center", paddingVertical: 60 }}>
             <Ionicons name="bar-chart-outline" size={48} color="#333" />
-            <Text style={{ color: "#737373", marginTop: 12, fontSize: 14 }}>
-              Selecciona un rango para ver el reporte
-            </Text>
+            <Text style={{ color: "#737373", marginTop: 12, fontSize: 14 }}>Selecciona un rango para ver el reporte</Text>
           </View>
         )}
       </ScrollView>
