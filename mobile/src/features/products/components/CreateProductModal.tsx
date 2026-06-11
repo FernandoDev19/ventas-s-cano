@@ -348,9 +348,15 @@ export default function CreateProductModal({
             </Pressable>
 
             <CategoriesModal
-              onSelect={(id) => setCategoryId(id)}
+              onSelect={(id) => {
+                setIsCategoriesModalOpen(false);
+                setCategoryId(id)
+              }}
               visible={isCategoriesModalOpen}
-              onCreated={(id) => setCategoryId(id)}
+              onCreated={(id) => {
+                setIsCategoriesModalOpen(false);
+                setCategoryId(id)
+              }}
               onClose={() => setIsCategoriesModalOpen(false)}
             />
 

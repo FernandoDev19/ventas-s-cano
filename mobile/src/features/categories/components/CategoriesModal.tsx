@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   Platform,
@@ -31,18 +31,18 @@ const CategoriesModal = ({ visible, onClose, onCreated, onSelect }: Props) => {
     setName("");
   };
 
+  const fetchCategories = useCallback(async () => {
+    const categories = await CategoriesService.getAll();
+    setCategories(categories);
+  }, []);
+
   useEffect(() => {
     fetchCategories();
-  }, [visible]);
+  }, [visible, fetchCategories]);
 
   const handleClose = () => {
     reset();
     onClose();
-  };
-
-  const fetchCategories = async () => {
-    const categories = await CategoriesService.getAll();
-    setCategories(categories);
   };
 
   const handleDelete = async (categoryId: number) => {
@@ -57,9 +57,9 @@ const CategoriesModal = ({ visible, onClose, onCreated, onSelect }: Props) => {
           },
           {
             text: "Eliminar",
-            onPress: () => {
-              CategoriesService.delete(categoryId);
-              fetchCategories();
+            onPress: async () => {
+              await CategoriesService.delete(categoryId);
+              await fetchCategories();
             },
           },
         ],

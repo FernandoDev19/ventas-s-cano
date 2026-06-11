@@ -10,7 +10,12 @@ type Props = {
 };
 
 const MenuProductCard = ({ product }: Props) => {
-  const { addToOrder, order } = useOrder();
+  const { addToOrder, removeFromOrder, order } = useOrder();
+
+  const orderItem = order.find(
+    (item) => item.type === "product" && item.product.id === product.id
+  );
+  const qty = orderItem?.quantity ?? 0;
 
   return (
     <Pressable onPress={() => addToOrder(product)} className={`${!product.stock ? "opacity-50 pointer-not-allowed border-2 border-red-500" : ""} bg-neutral-800 rounded-2xl border-[0.3px] border-primary flex-1 overflow-hidden`}>
@@ -43,14 +48,11 @@ const MenuProductCard = ({ product }: Props) => {
             className="w-10 h-10 !px-0 !py-0"
             disabled={!product.stock}
           >
-            {order.some((item) => item.product.id === product.id) ? (
+            {qty > 0 ? (
               <View className="flex-row items-center">
                 <Ionicons name="checkmark" size={11} color="white" />
                 <Text className="text-xs absolute -top-4 -right-4 w-4 h-4 rounded-full bg-white text-black text-center m-0 p-0">
-                  {
-                    order.find((item) => item.product.id === product.id)
-                      ?.quantity
-                  }
+                  {qty}
                 </Text>
               </View>
             ) : (

@@ -63,18 +63,33 @@ const DATABASE = {
           notes TEXT,
           FOREIGN KEY (category_id) REFERENCES categories (id)
         );
+
+        CREATE TABLE IF NOT EXISTS recipes (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          description TEXT,
+          image_url TEXT,
+          selling_price REAL NOT NULL,
+          category_id INTEGER,
+          FOREIGN KEY (category_id) REFERENCES categories (id)
+        );
+
+        CREATE TABLE IF NOT EXISTS recipe_ingredients (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          recipe_id INTEGER NOT NULL,
+          product_id INTEGER NOT NULL,
+          quantity REAL NOT NULL,
+          FOREIGN KEY (recipe_id) REFERENCES recipes (id),
+          FOREIGN KEY (product_id) REFERENCES products (id)
+        );
       `);
 
       // Run migrations for existing databases
-      try {
-        await DATABASE.db.execAsync("ALTER TABLE sales ADD COLUMN status TEXT DEFAULT 'active';");
-      } catch (e) {}
-      try {
-        await DATABASE.db.execAsync("ALTER TABLE sales ADD COLUMN cancel_reason TEXT;");
-      } catch (e) {}
-      try {
-        await DATABASE.db.execAsync("ALTER TABLE sales ADD COLUMN edit_reason TEXT;");
-      } catch (e) {}
+      try { await DATABASE.db.execAsync("ALTER TABLE sales ADD COLUMN status TEXT DEFAULT 'active';"); } catch (e) {}
+      try { await DATABASE.db.execAsync("ALTER TABLE sales ADD COLUMN cancel_reason TEXT;"); } catch (e) {}
+      try { await DATABASE.db.execAsync("ALTER TABLE sales ADD COLUMN edit_reason TEXT;"); } catch (e) {}
+      try { await DATABASE.db.execAsync("ALTER TABLE sales ADD COLUMN debt_date DATE;"); } catch (e) {}
+      try { await DATABASE.db.execAsync("ALTER TABLE sales ADD COLUMN client_id INTEGER;"); } catch (e) {}
 
       console.log("Database initialized successfully");
       console.log(
