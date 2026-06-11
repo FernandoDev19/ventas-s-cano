@@ -2,7 +2,7 @@ import Button from "@/src/shared/components/ui/Button";
 import { priceFormat } from "@/src/shared/helpers/price-format.helper";
 import { useOrder } from "@/src/shared/hooks/useOrder";
 import { Ionicons } from "@expo/vector-icons";
-import { Image, Text, View } from "react-native";
+import { Image, Pressable, Text, View } from "react-native";
 import { ProductType } from "../../products/types/product.type";
 
 type Props = {
@@ -13,7 +13,7 @@ const MenuProductCard = ({ product }: Props) => {
   const { addToOrder, order } = useOrder();
 
   return (
-    <View className={`${!product.stock ? "opacity-50 pointer-not-allowed border-2 border-red-500" : ""} bg-neutral-800 rounded-2xl border-[0.3px] border-primary flex-1 overflow-hidden`}>
+    <Pressable onPress={() => addToOrder(product)} className={`${!product.stock ? "opacity-50 pointer-not-allowed border-2 border-red-500" : ""} bg-neutral-800 rounded-2xl border-[0.3px] border-primary flex-1 overflow-hidden`}>
       <Image
         source={
           product.image_url
@@ -59,7 +59,7 @@ const MenuProductCard = ({ product }: Props) => {
           </Button>
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 };
 

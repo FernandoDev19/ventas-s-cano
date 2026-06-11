@@ -1,7 +1,7 @@
 import DATABASE from "@/src/core/config/db";
 import { ExpenseType } from "../types/expense.type";
 
-export const ExpensesService = {
+const ExpensesService = {
   getAllExpenses: async (): Promise<ExpenseType[]> => {
     const expenses = await DATABASE.db.getAllAsync(
       "SELECT * FROM expenses ORDER BY date DESC",

@@ -38,6 +38,9 @@ const DATABASE = {
           payment_method TEXT DEFAULT 'cash',
           created_at TEXT NOT NULL,
           client_id INTEGER,
+          status TEXT DEFAULT 'active',
+          cancel_reason TEXT,
+          edit_reason TEXT,
           FOREIGN KEY (client_id) REFERENCES clients (id)
         );
 
@@ -61,6 +64,17 @@ const DATABASE = {
           FOREIGN KEY (category_id) REFERENCES categories (id)
         );
       `);
+
+      // Run migrations for existing databases
+      try {
+        await DATABASE.db.execAsync("ALTER TABLE sales ADD COLUMN status TEXT DEFAULT 'active';");
+      } catch (e) {}
+      try {
+        await DATABASE.db.execAsync("ALTER TABLE sales ADD COLUMN cancel_reason TEXT;");
+      } catch (e) {}
+      try {
+        await DATABASE.db.execAsync("ALTER TABLE sales ADD COLUMN edit_reason TEXT;");
+      } catch (e) {}
 
       console.log("Database initialized successfully");
       console.log(

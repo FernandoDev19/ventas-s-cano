@@ -38,9 +38,6 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: {
-          marginBottom: 20,
-        },
       }}
     >
       {tabs.map((tab) => (

@@ -3,9 +3,11 @@ import { DarkTheme, ThemeProvider } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
+import { Alert, ActivityIndicator, View } from "react-native";
 import DATABASE from "../core/config/db";
 import { seeders } from "../core/config/seeders";
 import { OrderProvider } from "../core/context/OrderContext";
+import { SalesService } from "../features/sales/services/sales.service";
 import "../global.css";
 
 export default function RootLayout() {
@@ -21,6 +23,27 @@ export default function RootLayout() {
 
         // 2. Los datos de prueba
         await seeders.run();
+
+        // 3. Verificar alertas de deudas
+        const debts = await SalesService.getDebtSales();
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const dueDebts = debts.filter(d => {
+          if (!d.debt_date) return false;
+          const dueDate = new Date(d.debt_date);
+          dueDate.setHours(0, 0, 0, 0);
+          return dueDate <= today;
+        });
+
+        if (dueDebts.length > 0) {
+          Alert.alert(
+            "Deudas Pendientes",
+            `Tienes ${dueDebts.length} venta(s) fiada(s) cuya fecha de cobro es hoy o ya expiró. ¡Revisa los reportes o deudas!`,
+            [{ text: "Entendido", style: "default" }]
+          );
+        }
+
       } catch (error) {
         console.error("Error al arrancar:", error);
       } finally {
@@ -30,6 +53,14 @@ export default function RootLayout() {
 
     inicializarTodo();
   }, [isInitialized]);
+
+  if (!isInitialized) {
+    return (
+      <View style={{ flex: 1, backgroundColor: "#141414", justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color="#ff5722" />
+      </View>
+    );
+  }
 
   return (
     <ThemeProvider value={DarkTheme}>

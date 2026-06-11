@@ -1,5 +1,5 @@
 import { CategoryType } from "@/src/features/categories/types/category.type";
-import { ExpensesService } from "../services/expense.service";
+import ExpensesService from "../services/expense.service";
 import { ExpenseType } from "../types/expense.type";
 import { Ionicons } from "@expo/vector-icons";
 import { priceFormat } from "@/src/shared/helpers/price-format.helper";
@@ -59,7 +59,7 @@ export default function ExpenseDetailModal({
               onDeleted();
               onClose();
             } catch (err) {
-              Alert.alert("Error", "No se pudo eliminar el gasto.");
+              Alert.alert("Error", "No se pudo eliminar el gasto. \n" + (err as Error).message);
             } finally {
               setIsDeleting(false);
             }
@@ -228,7 +228,7 @@ export default function ExpenseDetailModal({
                   {formattedDate}
                 </Text>
               </View>
-              <View style={{ alignItems: "end" }}>
+              <View className="items-end">
                 <Text style={{ color: "#737373", fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 }}>
                   Hora
                 </Text>

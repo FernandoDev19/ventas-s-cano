@@ -1,6 +1,6 @@
 import { CategoriesService } from "@/src/features/categories/services/categories.service";
 import { CategoryType } from "@/src/features/categories/types/category.type";
-import { ExpensesService } from "@/src/features/expenses/services/expense.service";
+import ExpensesService from "@/src/features/expenses/services/expense.service";
 import { ExpenseType } from "@/src/features/expenses/types/expense.type";
 import Button from "@/src/shared/components/ui/Button";
 import { Ionicons } from "@expo/vector-icons";

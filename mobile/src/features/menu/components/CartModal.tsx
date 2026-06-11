@@ -24,6 +24,8 @@ import { SalesService } from "../../sales/services/sales.service";
 import { SaleType } from "../../sales/types/sale.type";
 import { ClientType } from "../../clients/types/client.type";
 import { ClientsService } from "../../clients/services/clients.service";
+import { ProductsService } from "../../products/services/products.service";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 type Props = {
   onSaleCreated: () => void;
@@ -45,25 +47,31 @@ const CartModal = ({ onSaleCreated }: Props) => {
   const [isDebt, setIsDebt] = useState(false);
   const [note, setNote] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
-  const [amountDebt, setAmountDebt] = useState<number>(totalPrecio);
+  const [amountDebt, setAmountDebt] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] =
     useState<PaymentMethodsType>("cash");
+  const [debtDate, setDebtDate] = useState<Date>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 7); // Default to 7 days from now
+    return d;
+  });
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   useEffect(() => {
     if (modalVisible) {
       ClientsService.getAll().then(setClients);
+      setAmountDebt(totalPrecio);
     }
-  }, [modalVisible]);
+  }, [modalVisible, totalPrecio]);
 
   if (totalItems === 0) return null;
-
 
   const buildSale = (): SaleType => ({
     total: totalPrecio,
     note,
     is_debt: isDebt,
     debt_amount: isDebt ? (amountDebt > 0 ? amountDebt : totalPrecio) : 0,
-    debt_date: isDebt ? new Date().toISOString().split("T")[0] : null,
+    debt_date: isDebt ? debtDate.toISOString().split("T")[0] : null,
     payment_method: paymentMethod,
     client_id: isDebt ? selectedClientId : null,
   });
@@ -80,13 +88,36 @@ const CartModal = ({ onSaleCreated }: Props) => {
 
       onSaleCreated();
 
+      // Check for low stock products
+      const lowStockAlerts: string[] = [];
+      for (const item of order) {
+        const prod = await ProductsService.getProductById(item.product.id);
+        if (prod && prod.stock <= 10) {
+          lowStockAlerts.push(`${prod.name} (Quedan: ${prod.stock})`);
+        }
+      }
+
       clearOrder();
       setIsDebt(false);
       setAmountDebt(0);
       setNote("");
       setModalVisible(false);
+      setSelectedClientId(null);
+      // Reset default debt date to 7 days from now
+      setDebtDate(() => {
+        const d = new Date();
+        d.setDate(d.getDate() + 7);
+        return d;
+      });
 
-      Alert.alert("¡Pedido creado correctamente!");
+      if (lowStockAlerts.length > 0) {
+        Alert.alert(
+          "¡Pedido creado correctamente!",
+          `⚠️ ¡Alerta de Stock Bajo!\nLos siguientes productos tienen stock bajo:\n\n${lowStockAlerts.map(a => `• ${a}`).join("\n")}`
+        );
+      } else {
+        Alert.alert("¡Pedido creado correctamente!");
+      }
     } catch (error: any) {
       console.error(error);
       Alert.alert(
@@ -203,12 +234,44 @@ const CartModal = ({ onSaleCreated }: Props) => {
 
               {/* Footer fijo con total y acción */}
               <View className="border-t border-neutral-800 pt-4 pb-10">
+                <View className="mb-4">
+                  <Pressable
+                    onPress={() => setShowClientPicker(true)}
+                    className="h-16 bg-neutral-800 shadow-lg rounded-lg px-4 flex-row items-center gap-2"
+                  >
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
+                    >
+                      <Ionicons
+                        name="person-outline"
+                        size={18}
+                        color={selectedClientId ? "#ff5722" : "#737373"}
+                      />
+                      <Text
+                        style={{
+                          color: selectedClientId ? "#fff" : "#737373",
+                          fontSize: 15,
+                        }}
+                      >
+                        {selectedClientId
+                          ? clients.find((c) => c.id === selectedClientId)?.name
+                          : "Asignar cliente (opcional)"}
+                      </Text>
+                    </View>
+                    <Ionicons name="chevron-down" size={16} color="#555" />
+                  </Pressable>
+                </View>
+
                 {/* Nota o nombre del cliente */}
                 <View className="mb-4">
                   <Input
                     type="text"
                     onChangeText={(text) => setNote(text)}
-                    placeholder="Nota o nombre del cliente"
+                    placeholder="Nota"
                     value={note}
                   />
                 </View>
@@ -253,7 +316,10 @@ const CartModal = ({ onSaleCreated }: Props) => {
                     <Text className="text-white font-semibold">Contado</Text>
                   </Pressable>
                   <Pressable
-                    onPress={() => setIsDebt(true)}
+                    onPress={() => {
+                      setIsDebt(true);
+                      setAmountDebt(totalPrecio);
+                    }}
                     className={`flex-1 flex-row items-center p-3 rounded-xl border ${isDebt ? "border-primary" : "border-neutral-700"} active:opacity-70`}
                   >
                     <Text className="text-white font-semibold">Fiado</Text>
@@ -262,64 +328,59 @@ const CartModal = ({ onSaleCreated }: Props) => {
 
                 {/* Input de deuda solo si es fiado */}
                 {isDebt && (
-                  <View className="mb-4">
-                    <Pressable
-                      onPress={() => setShowClientPicker(true)}
-                      style={{
-                        backgroundColor: "#1a1a1a",
-                        borderRadius: 12,
-                        padding: 14,
-                        marginBottom: 12,
-                        borderWidth: 1,
-                        borderColor: selectedClientId ? "#ff5722" : "#2a2a2a",
-                        flexDirection: "row",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          gap: 8,
-                        }}
-                      >
-                        <Ionicons
-                          name="person-outline"
-                          size={18}
-                          color={selectedClientId ? "#ff5722" : "#737373"}
-                        />
-                        <Text
-                          style={{
-                            color: selectedClientId ? "#fff" : "#737373",
-                            fontSize: 15,
-                          }}
-                        >
-                          {selectedClientId
-                            ? clients.find((c) => c.id === selectedClientId)
-                                ?.name
-                            : "Asignar cliente (opcional)"}
-                        </Text>
-                      </View>
-                      <Ionicons name="chevron-down" size={16} color="#555" />
-                    </Pressable>
-
+                  <View style={{ gap: 12, marginBottom: 16 }}>
+                    {/* Monto de deuda */}
                     <Input
                       type="number"
                       placeholder="Monto que quedan debiendo"
                       value={String(amountDebt)}
                       onChangeText={(text) => {
-                        if (typeof Number(text) != "number") {
-                          Alert.alert(
-                            "Error",
-                            "Este campo solo admite numeros",
-                          );
-                          return;
-                        }
-
                         setAmountDebt(Number(text));
                       }}
                     />
+
+                    {/* Fecha de Pago */}
+                    <View>
+                      <Text style={{ color: "#a3a3a3", fontSize: 13, fontWeight: "600", marginBottom: 6 }}>
+                        Fecha Límite de Pago
+                      </Text>
+                      <Pressable
+                        onPress={() => setShowDatePicker(true)}
+                        style={{
+                          height: 56,
+                          backgroundColor: "#262626",
+                          borderRadius: 12,
+                          borderWidth: 1,
+                          borderColor: "#3f3f46",
+                          paddingHorizontal: 16,
+                          flexDirection: "row",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <Text style={{ color: "#fff", fontSize: 15, fontWeight: "700" }}>
+                          {debtDate.toLocaleDateString("es-CO", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </Text>
+                        <Ionicons name="calendar-outline" size={20} color="#ff5722" />
+                      </Pressable>
+                      {showDatePicker && (
+                        <DateTimePicker
+                          value={debtDate}
+                          mode="date"
+                          minimumDate={new Date()}
+                          onChange={(event, selectedDate) => {
+                            setShowDatePicker(Platform.OS === "ios");
+                            if (selectedDate) {
+                              setDebtDate(selectedDate);
+                            }
+                          }}
+                        />
+                      )}
+                    </View>
                   </View>
                 )}
 
