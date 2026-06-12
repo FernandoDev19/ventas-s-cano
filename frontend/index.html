@@ -1,13 +1,149 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Ventas SCANO</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Menú Digital - Sabor Espress</title>
+  <!-- Tailwind CSS para que se vea hermoso sin escribir CSS manual -->
+  <script src="https://tailwindcss.com"></script>
+  <!-- Cliente de Supabase para la Web -->
+  <script src="https://jsdelivr.net"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 antialiased font-sans pb-12">
+
+  <!-- Encabezado / Banner del Restaurante -->
+  <header class="bg-orange-500 text-white text-center py-12 shadow-md">
+    <h1 class="text-3xl font-extrabold tracking-tight">¡Bienvenidos!</h1>
+    <p class="text-orange-100 mt-2 text-sm font-medium">Escanea, elige y disfruta de tu pedido</p>
+  </header>
+
+  <!-- Filtros de Categorías -->
+  <nav id="categories-container" class="flex gap-2 overflow-x-auto px-4 py-4 sticky top-0 bg-gray-50 z-10 scrollbar-none shadow-sm">
+    <button onclick="filterCategory('all')" class="bg-orange-600 text-white px-4 py-2 rounded-full text-xs font-bold shadow-sm whitespace-nowrap">
+      Todos
+    </button>
+    <!-- Las categorías se inyectarán aquí automáticamente -->
+  </nav>
+
+  <!-- Estado de Carga -->
+  <div id="loading" class="text-center py-12 text-gray-500 font-medium">
+    Cargando los mejores sabores...
+  </div>
+
+  <!-- Contenedor del Menú (Cuadrícula de productos) -->
+  <main id="menu-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 px-4 hidden">
+    <!-- Los productos se inyectarán aquí automáticamente -->
+  </main>
+
+  <script>
+    // 1. Configuración de tu Supabase (Usa los mismos datos de tu App Expo)
+    const SUPABASE_URL = "TU_SUPABASE_URL";
+    const SUPABASE_ANON_KEY = "TU_SUPABASE_ANON_KEY";
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let allProducts = [];
+
+    // 2. Cargar los datos al abrir la página
+    async function loadMenu() {
+      try {
+        // Traer las categorías ordenadas por nombre
+        const { data: categories, error: catError } = await supabase
+          .from('categories')
+          .select('*')
+          .order('name');
+
+        // Traer los productos
+        const { data: products, error: prodError } = await supabase
+          .from('products')
+          .select('*')
+          .order('name');
+
+        if (catError || prodError) throw new Error("Error obteniendo datos");
+
+        allProducts = products;
+
+        // Ocultar cargando y mostrar menú
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('menu-container').classList.remove('hidden');
+
+        // Pintar Categorías en el Navbar
+        const catContainer = document.getElementById('categories-container');
+        categories.forEach(cat => {
+          catContainer.innerHTML += `
+            <button onclick="filterCategory('${cat.id}')" class="category-btn bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-full text-xs font-semibold shadow-sm whitespace-nowrap hover:bg-gray-100 transition">
+              ${cat.name}
+            </button>
+          `;
+        });
+
+        // Pintar todos los productos inicialmente
+        renderProducts(allProducts);
+
+      } catch (error) {
+        document.getElementById('loading').innerText = "Hubo un problema al cargar el menú. Por favor intenta de nuevo.";
+        console.error(error);
+      }
+    }
+
+    // 3. Función para pintar las tarjetas de los productos
+    function renderProducts(productsList) {
+      const menuContainer = document.getElementById('menu-container');
+      menuContainer.innerHTML = '';
+
+      if (productsList.length === 0) {
+        menuContainer.innerHTML = `<p class="text-center text-gray-400 py-8 col-span-full">No hay productos disponibles por ahora.</p>`;
+        return;
+      }
+
+      productsList.forEach(prod => {
+        // Si no tiene imagen, ponemos una por defecto
+        const img = prod.image_url || 'https://unsplash.com';
+        
+        menuContainer.innerHTML += `
+          <div class="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md border border-gray-100 flex transition">
+            <!-- Imagen del Producto -->
+            <img src="${img}" alt="${prod.name}" class="w-28 h-28 object-cover flex-shrink-0">
+            
+            <!-- Detalles -->
+            <div class="p-4 flex flex-col justify-between flex-grow">
+              <div>
+                <h3 class="font-bold text-gray-900 text-base leading-snug">${prod.name}</h3>
+                <p class="text-xs text-gray-400 mt-1">${prod.stock > 0 ? 'Disponible' : 'Agotado'}</p>
+              </div>
+              <div class="flex justify-between items-baseline mt-2">
+                <span class="text-orange-600 font-extrabold text-lg">$${Number(prod.price).toLocaleString('es-CO')}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    // 4. Filtrar productos al presionar una categoría
+    function filterCategory(categoryId) {
+      // Resaltar el botón activo (Cambiar estilos visuales)
+      const buttons = document.querySelectorAll('#categories-container button');
+      buttons.forEach(btn => {
+        btn.classList.replace('bg-orange-600', 'bg-white');
+        btn.classList.replace('text-white', 'text-gray-700');
+        btn.classList.add('border', 'border-gray-200');
+      });
+
+      // Pintar el seleccionado de naranja
+      const activeBtn = event.currentTarget;
+      activeBtn.classList.remove('bg-white', 'text-gray-700', 'border', 'border-gray-200');
+      activeBtn.classList.add('bg-orange-600', 'text-white');
+
+      if (categoryId === 'all') {
+        renderProducts(allProducts);
+      } else {
+        const filtered = allProducts.filter(p => p.category_id === categoryId);
+        renderProducts(filtered);
+      }
+    }
+
+    // Ejecutar carga al iniciar
+    loadMenu();
+  </script>
+</body>
 </html>

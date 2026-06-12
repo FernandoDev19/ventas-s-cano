@@ -7,7 +7,7 @@ export const useFiles = () => {
    * Copia una imagen temporal al directorio permanente de la app
    * y retorna la ruta final guardada.
    */
-  const _persistirImagen = async (uriTemporal: string, productoId?: number): Promise<string | null> => {
+  const _persistirImagen = async (uriTemporal: string, productoId?: string): Promise<string | null> => {
     const sufijo = productoId != null ? productoId : Date.now();
     const nombreArchivo = `producto_${sufijo}_${Date.now()}.jpg`;
     const rutaDestino = `${documentDirectory}${nombreArchivo}`;
@@ -25,7 +25,7 @@ export const useFiles = () => {
    * Abre la CÁMARA, toma la foto y retorna la ruta permanente.
    * Si el usuario cancela o hay error, retorna null.
    */
-  const tomarFotoDesdeCamara = async (productoId?: number): Promise<string | null> => {
+  const tomarFotoDesdeCamara = async (productoId?: string): Promise<string | null> => {
     const permiso = await ImagePicker.requestCameraPermissionsAsync();
     if (!permiso.granted) {
       Alert.alert("Permiso denegado", "Necesitamos acceso a la cámara para tomar fotos.");
@@ -46,7 +46,7 @@ export const useFiles = () => {
    * Abre la GALERÍA, elige la imagen y retorna la ruta permanente.
    * Si el usuario cancela o hay error, retorna null.
    */
-  const elegirImagenDeGaleria = async (productoId?: number): Promise<string | null> => {
+  const elegirImagenDeGaleria = async (productoId?: string): Promise<string | null> => {
     const permiso = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permiso.granted) {
       Alert.alert("Permiso denegado", "Necesitamos acceso a la galería para elegir imágenes.");
@@ -68,7 +68,7 @@ export const useFiles = () => {
    * Muestra un diálogo para elegir entre Cámara o Galería.
    * Retorna la ruta permanente de la imagen seleccionada, o null si cancela.
    */
-  const elegirImagenProducto = async (productoId?: number): Promise<string | null> => {
+  const elegirImagenProducto = async (productoId?: string): Promise<string | null> => {
     return new Promise((resolve) => {
       Alert.alert(
         "Imagen del producto",
@@ -93,7 +93,7 @@ export const useFiles = () => {
   };
 
   // Alias para retrocompatibilidad con el nombre original
-  const tomarFotoProducto = async (productoId: number): Promise<string | null> => {
+  const tomarFotoProducto = async (productoId: string): Promise<string | null> => {
     return tomarFotoDesdeCamara(productoId);
   };
 

@@ -1,5 +1,6 @@
 import DATABASE from "@/src/core/config/db";
 import { RecipeIngredientType, RecipeType } from "../types/recipe.type";
+import { v4 as uuidv4 } from 'uuid';
 
 export const RecipesService = {
   getAll: async (): Promise<RecipeType[]> => {
@@ -19,7 +20,7 @@ export const RecipesService = {
     return result;
   },
 
-  getById: async (id: number): Promise<RecipeType | null> => {
+  getById: async (id: string): Promise<RecipeType | null> => {
     const recipe: any = await DATABASE.db.getFirstAsync(
       "SELECT * FROM recipes WHERE id = ?",
       [id]
@@ -29,7 +30,7 @@ export const RecipesService = {
     return { ...recipe, ingredients };
   },
 
-  getIngredients: async (recipeId: number): Promise<RecipeIngredientType[]> => {
+  getIngredients: async (recipeId: string): Promise<RecipeIngredientType[]> => {
     const rows: any[] = await DATABASE.db.getAllAsync(
       `SELECT ri.*, p.name as product_name, p.image_url as product_image, p.stock as product_stock
        FROM recipe_ingredients ri
@@ -42,26 +43,29 @@ export const RecipesService = {
 
   create: async (
     recipe: Omit<RecipeType, "id">,
-    ingredients: { product_id: number; quantity: number }[]
+    ingredients: { product_id: string; quantity: number }[]
   ): Promise<RecipeType> => {
-    let recipeId = 0;
+    const recipeId = uuidv4();
     await DATABASE.db.withTransactionAsync(async () => {
-      const result = await DATABASE.db.runAsync(
-        "INSERT INTO recipes (name, description, image_url, selling_price, category_id) VALUES (?, ?, ?, ?, ?)",
+      await DATABASE.db.runAsync(
+        "INSERT INTO recipes (id, name, description, image_url, selling_price, category_id, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
         [
+          recipeId,
           recipe.name,
           recipe.description || "",
           recipe.image_url || "",
           recipe.selling_price,
           recipe.category_id || null,
+          0,
+          new Date().toISOString()
         ]
       );
-      recipeId = result.lastInsertRowId;
 
       for (const ing of ingredients) {
+        let ingredientId = uuidv4();
         await DATABASE.db.runAsync(
-          "INSERT INTO recipe_ingredients (recipe_id, product_id, quantity) VALUES (?, ?, ?)",
-          [recipeId, ing.product_id, ing.quantity]
+          "INSERT INTO recipe_ingredients (id, recipe_id, product_id, quantity, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+          [ingredientId, recipeId, ing.product_id, ing.quantity, 0, new Date().toISOString()]
         );
       }
     });
@@ -70,9 +74,9 @@ export const RecipesService = {
   },
 
   update: async (
-    id: number,
+    id: string,
     recipe: Partial<RecipeType>,
-    ingredients?: { product_id: number; quantity: number }[]
+    ingredients?: { product_id: string; quantity: number }[]
   ): Promise<void> => {
     await DATABASE.db.withTransactionAsync(async () => {
       const fields: string[] = [];
@@ -85,9 +89,10 @@ export const RecipesService = {
       if (recipe.category_id !== undefined) { fields.push("category_id = ?"); values.push(recipe.category_id); }
 
       if (fields.length > 0) {
+        values.push(new Date().toISOString());
         values.push(id);
         await DATABASE.db.runAsync(
-          `UPDATE recipes SET ${fields.join(", ")} WHERE id = ?`,
+          `UPDATE recipes SET ${fields.join(", ")}, sincronizado = 0, updated_at = ? WHERE id = ?`,
           values
         );
       }
@@ -98,16 +103,17 @@ export const RecipesService = {
           [id]
         );
         for (const ing of ingredients) {
+          let ingredientId = uuidv4();
           await DATABASE.db.runAsync(
-            "INSERT INTO recipe_ingredients (recipe_id, product_id, quantity) VALUES (?, ?, ?)",
-            [id, ing.product_id, ing.quantity]
+            "INSERT INTO recipe_ingredients (id, recipe_id, product_id, quantity, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+            [ingredientId, id, ing.product_id, ing.quantity, 0, new Date().toISOString()]
           );
         }
       }
     });
   },
 
-  delete: async (id: number): Promise<void> => {
+  delete: async (id: string): Promise<void> => {
     await DATABASE.db.withTransactionAsync(async () => {
       await DATABASE.db.runAsync(
         "DELETE FROM recipe_ingredients WHERE recipe_id = ?",
@@ -121,20 +127,20 @@ export const RecipesService = {
   },
 
   /** Deduct ingredient stock when a recipe is sold (called per unit sold) */
-  deductStock: async (recipeId: number, units: number = 1): Promise<void> => {
+  deductStock: async (recipeId: string, units: number = 1): Promise<void> => {
     const ingredients = await RecipesService.getIngredients(recipeId);
     await DATABASE.db.withTransactionAsync(async () => {
       for (const ing of ingredients) {
         await DATABASE.db.runAsync(
-          "UPDATE products SET stock = stock - ? WHERE id = ?",
-          [ing.quantity * units, ing.product_id]
+          "UPDATE products SET stock = stock - ?, sincronizado = 0, updated_at = ? WHERE id = ?",
+          [ing.quantity * units, new Date().toISOString(), ing.product_id]
         );
       }
     });
   },
 
   /** Returns low stock products after a recipe sale */
-  checkLowStock: async (recipeId: number): Promise<{ name: string; stock: number }[]> => {
+  checkLowStock: async (recipeId: string): Promise<{ name: string; stock: number }[]> => {
     const ingredients = await RecipesService.getIngredients(recipeId);
     const low: { name: string; stock: number }[] = [];
     for (const ing of ingredients) {

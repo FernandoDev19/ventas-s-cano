@@ -4,8 +4,8 @@ import { CategoryType } from "../../categories/types/category.type";
 
 type Props = {
   categories: Partial<CategoryType>[];
-  filter: number;
-  setFilter: (filter: number) => void;
+  filter: string;
+  setFilter: (filter: string) => void;
   search: string;
   setSearch: (s: string) => void;
 };

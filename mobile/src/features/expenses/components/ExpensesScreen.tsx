@@ -61,7 +61,7 @@ type CreateExpenseModalProps = {
 function CreateExpenseModal({ visible, categories, onClose, onCreated }: CreateExpenseModalProps) {
     const [description, setDescription] = useState("");
     const [amount, setAmount] = useState("");
-    const [categoryId, setCategoryId] = useState<number | null>(null);
+    const [categoryId, setCategoryId] = useState<string | null>(null);
     const [notes, setNotes] = useState("");
     const [isSaving, setIsSaving] = useState(false);
 
@@ -211,7 +211,7 @@ export default function ExpensesScreen() {
     const [categories, setCategories] = useState<CategoryType[]>([]);
     const [totalMonth, setTotalMonth] = useState(0);
     const [byCategory, setByCategory] = useState<{ category: string; total: number }[]>([]);
-    const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+    const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [showCreate, setShowCreate] = useState(false);

@@ -1,5 +1,6 @@
 import DATABASE from "@/src/core/config/db";
 import { ProductType } from "../types/product.type";
+import { v4 as uuidv4 } from 'uuid';
 
 export const ProductsService = {
   getAll: async (options?: { category_id?: string }): Promise<ProductType[]> => {
@@ -36,7 +37,7 @@ export const ProductsService = {
     return products as ProductType[];
   },
 
-  getProductById: async (id: number): Promise<ProductType | null> => {
+  getProductById: async (id: string): Promise<ProductType | null> => {
     const product = await DATABASE.db.getFirstAsync(
       "SELECT * FROM products WHERE id = ?",
       [id],
@@ -45,23 +46,30 @@ export const ProductsService = {
   },
 
   createProduct: async (product: Omit<ProductType, 'id'>): Promise<ProductType> => {
-    const result = await DATABASE.db.runAsync(
-      "INSERT INTO products (image_url, name, price, stock, category_id) VALUES (?, ?, ?, ?, ?)",
+    const id = uuidv4();
+    const now = new Date().toISOString();
+
+    await DATABASE.db.runAsync(
+      "INSERT INTO products (id, image_url, name, price, stock, category_id, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
       [
+        id,
         product.image_url || '',
         product.name,
         product.price,
         product.stock || 0,
         product.category_id,
+        product.sincronizado || 0,
+        now,
       ],
     );
     return {
-      id: result.lastInsertRowId,
+      id,
       ...product,
+      updated_at: now,
     };
   },
 
-  updateProduct: async (id: number, product: Partial<ProductType>): Promise<void> => {
+  updateProduct: async (id: string, product: Partial<ProductType>): Promise<void> => {
     const fields: string[] = [];
     const values: any[] = [];
     
@@ -73,14 +81,15 @@ export const ProductsService = {
 
     if (fields.length === 0) return;
 
+    values.push(new Date().toISOString());
     values.push(id);
     await DATABASE.db.runAsync(
-      `UPDATE products SET ${fields.join(", ")} WHERE id = ?`,
+      `UPDATE products SET ${fields.join(", ")}, sincronizado = 0, updated_at = ? WHERE id = ?`,
       values,
     );
   },
 
-  deleteProduct: async (id: number): Promise<void> => {
+  deleteProduct: async (id: string): Promise<void> => {
     await DATABASE.db.runAsync("DELETE FROM products WHERE id = ?", [id]);
   },
 
@@ -93,7 +102,7 @@ export const ProductsService = {
       await DATABASE.db.withTransactionAsync(async () => {
         for (const product of products) {
           await DATABASE.db.runAsync(
-            "INSERT INTO products (id, image_url, name, price, stock, category_id) VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO products (id, image_url, name, price, stock, category_id, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             [
               product.id,
               product.image_url || '',
@@ -101,6 +110,8 @@ export const ProductsService = {
               product.price,
               product.stock || 0,
               product.category_id,
+              product.sincronizado || 0,
+              product.updated_at || new Date().toISOString(),
             ],
           );
         }

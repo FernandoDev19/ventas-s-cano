@@ -1,35 +1,44 @@
 import { openDatabaseSync } from "expo-sqlite";
 
 const DATABASE = {
-  db: openDatabaseSync("fastpos.db"),
+  db: openDatabaseSync("sabor_espress.db"),
 
   initDb: async () => {
     try {
+      // Habilitamos llaves foráneas en SQLite
+      await DATABASE.db.execAsync("PRAGMA foreign_keys = ON;");
+
       await DATABASE.db.execAsync(`
         CREATE TABLE IF NOT EXISTS categories (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          name TEXT NOT NULL
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          sincronizado INTEGER DEFAULT 0,
+          updated_at TEXT NOT NULL
         );
 
         CREATE TABLE IF NOT EXISTS products (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id TEXT PRIMARY KEY,
           image_url TEXT,
           name TEXT NOT NULL,
           price REAL NOT NULL,
           stock INTEGER DEFAULT 0,
-          category_id INTEGER NOT NULL,
+          category_id TEXT NOT NULL,
+          sincronizado INTEGER DEFAULT 0,
+          updated_at TEXT NOT NULL,
           FOREIGN KEY (category_id) REFERENCES categories (id)
         );
 
         CREATE TABLE IF NOT EXISTS clients (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id TEXT PRIMARY KEY,
           name TEXT NOT NULL,
           phone TEXT,
-          notes TEXT
+          notes TEXT,
+          sincronizado INTEGER DEFAULT 0,
+          updated_at TEXT NOT NULL
         );
 
         CREATE TABLE IF NOT EXISTS sales (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id TEXT PRIMARY KEY,
           total REAL NOT NULL,
           note TEXT,
           is_debt BOOLEAN NOT NULL,
@@ -37,67 +46,64 @@ const DATABASE = {
           debt_date DATE,
           payment_method TEXT DEFAULT 'cash',
           created_at TEXT NOT NULL,
-          client_id INTEGER,
+          client_id TEXT,
           status TEXT DEFAULT 'active',
           cancel_reason TEXT,
           edit_reason TEXT,
+          sincronizado INTEGER DEFAULT 0,
+          updated_at TEXT NOT NULL,
           FOREIGN KEY (client_id) REFERENCES clients (id)
         );
 
         CREATE TABLE IF NOT EXISTS sale_products (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          sale_id INTEGER NOT NULL,
-          product_id INTEGER NOT NULL,
+          id TEXT PRIMARY KEY,
+          sale_id TEXT NOT NULL,
+          product_id TEXT NOT NULL,
           quantity INTEGER NOT NULL,
           price REAL NOT NULL,
+          sincronizado INTEGER DEFAULT 0,
+          updated_at TEXT NOT NULL,
           FOREIGN KEY (sale_id) REFERENCES sales (id),
           FOREIGN KEY (product_id) REFERENCES products (id)
         );
 
         CREATE TABLE IF NOT EXISTS expenses (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id TEXT PRIMARY KEY,
           description TEXT NOT NULL,
-          category_id INTEGER NOT NULL,
+          category_id TEXT NOT NULL,
           amount REAL NOT NULL,
           date DATE NOT NULL,
           notes TEXT,
+          sincronizado INTEGER DEFAULT 0,
+          updated_at TEXT NOT NULL,
           FOREIGN KEY (category_id) REFERENCES categories (id)
         );
 
         CREATE TABLE IF NOT EXISTS recipes (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          id TEXT PRIMARY KEY,
           name TEXT NOT NULL,
           description TEXT,
           image_url TEXT,
           selling_price REAL NOT NULL,
-          category_id INTEGER,
+          category_id TEXT,
+          sincronizado INTEGER DEFAULT 0,
+          updated_at TEXT NOT NULL,
           FOREIGN KEY (category_id) REFERENCES categories (id)
         );
 
         CREATE TABLE IF NOT EXISTS recipe_ingredients (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          recipe_id INTEGER NOT NULL,
-          product_id INTEGER NOT NULL,
+          id TEXT PRIMARY KEY,
+          recipe_id TEXT NOT NULL,
+          product_id TEXT NOT NULL,
           quantity REAL NOT NULL,
+          sincronizado INTEGER DEFAULT 0,
+          updated_at TEXT NOT NULL,
           FOREIGN KEY (recipe_id) REFERENCES recipes (id),
           FOREIGN KEY (product_id) REFERENCES products (id)
         );
       `);
 
-      // Run migrations for existing databases
-      try { await DATABASE.db.execAsync("ALTER TABLE sales ADD COLUMN status TEXT DEFAULT 'active';"); } catch (e) {}
-      try { await DATABASE.db.execAsync("ALTER TABLE sales ADD COLUMN cancel_reason TEXT;"); } catch (e) {}
-      try { await DATABASE.db.execAsync("ALTER TABLE sales ADD COLUMN edit_reason TEXT;"); } catch (e) {}
-      try { await DATABASE.db.execAsync("ALTER TABLE sales ADD COLUMN debt_date DATE;"); } catch (e) {}
-      try { await DATABASE.db.execAsync("ALTER TABLE sales ADD COLUMN client_id INTEGER;"); } catch (e) {}
-
-      console.log("Database initialized successfully");
-      console.log(
-        "Database tables:",
-        DATABASE.db.getAllSync(
-          "SELECT name FROM sqlite_master WHERE type='table';",
-        ),
-      );
+      console.log("Database initialized successfully with UUIDs and Sync support");
     } catch (error) {
       console.error("Error initializing database:", error);
     }

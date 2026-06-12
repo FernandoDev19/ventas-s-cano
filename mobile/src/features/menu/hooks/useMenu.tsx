@@ -4,7 +4,7 @@ import { CategoriesService } from "../../categories/services/categories.service"
 import { Alert } from "react-native";
 
 export const useMenu = () => {
-  const [filter, setFilter] = useState(0);
+  const [filter, setFilter] = useState("");
   const [categories, setCategories] = useState<Partial<CategoryType>[]>([]);
 
   const loadCategories = useCallback(async () => {

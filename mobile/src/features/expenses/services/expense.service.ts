@@ -1,5 +1,6 @@
 import DATABASE from "@/src/core/config/db";
 import { ExpenseType } from "../types/expense.type";
+import { v4 as uuidv4 } from 'uuid';
 
 const ExpensesService = {
   getAllExpenses: async (): Promise<ExpenseType[]> => {
@@ -12,7 +13,7 @@ const ExpensesService = {
     })) as ExpenseType[];
   },
 
-  getExpenseById: async (id: number): Promise<ExpenseType | null> => {
+  getExpenseById: async (id: string): Promise<ExpenseType | null> => {
     const exp: any = await DATABASE.db.getFirstAsync(
       "SELECT * FROM expenses WHERE id = ?",
       [id],
@@ -63,10 +64,12 @@ const ExpensesService = {
   createExpense: async (
     expense: Omit<ExpenseType, "id">,
   ): Promise<ExpenseType> => {
+    const id = uuidv4();
     const dateStr = new Date(expense.date).toISOString().split("T")[0];
-    const result = await DATABASE.db.runAsync(
-      "INSERT INTO expenses (description, category_id, amount, date, notes) VALUES (?, ?, ?, ?, ?)",
+    await DATABASE.db.runAsync(
+      "INSERT INTO expenses (id, description, category_id, amount, date, notes) VALUES (?, ?, ?, ?, ?, ?)",
       [
+        id,
         expense.description,
         expense.category_id,
         expense.amount,
@@ -75,13 +78,13 @@ const ExpensesService = {
       ],
     );
     return {
-      id: result.lastInsertRowId,
+      id,
       ...expense,
     };
   },
 
   updateExpense: async (
-    id: number,
+    id: string,
     expense: Partial<Omit<ExpenseType, "id">>,
   ): Promise<void> => {
     const fields: string[] = [];
@@ -110,14 +113,15 @@ const ExpensesService = {
 
     if (fields.length === 0) return;
 
+    values.push(new Date().toISOString());
     values.push(id);
     await DATABASE.db.runAsync(
-      `UPDATE expenses SET ${fields.join(", ")} WHERE id = ?`,
+      `UPDATE expenses SET ${fields.join(", ")}, sincronizado = 0, updated_at = ? WHERE id = ?`,
       values,
     );
   },
 
-  deleteExpense: async (id: number): Promise<void> => {
+  deleteExpense: async (id: string): Promise<void> => {
     await DATABASE.db.runAsync("DELETE FROM expenses WHERE id = ?", [id]);
   },
 

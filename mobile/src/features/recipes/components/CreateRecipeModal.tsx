@@ -46,7 +46,7 @@ export default function CreateRecipeModal({
   const [ingredients, setIngredients] = useState<RecipeIngredientType[]>(
     editRecipe?.ingredients ?? []
   );
-  const [categoryId, setCategoryId] = useState<number | null>(editRecipe?.category_id ?? null);
+  const [categoryId, setCategoryId] = useState<string | null>(editRecipe?.category_id ?? null);
   const [showIngredientPicker, setShowIngredientPicker] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPickingImage, setIsPickingImage] = useState(false);
@@ -109,7 +109,7 @@ export default function CreateRecipeModal({
     setShowIngredientPicker(false);
   };
 
-  const handleChangeQty = (productId: number, delta: number) => {
+  const handleChangeQty = (productId: string, delta: number) => {
     setIngredients((prev) =>
       prev
         .map((i) =>

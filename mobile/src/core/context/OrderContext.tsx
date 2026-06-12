@@ -11,7 +11,7 @@ export type OrderContextType = {
   order: OrderItem[];
   addToOrder: (product: ProductType) => void;
   addRecipeToOrder: (recipe: RecipeType) => void;
-  removeFromOrder: (id: number, itemType: "product" | "recipe") => void;
+  removeFromOrder: (id: string, itemType: "product" | "recipe") => void;
   clearOrder: () => void;
 };
 
@@ -52,7 +52,7 @@ export function OrderProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
-  const removeFromOrder = (id: number, itemType: "product" | "recipe") => {
+  const removeFromOrder = (id: string, itemType: "product" | "recipe") => {
     setOrder((prev) => {
       const item = prev.find(
         (i) =>

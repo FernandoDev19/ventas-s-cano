@@ -1,4 +1,6 @@
 export type CategoryType = {
-  id: number;
+  id: string;
   name: string;
+  sincronizado?: 0 | 1;
+  updated_at?: string;
 };

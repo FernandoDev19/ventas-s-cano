@@ -1,5 +1,6 @@
 import DATABASE from "@/src/core/config/db";
 import { ClientType } from "../types/client.type";
+import { v4 as uuidv4 } from 'uuid';
 
 export const ClientsService = {
   getAll: async (): Promise<ClientType[]> => {
@@ -11,25 +12,27 @@ export const ClientsService = {
   },
 
   create: async (client: Omit<ClientType, "id">): Promise<ClientType> => {
-    const result = await DATABASE.db.runAsync(
-      "INSERT INTO clients (name, phone, notes) VALUES (?, ?, ?)",
-      [client.name, client.phone || "", client.notes || ""]
+    const id = uuidv4();
+    await DATABASE.db.runAsync(
+      "INSERT INTO clients (id, name, phone, notes, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+      [id, client.name, client.phone || "", client.notes || "", client.sincronizado || 0, client.updated_at || new Date().toISOString()]
     );
-    return { id: result.lastInsertRowId, ...client };
+    return { id, ...client };
   },
 
-  update: async (id: number, client: Partial<Omit<ClientType, "id">>): Promise<void> => {
+  update: async (id: string, client: Partial<Omit<ClientType, "id">>): Promise<void> => {
     const fields: string[] = [];
     const values: any[] = [];
     if (client.name !== undefined) { fields.push("name = ?"); values.push(client.name); }
     if (client.phone !== undefined) { fields.push("phone = ?"); values.push(client.phone); }
     if (client.notes !== undefined) { fields.push("notes = ?"); values.push(client.notes); }
     if (!fields.length) return;
+    values.push(new Date().toISOString());
     values.push(id);
-    await DATABASE.db.runAsync(`UPDATE clients SET ${fields.join(", ")} WHERE id = ?`, values);
+    await DATABASE.db.runAsync(`UPDATE clients SET ${fields.join(", ")}, sincronizado = 0, updated_at = ? WHERE id = ?`, values);
   },
 
-  delete: async (id: number): Promise<void> => {
+  delete: async (id: string): Promise<void> => {
     await DATABASE.db.runAsync("DELETE FROM clients WHERE id = ?", [id]);
   },
 

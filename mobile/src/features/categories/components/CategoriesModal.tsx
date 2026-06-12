@@ -17,9 +17,9 @@ import { CategoriesService } from "../services/categories.service";
 
 type Props = {
   visible: boolean;
-  onSelect: (id: number) => void;
+  onSelect: (id: string) => void;
   onClose: () => void;
-  onCreated: (id: number) => void;
+  onCreated: (id: string) => void;
 };
 
 const CategoriesModal = ({ visible, onClose, onCreated, onSelect }: Props) => {
@@ -45,7 +45,7 @@ const CategoriesModal = ({ visible, onClose, onCreated, onSelect }: Props) => {
     onClose();
   };
 
-  const handleDelete = async (categoryId: number) => {
+  const handleDelete = async (categoryId: string) => {
     try {
       Alert.alert(
         "Eliminar categoría",

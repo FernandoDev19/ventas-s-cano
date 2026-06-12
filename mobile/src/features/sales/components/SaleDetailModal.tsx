@@ -11,6 +11,7 @@ import {
   TextInput,
   FlatList,
   Platform,
+  TouchableOpacity,
 } from "react-native";
 import { SalesService } from "../services/sales.service";
 import { SaleType } from "../types/sale.type";
@@ -22,18 +23,19 @@ import { ClientsService } from "@/src/features/clients/services/clients.service"
 import { ClientType } from "@/src/features/clients/types/client.type";
 import ReasonDialog from "./ReasonDialog";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import * as Clipboard from 'expo-clipboard';
 
 type SaleDetailModalProps = {
   visible: boolean;
-  saleId: number | null;
+  saleId: string | null;
   onClose: () => void;
   onUpdated: () => void;
 };
 
 type FullSaleType = SaleType & {
   products: {
-    id: number;
-    product_id: number;
+    id: string;
+    product_id: string;
     product_name: string;
     product_image?: string;
     quantity: number;
@@ -66,7 +68,7 @@ export default function SaleDetailModal({
 
   // Client Selector States
   const [clients, setClients] = useState<ClientType[]>([]);
-  const [editedClientId, setEditedClientId] = useState<number | null>(null);
+  const [editedClientId, setEditedClientId] = useState<string | null>(null);
   const [showClientPicker, setShowClientPicker] = useState(false);
 
   // Date Picker States
@@ -311,6 +313,11 @@ export default function SaleDetailModal({
     }
   };
 
+  const copyToClipboard = async (text: string) => {
+    await Clipboard.setStringAsync(text);
+    Alert.alert("¡Copiado!", "El texto se ha guardado en el portapapeles");
+  };
+
   if (!visible) return null;
 
   return (
@@ -358,9 +365,11 @@ export default function SaleDetailModal({
               >
                 {isEditing ? "Modificando Venta" : "Detalle de Venta"}
               </Text>
-              <Text style={{ color: "#fff", fontSize: 20, fontWeight: "800" }}>
-                {saleId ? `#${String(saleId).padStart(3, "0")}` : ""}
-              </Text>
+              <TouchableOpacity onPress={() => copyToClipboard(saleId || "")}>
+                <Text style={{ color: "#fff", fontSize: 20, fontWeight: "800" }}>
+                  {saleId ? `#${String(saleId).slice(0, 8)}...` : ""}
+                </Text>
+              </TouchableOpacity>
             </View>
             <View style={{ flexDirection: "row", gap: 8 }}>
               {sale && !isEditing && sale.status !== "cancelled" && (

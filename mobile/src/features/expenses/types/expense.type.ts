@@ -1,8 +1,10 @@
 export type ExpenseType = {
-  id: number;
+  id: string;
   description: string;
-  category_id: number;
+  category_id: string;
   amount: number;
   date: Date;
   notes: string;
+  sincronizado?: 0 | 1;
+  updated_at?: string;
 };

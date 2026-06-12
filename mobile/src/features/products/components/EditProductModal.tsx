@@ -12,11 +12,11 @@ import {
   Text,
   TextInput,
   View,
+  Platform
 } from "react-native";
 import { ProductsService } from "../services/products.service";
 import { Ionicons } from "@expo/vector-icons";
 import { useFiles } from "@/src/shared/hooks/useFiles";
-import { Platform } from "react-native";
 
 type EditProductModalProps = {
   visible: boolean;
@@ -36,7 +36,7 @@ export default function EditProductModal({
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState("0");
-  const [categoryId, setCategoryId] = useState<number | null>(null);
+  const [categoryId, setCategoryId] = useState<string | null>(null);
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isPickingImage, setIsPickingImage] = useState(false);

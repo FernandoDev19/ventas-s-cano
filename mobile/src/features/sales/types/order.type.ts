@@ -1,7 +1,9 @@
 export type OrderType = {
-  id: number;
-  sale_id: number;
-  product_id: number;
+  id: string;
+  sale_id: string;
+  product_id: string;
   quantity: number;
   price: number;
+  sincronizado?: 0 | 1;
+  updated_at?: string;
 };

@@ -4,8 +4,8 @@ import { SaleType } from "../types/sale.type";
 
 type Props = {
     sale: SaleType;
-    onMarkAsPaid: (saleId: number) => void;
-    payingId: number | null;
+    onMarkAsPaid: (saleId: string) => void;
+    payingId: string | null;
     onPress: () => void;
 };
 
@@ -62,7 +62,7 @@ export default function SaleCard({ sale, onMarkAsPaid, payingId, onPress }: Prop
                             className="font-bold text-base"
                             style={{ color: "#a3a3a3" }}
                         >
-                            #{String(sale.id).padStart(3, "0")}
+                            #{String(sale.id).slice(0, 8)}...
                         </Text>
 
                         {/* State Badge */}

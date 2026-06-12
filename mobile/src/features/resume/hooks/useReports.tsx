@@ -1,6 +1,8 @@
 import { useCallback, useState } from "react";
 import { SalesService } from "../../sales/services/sales.service";
 import ExpensesService from "../../expenses/services/expense.service";
+import { ExportService } from "@/src/shared/services/export.service";
+import { Alert } from "react-native";
 
 export const PRESETS = [
   {
@@ -88,6 +90,26 @@ export const useReports = () => {
     loadReport(startDate, endDate);
   };
 
+  const [isExporting, setIsExporting] = useState<"pdf" | "excel" | null>(null);
+
+  const handleExport = async (type: "pdf" | "excel") => {
+    if (!report) return;
+    setIsExporting(type);
+    try {
+      const exportData = { startDate, endDate, ...report };
+      if (type === "pdf") {
+        await ExportService.exportPDF(exportData);
+      } else {
+        await ExportService.exportExcel(exportData);
+      }
+    } catch (err) {
+      Alert.alert("Error", "No se pudo exportar el reporte.");
+      console.error(err);
+    } finally {
+      setIsExporting(null);
+    }
+  };
+
   const netProfit = report ? report.totalSales - report.expenses.total : 0;
 
   return {
@@ -105,5 +127,7 @@ export const useReports = () => {
     setShowEndPicker,
     setStartDate,
     setEndDate,
+    handleExport,
+    isExporting,
   };
 };

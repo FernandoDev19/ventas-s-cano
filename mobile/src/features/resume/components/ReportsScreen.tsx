@@ -50,7 +50,7 @@ export default function ReportsScreen() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [selectedSaleId, setSelectedSaleId] = useState<number | null>(null);
+  const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
 
   const loadData = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);

@@ -20,8 +20,8 @@ export default function SalesScreen() {
     const [isLoading, setIsLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [filter, setFilter] = useState<FilterId>("all");
-    const [payingId, setPayingId] = useState<number | null>(null);
-    const [selectedSaleId, setSelectedSaleId] = useState<number | null>(null);
+    const [payingId, setPayingId] = useState<string | null>(null);
+    const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
 
     const loadSales = useCallback(async (silent = false) => {
         if (!silent) setIsLoading(true);
@@ -58,7 +58,7 @@ export default function SalesScreen() {
     }, [sales, filter]);
 
     const handleMarkAsPaid = useCallback(
-        async (saleId: number) => {
+        async (saleId: string) => {
             Alert.alert(
                 "Cobrar venta",
                 "¿Seguro que quieres marcar esta venta como pagada?",

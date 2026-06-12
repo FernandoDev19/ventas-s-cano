@@ -10,7 +10,7 @@ type Props = {
 };
 
 const MenuProductCard = ({ product }: Props) => {
-  const { addToOrder, removeFromOrder, order } = useOrder();
+  const { addToOrder, order } = useOrder();
 
   const orderItem = order.find(
     (item) => item.type === "product" && item.product.id === product.id

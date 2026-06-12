@@ -6,7 +6,7 @@ import { ProductType } from "../../products/types/product.type";
 import { RecipesService } from "../../recipes/services/recipes.service";
 import { RecipeType } from "../../recipes/types/recipe.type";
 
-export const useProductList = (filter: number) => {
+export const useProductList = (filter: string) => {
   const [products, setProducts] = useState<ProductType[]>([]);
   const [recipes, setRecipes] = useState<RecipeType[]>([]);
   const [search, setSearch] = useState("");
@@ -18,7 +18,7 @@ export const useProductList = (filter: number) => {
   );
   
   const filteredRecipes = recipes.filter((r) =>
-    r.name.toLowerCase().includes(search.toLowerCase()) && (filter === 0 || r.category_id === filter)
+    r.name.toLowerCase().includes(search.toLowerCase()) && (filter === "" || r.category_id === filter)
   );
 
   const loadProducts = useCallback(

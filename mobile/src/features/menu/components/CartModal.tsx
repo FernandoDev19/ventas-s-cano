@@ -43,7 +43,7 @@ const CartModal = ({ onSaleCreated }: Props) => {
   }, 0);
 
   const [clients, setClients] = useState<ClientType[]>([]);
-  const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [showClientPicker, setShowClientPicker] = useState(false);
 
   const [isDebt, setIsDebt] = useState(false);

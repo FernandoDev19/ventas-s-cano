@@ -1,6 +1,6 @@
 import { useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, Text, View } from "react-native";
+import { Alert } from "react-native";
 import { ProductType } from "../types/product.type";
 import { CategoryType } from "../../categories/types/category.type";
 import { ProductsService } from "../services/products.service";
@@ -11,10 +11,10 @@ export const useInventory = () => {
     const [products, setProducts] = useState<ProductType[]>([]);
     const [categories, setCategories] = useState<CategoryType[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
-    const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+    const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isRefreshing, setIsRefreshing] = useState(false);
-    const [updatingId, setUpdatingId] = useState<number | null>(null);
+    const [updatingId, setUpdatingId] = useState<string | null>(null);
     const [showCreate, setShowCreate] = useState(false);
     const [editingProduct, setEditingProduct] = useState<ProductType | null>(null);
 
