@@ -3,146 +3,540 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Menú Digital - Sabor Espress</title>
-  <!-- Tailwind CSS para que se vea hermoso sin escribir CSS manual -->
-  <script src="https://tailwindcss.com"></script>
-  <!-- Cliente de Supabase para la Web -->
-  <script src="https://jsdelivr.net"></script>
+  <title>Sabor Espress — Menú Digital</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="icon" href="./assets/favicon.png" type="image/x-icon">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <style>
+    :root {
+      --crimson: #8B1A1A;
+      --crimson-dark: #5C0E0E;
+      --gold: #C9A84C;
+      --gold-light: #E8C97A;
+      --cream: #FDF6EC;
+      --charcoal: #1A1A1A;
+      --text: #2C2C2C;
+      --muted: #7A6A55;
+      --surface: #FFFFFF;
+      --border: rgba(201,168,76,0.25);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--cream);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: 4rem;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      background: var(--charcoal);
+      padding: 1.5rem 1.5rem 0;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-top {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .logo-img {
+      height: 52px;
+      width: auto;
+      filter: drop-shadow(0 2px 8px rgba(201,168,76,0.4));
+    }
+
+    .header-tagline {
+      color: var(--gold);
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      opacity: 0.85;
+    }
+
+    /* ── CATEGORY NAV ── */
+    .cat-nav {
+      display: flex;
+      gap: 0.5rem;
+      overflow-x: auto;
+      scrollbar-width: none;
+      padding-bottom: 1rem;
+    }
+    .cat-nav::-webkit-scrollbar { display: none; }
+
+    .cat-btn {
+      background: transparent;
+      border: 1px solid rgba(201,168,76,0.35);
+      color: rgba(255,255,255,0.6);
+      padding: 6px 16px;
+      border-radius: 100px;
+      font-size: 12px;
+      font-family: 'Inter', sans-serif;
+      font-weight: 500;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: 0.04em;
+    }
+    .cat-btn:hover {
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+    .cat-btn.active {
+      background: var(--gold);
+      border-color: var(--gold);
+      color: var(--charcoal);
+      font-weight: 600;
+    }
+
+    /* ── HERO SECTION ── */
+    .hero {
+      background: linear-gradient(135deg, var(--crimson-dark) 0%, var(--crimson) 60%, #6B1515 100%);
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 50% 120%, rgba(201,168,76,0.18) 0%, transparent 65%);
+    }
+    .hero-ornament {
+      color: var(--gold);
+      font-size: 22px;
+      letter-spacing: 0.5rem;
+      margin-bottom: 0.5rem;
+      opacity: 0.6;
+    }
+    .hero h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(1.8rem, 5vw, 2.8rem);
+      font-weight: 900;
+      color: #fff;
+      line-height: 1.1;
+      position: relative;
+    }
+    .hero h2 span {
+      color: var(--gold-light);
+    }
+    .hero-sub {
+      color: rgba(255,255,255,0.7);
+      font-size: 13px;
+      margin-top: 0.5rem;
+      letter-spacing: 0.05em;
+      position: relative;
+    }
+    .hero-divider {
+      width: 48px;
+      height: 2px;
+      background: var(--gold);
+      margin: 1rem auto;
+      position: relative;
+    }
+
+    /* ── LOADING ── */
+    #loading {
+      text-align: center;
+      padding: 5rem 1rem;
+      color: var(--muted);
+    }
+    .loading-spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 1rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── SECTION LABEL ── */
+    .section-label {
+      padding: 1.5rem 1.5rem 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .section-label-line {
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+    .section-label-text {
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--crimson);
+      white-space: nowrap;
+      letter-spacing: 0.03em;
+    }
+
+    /* ── MENU GRID ── */
+    #menu-container {
+      padding: 0 1rem;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+    }
+    @media (min-width: 540px) {
+      #menu-container { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (min-width: 860px) {
+      #menu-container { grid-template-columns: repeat(3, 1fr); gap: 1rem; padding: 0 1.5rem; }
+    }
+
+    /* ── PRODUCT CARD ── */
+    .product-card {
+      background: var(--surface);
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid rgba(201,168,76,0.15);
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.2s, box-shadow 0.2s;
+      position: relative;
+    }
+    .product-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 32px rgba(139,26,26,0.1), 0 2px 8px rgba(0,0,0,0.06);
+    }
+
+    .product-img-wrap {
+      position: relative;
+      overflow: hidden;
+      height: 160px;
+      background: #F0E8D8;
+    }
+    .product-img-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.3s;
+    }
+    .product-card:hover .product-img-wrap img {
+      transform: scale(1.04);
+    }
+
+    .badge-stock {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      padding: 3px 10px;
+      border-radius: 100px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .badge-stock.available {
+      background: rgba(30,90,30,0.85);
+      color: #A8F0A8;
+    }
+    .badge-stock.sold-out {
+      background: rgba(80,20,20,0.8);
+      color: #F0A8A8;
+    }
+
+    .product-body {
+      padding: 1rem 1rem 1.1rem;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .product-name {
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--charcoal);
+      line-height: 1.3;
+    }
+
+    .product-desc {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.5;
+      flex: 1;
+    }
+
+    .product-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 0.7rem;
+      padding-top: 0.7rem;
+      border-top: 1px solid rgba(201,168,76,0.15);
+    }
+
+    .product-price {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--crimson);
+    }
+
+    .product-price-label {
+      font-size: 10px;
+      color: var(--muted);
+      font-weight: 400;
+      font-family: 'Inter', sans-serif;
+      letter-spacing: 0.04em;
+      display: block;
+    }
+
+    .card-accent {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--crimson), var(--gold));
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .product-card:hover .card-accent { opacity: 1; }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 4rem 1rem;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .empty-state .icon { font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.5; }
+
+    /* ── FOOTER ── */
+    .footer {
+      text-align: center;
+      padding: 2rem 1rem 1rem;
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .footer span { color: var(--gold); }
+
+    /* ── NO IMAGE PLACEHOLDER ── */
+    .img-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #F0E8D8, #E8D8C0);
+      font-size: 2.5rem;
+    }
+
+    /* ── DEMO BANNER ── */
+    .demo-banner {
+      background: linear-gradient(90deg, var(--crimson-dark), var(--crimson));
+      color: rgba(255,255,255,0.85);
+      text-align: center;
+      padding: 0.6rem 1rem;
+      font-size: 11px;
+      letter-spacing: 0.06em;
+    }
+    .demo-banner strong { color: var(--gold-light); }
+  </style>
 </head>
-<body class="bg-gray-50 text-gray-800 antialiased font-sans pb-12">
+<body>
 
-  <!-- Encabezado / Banner del Restaurante -->
-  <header class="bg-orange-500 text-white text-center py-12 shadow-md">
-    <h1 class="text-3xl font-extrabold tracking-tight">¡Bienvenidos!</h1>
-    <p class="text-orange-100 mt-2 text-sm font-medium">Escanea, elige y disfruta de tu pedido</p>
-  </header>
-
-  <!-- Filtros de Categorías -->
-  <nav id="categories-container" class="flex gap-2 overflow-x-auto px-4 py-4 sticky top-0 bg-gray-50 z-10 scrollbar-none shadow-sm">
-    <button onclick="filterCategory('all')" class="bg-orange-600 text-white px-4 py-2 rounded-full text-xs font-bold shadow-sm whitespace-nowrap">
-      Todos
-    </button>
-    <!-- Las categorías se inyectarán aquí automáticamente -->
-  </nav>
-
-  <!-- Estado de Carga -->
-  <div id="loading" class="text-center py-12 text-gray-500 font-medium">
-    Cargando los mejores sabores...
+  <div class="demo-banner">
+    🍽️ Conecta tu Supabase para ver el menú real — <strong>modo demo activo</strong>
   </div>
 
-  <!-- Contenedor del Menú (Cuadrícula de productos) -->
-  <main id="menu-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 px-4 hidden">
-    <!-- Los productos se inyectarán aquí automáticamente -->
-  </main>
+  <!-- STICKY HEADER -->
+  <header class="header">
+    <div class="header-top">
+      <img src="./assets/logo.png" alt="Sabor Espress" class="logo-img">
+      <div>
+        <p class="header-tagline">Buen día · permitenos atenderte</p>
+      </div>
+    </div>
+    <nav class="cat-nav" id="categories-container">
+      <button class="cat-btn active" onclick="filterCategory('all', this)">Todo el menú</button>
+    </nav>
+  </header>
+
+  <!-- HERO -->
+  <section class="hero">
+    <p class="hero-ornament">✦ ✦ ✦</p>
+    <h2>Nuestra <span>Carta</span></h2>
+    <div class="hero-divider"></div>
+    <p class="hero-sub">Escoge lo que más te antoje y disfruta</p>
+  </section>
+
+  <!-- LOADING -->
+  <div id="loading">
+    <div class="loading-spinner"></div>
+    <p>Cargando los mejores sabores…</p>
+  </div>
+
+  <!-- SECTION LABEL -->
+  <div class="section-label" id="section-label" style="display:none">
+    <div class="section-label-line"></div>
+    <span class="section-label-text" id="section-title">Todo el menú</span>
+    <div class="section-label-line"></div>
+  </div>
+
+  <!-- MENU GRID -->
+  <main id="menu-container" style="display:none"></main>
+
+  <footer class="footer">
+    <span>Sabor Espress</span> &nbsp;·&nbsp; Hecho con amor 🫶
+  </footer>
 
   <script>
-    // 1. Configuración de tu Supabase (Usa los mismos datos de tu App Expo)
-    const SUPABASE_URL = "TU_SUPABASE_URL";
-    const SUPABASE_ANON_KEY = "TU_SUPABASE_ANON_KEY";
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // ─── CONFIG ───────────────────────────────────────
+    const SUPABASE_URL = "https://mktwcckbaadiwhtpvjmg.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_vqr7D9a9ZuEPQdTzffuKZw_sOjke9L4";
+
+    // ─── DEMO DATA (se usa cuando Supabase no está configurado) ───
+    const DEMO_CATEGORIES = [
+      { id: 'almuerzos', name: 'Almuerzos' },
+      { id: 'bebidas',   name: 'Bebidas'   },
+      { id: 'snacks',    name: 'Snacks'    },
+      { id: 'postres',   name: 'Postres'   },
+    ];
+
+    const DEMO_PRODUCTS = [
+      { id:1, name:'Bandeja Paisa Especial', description:'Frijoles, chicharrón, carne, chorizo, arroz, aguacate y huevo', price:22000, stock:10, category_id:'almuerzos', image_url:'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&q=80' },
+      { id:2, name:'Sancocho de Pollo',      description:'Tradicional colombiano con yuca, plátano y papa',              price:18000, stock:8,  category_id:'almuerzos', image_url:'https://images.unsplash.com/photo-1585325701956-60dd9c8553bc?w=400&q=80' },
+      { id:3, name:'Arroz con Pollo',         description:'Arroz amarillo con pollo jugoso y vegetales frescos',          price:16000, stock:5,  category_id:'almuerzos', image_url:'https://images.unsplash.com/photo-1512058564366-18510be2db19?w=400&q=80' },
+      { id:4, name:'Limonada de Coco',        description:'Refrescante limonada con leche de coco y hielo',               price:7000,  stock:20, category_id:'bebidas',   image_url:'https://images.unsplash.com/photo-1541614101331-1a5a3a194e92?w=400&q=80' },
+      { id:5, name:'Jugo Natural',            description:'Mango, maracuyá, guayaba o lulo — el que prefieras',           price:5000,  stock:15, category_id:'bebidas',   image_url:'https://images.unsplash.com/photo-1600271886742-f049cd451bba?w=400&q=80' },
+      { id:6, name:'Empanadas (x3)',          description:'Empanadas de pipián o carne con ají y limón',                  price:8000,  stock:30, category_id:'snacks',    image_url:'https://images.unsplash.com/photo-1628294895950-9805252a4b8e?w=400&q=80' },
+      { id:7, name:'Deditos de Queso',        description:'Crujientes por fuera, derretidos por dentro',                  price:9000,  stock:0,  category_id:'snacks',    image_url:'https://images.unsplash.com/photo-1548340748-6fe06f8b9258?w=400&q=80' },
+      { id:8, name:'Mousse de Maracuyá',      description:'Cremoso y tropical, con base de galleta',                      price:8500,  stock:6,  category_id:'postres',   image_url:'https://images.unsplash.com/photo-1602351447937-745cb720612f?w=400&q=80' },
+      { id:9, name:'Tres Leches',             description:'Esponjoso bizcocho bañado en tres leches y crema',             price:9000,  stock:4,  category_id:'postres',   image_url:'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=400&q=80' },
+    ];
 
     let allProducts = [];
 
-    // 2. Cargar los datos al abrir la página
     async function loadMenu() {
+      const isDemo = SUPABASE_URL === "SUPABASE_URL";
+
       try {
-        // Traer las categorías ordenadas por nombre
-        const { data: categories, error: catError } = await supabase
-          .from('categories')
-          .select('*')
-          .order('name');
+        let categories, products;
 
-        // Traer los productos
-        const { data: products, error: prodError } = await supabase
-          .from('products')
-          .select('*')
-          .order('name');
-
-        if (catError || prodError) throw new Error("Error obteniendo datos");
+        if (isDemo) {
+          categories = DEMO_CATEGORIES;
+          products   = DEMO_PRODUCTS;
+        } else {
+          const { createClient } = supabase;
+          const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+          const [catRes, prodRes] = await Promise.all([
+            client.from('categories').select('*').order('name'),
+            client.from('products').select('*').order('name'),
+          ]);
+          if (catRes.error || prodRes.error) throw new Error("Error cargando datos");
+          categories = catRes.data;
+          products   = prodRes.data;
+        }
 
         allProducts = products;
 
-        // Ocultar cargando y mostrar menú
-        document.getElementById('loading').classList.add('hidden');
-        document.getElementById('menu-container').classList.remove('hidden');
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('menu-container').style.display = 'grid';
+        document.getElementById('section-label').style.display = 'flex';
 
-        // Pintar Categorías en el Navbar
         const catContainer = document.getElementById('categories-container');
         categories.forEach(cat => {
-          catContainer.innerHTML += `
-            <button onclick="filterCategory('${cat.id}')" class="category-btn bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-full text-xs font-semibold shadow-sm whitespace-nowrap hover:bg-gray-100 transition">
-              ${cat.name}
-            </button>
-          `;
+          const btn = document.createElement('button');
+          btn.className = 'cat-btn';
+          btn.textContent = cat.name;
+          btn.onclick = () => filterCategory(cat.id, btn);
+          catContainer.appendChild(btn);
         });
 
-        // Pintar todos los productos inicialmente
         renderProducts(allProducts);
 
-      } catch (error) {
-        document.getElementById('loading').innerText = "Hubo un problema al cargar el menú. Por favor intenta de nuevo.";
-        console.error(error);
+      } catch (err) {
+        document.getElementById('loading').innerHTML =
+          '<p style="color:#8B1A1A;font-size:14px;">⚠️ No se pudo cargar el menú. Intenta de nuevo.</p>';
+        console.error(err);
       }
     }
 
-    // 3. Función para pintar las tarjetas de los productos
-    function renderProducts(productsList) {
-      const menuContainer = document.getElementById('menu-container');
-      menuContainer.innerHTML = '';
+    function renderProducts(list) {
+      const container = document.getElementById('menu-container');
+      container.innerHTML = '';
 
-      if (productsList.length === 0) {
-        menuContainer.innerHTML = `<p class="text-center text-gray-400 py-8 col-span-full">No hay productos disponibles por ahora.</p>`;
+      if (!list.length) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="icon">🍽️</div>
+            <p>No hay platos disponibles en esta categoría.</p>
+          </div>`;
         return;
       }
 
-      productsList.forEach(prod => {
-        // Si no tiene imagen, ponemos una por defecto
-        const img = prod.image_url || 'https://unsplash.com';
-        
-        menuContainer.innerHTML += `
-          <div class="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md border border-gray-100 flex transition">
-            <!-- Imagen del Producto -->
-            <img src="${img}" alt="${prod.name}" class="w-28 h-28 object-cover flex-shrink-0">
-            
-            <!-- Detalles -->
-            <div class="p-4 flex flex-col justify-between flex-grow">
-              <div>
-                <h3 class="font-bold text-gray-900 text-base leading-snug">${prod.name}</h3>
-                <p class="text-xs text-gray-400 mt-1">${prod.stock > 0 ? 'Disponible' : 'Agotado'}</p>
-              </div>
-              <div class="flex justify-between items-baseline mt-2">
-                <span class="text-orange-600 font-extrabold text-lg">$${Number(prod.price).toLocaleString('es-CO')}</span>
+      list.forEach(prod => {
+        const imgContent = prod.image_url
+          ? `<img src="${prod.image_url}" alt="${prod.name}" loading="lazy" onerror="this.parentNode.innerHTML='<div class=\\'img-placeholder\\'>🍽️</div>'">`
+          : `<div class="img-placeholder">🍽️</div>`;
+
+        const stockBadge = prod.stock > 0
+          ? `<span class="badge-stock available">Disponible</span>`
+          : `<span class="badge-stock sold-out">Agotado</span>`;
+
+        const desc = prod.description
+          ? `<p class="product-desc">${prod.description}</p>`
+          : '';
+
+        container.innerHTML += `
+          <article class="product-card">
+            <div class="product-img-wrap">
+              ${imgContent}
+              ${stockBadge}
+            </div>
+            <div class="product-body">
+              <h3 class="product-name">${prod.name}</h3>
+              ${desc}
+              <div class="product-footer">
+                <div>
+                  <span class="product-price-label">Precio</span>
+                  <span class="product-price">$${Number(prod.price).toLocaleString('es-CO')}</span>
+                </div>
               </div>
             </div>
-          </div>
-        `;
+            <div class="card-accent"></div>
+          </article>`;
       });
     }
 
-    // 4. Filtrar productos al presionar una categoría
-    function filterCategory(categoryId) {
-      // Resaltar el botón activo (Cambiar estilos visuales)
-      const buttons = document.querySelectorAll('#categories-container button');
-      buttons.forEach(btn => {
-        btn.classList.replace('bg-orange-600', 'bg-white');
-        btn.classList.replace('text-white', 'text-gray-700');
-        btn.classList.add('border', 'border-gray-200');
-      });
+    function filterCategory(categoryId, clickedBtn) {
+      document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+      if (clickedBtn) clickedBtn.classList.add('active');
 
-      // Pintar el seleccionado de naranja
-      const activeBtn = event.currentTarget;
-      activeBtn.classList.remove('bg-white', 'text-gray-700', 'border', 'border-gray-200');
-      activeBtn.classList.add('bg-orange-600', 'text-white');
-
+      const titleEl = document.getElementById('section-title');
       if (categoryId === 'all') {
         renderProducts(allProducts);
+        titleEl.textContent = 'Todo el menú';
       } else {
         const filtered = allProducts.filter(p => p.category_id === categoryId);
         renderProducts(filtered);
+        const cat = document.querySelector(`.cat-btn.active`);
+        titleEl.textContent = cat ? cat.textContent : categoryId;
       }
     }
 
-    // Ejecutar carga al iniciar
     loadMenu();
   </script>
 </body>
