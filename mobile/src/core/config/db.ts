@@ -55,6 +55,7 @@ const DATABASE = {
           edit_reason TEXT,
           sincronizado INTEGER DEFAULT 0,
           updated_at TEXT NOT NULL,
+          deleted_at TEXT,
           FOREIGN KEY (client_id) REFERENCES clients (id)
         );
 
@@ -66,6 +67,7 @@ const DATABASE = {
           price REAL NOT NULL,
           sincronizado INTEGER DEFAULT 0,
           updated_at TEXT NOT NULL,
+          deleted_at TEXT,
           FOREIGN KEY (sale_id) REFERENCES sales (id),
           FOREIGN KEY (product_id) REFERENCES products (id)
         );
@@ -108,6 +110,30 @@ const DATABASE = {
           FOREIGN KEY (product_id) REFERENCES products (id)
         );
       `);
+
+      // Migración automática: aseguramos que la columna deleted_at existe en todas las tablas
+      const tables = [
+        "categories",
+        "products",
+        "clients",
+        "sales",
+        "sale_products",
+        "expenses",
+        "recipes",
+        "recipe_ingredients"
+      ];
+      for (const tableName of tables) {
+        try {
+          const info = (await DATABASE.db.getAllAsync(`PRAGMA table_info(${tableName});`)) as any[];
+          const hasDeletedAt = info.some((col) => col.name === "deleted_at");
+          if (!hasDeletedAt) {
+            await DATABASE.db.execAsync(`ALTER TABLE ${tableName} ADD COLUMN deleted_at TEXT;`);
+            console.log(`Columna deleted_at añadida con éxito a la tabla [${tableName}]`);
+          }
+        } catch (err) {
+          console.error(`Error al verificar/agregar deleted_at para ${tableName}:`, err);
+        }
+      }
 
       console.log("Database initialized successfully with UUIDs and Sync support");
     } catch (error) {
