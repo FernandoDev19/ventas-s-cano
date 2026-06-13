@@ -1,11 +1,12 @@
 import DATABASE from "@/src/core/config/db";
 import { ExpenseType } from "../types/expense.type";
 import { v4 as uuidv4 } from 'uuid';
+import { SyncService } from "@/src/shared/services/sync.service";
 
 const ExpensesService = {
   getAllExpenses: async (): Promise<ExpenseType[]> => {
     const expenses = await DATABASE.db.getAllAsync(
-      "SELECT * FROM expenses ORDER BY date DESC",
+      "SELECT * FROM expenses WHERE deleted_at IS NULL ORDER BY date DESC",
     );
     return expenses.map((exp: any) => ({
       ...exp,
@@ -15,7 +16,7 @@ const ExpensesService = {
 
   getExpenseById: async (id: string): Promise<ExpenseType | null> => {
     const exp: any = await DATABASE.db.getFirstAsync(
-      "SELECT * FROM expenses WHERE id = ?",
+      "SELECT * FROM expenses WHERE id = ? AND deleted_at IS NULL",
       [id],
     );
     if (!exp) return null;
@@ -36,17 +37,17 @@ const ExpensesService = {
     const end = `${endDate}T23:59:59`;
     const [rowTotal, expenses, byCategory] = await Promise.all([
       DATABASE.db.getFirstAsync(
-        "SELECT SUM(amount) as total FROM expenses WHERE date BETWEEN ? AND ?",
+        "SELECT SUM(amount) as total FROM expenses WHERE date BETWEEN ? AND ? AND deleted_at IS NULL",
         [startDate, end],
       ),
       DATABASE.db.getAllAsync(
-        "SELECT * FROM expenses WHERE date BETWEEN ? AND ? ORDER BY date DESC",
+        "SELECT * FROM expenses WHERE date BETWEEN ? AND ? AND deleted_at IS NULL ORDER BY date DESC",
         [startDate, end],
       ),
       DATABASE.db.getAllAsync(
         `SELECT c.name as category, SUM(e.amount) as total 
        FROM expenses e JOIN categories c ON e.category_id = c.id
-       WHERE e.date BETWEEN ? AND ?
+       WHERE e.date BETWEEN ? AND ? AND e.deleted_at IS NULL AND c.deleted_at IS NULL
        GROUP BY e.category_id ORDER BY total DESC`,
         [startDate, end],
       ),
@@ -122,13 +123,20 @@ const ExpensesService = {
   },
 
   deleteExpense: async (id: string): Promise<void> => {
-    await DATABASE.db.runAsync("DELETE FROM expenses WHERE id = ?", [id]);
+    const now = new Date().toISOString();
+    await DATABASE.db.runAsync("UPDATE expenses SET sincronizado = 0, updated_at = ?, deleted_at = ? WHERE id = ?", [
+      now,
+      now,
+      id,
+    ]);
+
+    SyncService.run().catch(err => console.error("Error sincronizando gasto:", err));
   },
 
   getTodayExpenses: async (): Promise<ExpenseType[]> => {
     const todayStr = new Date().toISOString().split("T")[0];
     const expenses = await DATABASE.db.getAllAsync(
-      "SELECT * FROM expenses WHERE date = ?",
+      "SELECT * FROM expenses WHERE date = ? AND deleted_at IS NULL",
       [todayStr],
     );
     return expenses.map((exp: any) => ({
@@ -142,7 +150,7 @@ const ExpensesService = {
     endDate: string,
   ): Promise<ExpenseType[]> => {
     const expenses = await DATABASE.db.getAllAsync(
-      "SELECT * FROM expenses WHERE date BETWEEN ? AND ? ORDER BY date DESC",
+      "SELECT * FROM expenses WHERE date BETWEEN ? AND ? AND deleted_at IS NULL ORDER BY date DESC",
       [startDate, endDate],
     );
     return expenses.map((exp: any) => ({
@@ -153,7 +161,7 @@ const ExpensesService = {
 
   getTotalExpenses: async (): Promise<number> => {
     const result: { total: number } | null = await DATABASE.db.getFirstAsync(
-      "SELECT SUM(amount) as total FROM expenses",
+      "SELECT SUM(amount) as total FROM expenses WHERE deleted_at IS NULL",
     );
     return result?.total || 0;
   },
@@ -165,6 +173,7 @@ const ExpensesService = {
       `SELECT c.name as category, SUM(e.amount) as total 
        FROM expenses e
        JOIN categories c ON e.category_id = c.id
+       WHERE e.deleted_at IS NULL AND c.deleted_at IS NULL
        GROUP BY e.category_id`,
     );
     return stats as { category: string; total: number }[];

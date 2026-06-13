@@ -252,6 +252,27 @@
       color: #F0A8A8;
     }
 
+    /* Estilos para productos sin Stock */
+    .product-card.out-of-stock {
+      opacity: 0.65;
+      filter: grayscale(80%);
+      pointer-events: none; /* Evita que resalte demasiado al pasar el cursor */
+    }
+
+    .product-card.out-of-stock .product-img-wrap::after {
+      content: 'AGOTADO';
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 14px;
+      letter-spacing: 0.1em;
+    }
+
     .product-body {
       padding: 1rem 1rem 1.1rem;
       flex: 1;
@@ -362,6 +383,46 @@
     🍽️ Conecta tu Supabase para ver el menú real — <strong>modo demo activo</strong>
   </div> -->
 
+  <!-- SUBSECTION HEADER STYLES -->
+  <style>
+    .subsection-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--crimson-dark);
+      padding: 1.5rem 1rem 0.5rem;
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .subsection-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, var(--border), transparent);
+    }
+    .grid-container {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+      padding: 0 1rem;
+      margin-bottom: 1.5rem;
+    }
+    @media (min-width: 540px) {
+      .grid-container { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (min-width: 860px) {
+      .grid-container { grid-template-columns: repeat(3, 1fr); gap: 1rem; padding: 0 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- <div class="demo-banner">
+    🍽️ Conecta tu Supabase para ver el menú real — <strong>modo demo activo</strong>
+  </div> -->
+
   <!-- STICKY HEADER -->
   <header class="header">
     <div class="header-top">
@@ -396,8 +457,8 @@
     <div class="section-label-line"></div>
   </div>
 
-  <!-- MENU GRID -->
-  <main id="menu-container" style="display:none"></main>
+  <!-- MENU GRID WRAPPER -->
+  <main id="menu-container" style="display:none; flex-direction: column; gap: 1rem;"></main>
 
   <footer class="footer">
     <span>Sabor Espress</span> &nbsp;·&nbsp; Hecho con amor 🫶
@@ -434,7 +495,7 @@
       const isDemo = SUPABASE_URL === "SUPABASE_URL";
 
       try {
-        let categories, products;
+        let categories, products, recipes = [];
 
         if (isDemo) {
           categories = DEMO_CATEGORIES;
@@ -442,19 +503,34 @@
         } else {
           const { createClient } = supabase;
           const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-          const [catRes, prodRes] = await Promise.all([
+          const [catRes, prodRes, recRes] = await Promise.all([
             client.from('categories').select('*').order('name'),
             client.from('products').select('*').order('name'),
+            client.from('recipes').select('*').order('name'),
           ]);
-          if (catRes.error || prodRes.error) throw new Error("Error cargando datos");
+          if (catRes.error || prodRes.error || recRes.error) throw new Error("Error cargando datos");
           categories = catRes.data;
           products   = prodRes.data;
+          recipes    = recRes.data || [];
         }
 
-        allProducts = products;
+        // Mapear recetas para que coincidan con la estructura de visualización de productos
+        const mappedRecipes = recipes.map(r => ({
+          id: r.id,
+          name: r.name,
+          description: r.description || '',
+          price: r.selling_price || r.price || 0,
+          stock: r.stock !== undefined ? r.stock : 1, // Si no tiene stock definido, asumimos disponible
+          category_id: r.category_id,
+          image_url: r.image_url,
+          is_recipe: true
+        }));
+
+        // Combinar productos y recetas ordenados por nombre
+        allProducts = [...products, ...mappedRecipes].sort((a, b) => a.name.localeCompare(b.name));
 
         document.getElementById('loading').style.display = 'none';
-        document.getElementById('menu-container').style.display = 'grid';
+        document.getElementById('menu-container').style.display = 'flex';
         document.getElementById('section-label').style.display = 'flex';
 
         const catContainer = document.getElementById('categories-container');
@@ -481,45 +557,82 @@
 
       if (!list.length) {
         container.innerHTML = `
-          <div class="empty-state">
+          <div class="empty-state" style="padding: 4rem 1rem;">
             <div class="icon">🍽️</div>
             <p>No hay platos disponibles en esta categoría.</p>
           </div>`;
         return;
       }
 
-      list.forEach(prod => {
-        const imgContent = prod.image_url
-          ? `<img src="${prod.image_url}" alt="${prod.name}" loading="lazy" onerror="this.parentNode.innerHTML='<div class=\\'img-placeholder\\'>🍽️</div>'">`
-          : `<div class="img-placeholder">🍽️</div>`;
+      const recipesList = list.filter(p => p.is_recipe);
+      const productsList = list.filter(p => !p.is_recipe);
 
-        const stockBadge = prod.stock > 0
-          ? `<span class="badge-stock available">Disponible</span>`
-          : `<span class="badge-stock sold-out">Agotado</span>`;
+      // ── RENDER DE RECETAS (COMBOS Y ESPECIALES) ──
+      if (recipesList.length > 0) {
+        const title = document.createElement('h3');
+        title.className = 'subsection-title';
+        title.innerHTML = '✨ Combos y Especiales';
+        container.appendChild(title);
 
-        const desc = prod.description
-          ? `<p class="product-desc">${prod.description}</p>`
-          : '';
+        const grid = document.createElement('div');
+        grid.className = 'grid-container';
+        recipesList.forEach(prod => {
+          grid.innerHTML += getProductCardHTML(prod);
+        });
+        container.appendChild(grid);
+      }
 
-        container.innerHTML += `
-          <article class="product-card">
-            <div class="product-img-wrap">
-              ${imgContent}
-              ${stockBadge}
-            </div>
-            <div class="product-body">
-              <h3 class="product-name">${prod.name}</h3>
-              ${desc}
-              <div class="product-footer">
-                <div>
-                  <span class="product-price-label">Precio</span>
-                  <span class="product-price">$${Number(prod.price).toLocaleString('es-CO')}</span>
-                </div>
+      // ── RENDER DE PRODUCTOS INDIVIDUALES ──
+      if (productsList.length > 0) {
+        const title = document.createElement('h3');
+        title.className = 'subsection-title';
+        title.innerHTML = '🍔 Platos y Complementos';
+        container.appendChild(title);
+
+        const grid = document.createElement('div');
+        grid.className = 'grid-container';
+        productsList.forEach(prod => {
+          grid.innerHTML += getProductCardHTML(prod);
+        });
+        container.appendChild(grid);
+      }
+    }
+
+    function getProductCardHTML(prod) {
+      const isAvailable = prod.stock > 0;
+      
+      const imgContent = prod.image_url
+        ? `<img src="${prod.image_url}" alt="${prod.name}" loading="lazy" onerror="this.parentNode.innerHTML='<div class=\\'img-placeholder\\'>🍽️</div>'">`
+        : `<div class="img-placeholder">🍽️</div>`;
+
+      const stockBadge = isAvailable
+        ? `<span class="badge-stock available">Disponible</span>`
+        : `<span class="badge-stock sold-out">Agotado</span>`;
+
+      const desc = prod.description
+        ? `<p class="product-desc">${prod.description}</p>`
+        : '';
+
+      const cardClass = isAvailable ? 'product-card' : 'product-card out-of-stock';
+
+      return `
+        <article class="${cardClass}">
+          <div class="product-img-wrap">
+            ${imgContent}
+            ${stockBadge}
+          </div>
+          <div class="product-body">
+            <h3 class="product-name">${prod.name}</h3>
+            ${desc}
+            <div class="product-footer">
+              <div>
+                <span class="product-price-label">Precio</span>
+                <span class="product-price">$${Number(prod.price).toLocaleString('es-CO')}</span>
               </div>
             </div>
-            <div class="card-accent"></div>
-          </article>`;
-      });
+          </div>
+          <div class="card-accent"></div>
+        </article>`;
     }
 
     function filterCategory(categoryId, clickedBtn) {

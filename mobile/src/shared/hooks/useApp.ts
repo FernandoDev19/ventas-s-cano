@@ -10,28 +10,28 @@ export const useApp = () => {
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    if (isInitialized) return;
+    let unsubscribeNetInfo: (() => void) | undefined;
 
     async function inicializarTodo() {
       try {
-        // 1. Las tablas
+        // 1. Inicializar la base de datos local SQLite
         await DATABASE.initDb();
 
-        // 2. Los datos de prueba
+        // 2. Ejecutar los seeders de desarrollo
         await seeders.run();
 
-        // 3. Sincronización
-        SyncService.run();
+        // 3. Forzar una sincronización inicial por si quedaron ventas reales con '0' antes de cerrar la app
+        await SyncService.run();
 
-        // 4. Escuchar cambios de red
-        const unsubscribe = NetInfo.addEventListener((state) => {
+        // 4. Configurar el escuchador de red de forma correcta en el nivel superior
+        unsubscribeNetInfo = NetInfo.addEventListener((state) => {
           if (state.isConnected) {
-            console.log("¡Internet recuperado! Lanzando sincronizador...");
+            console.log("LOG [RED]: ¡Internet detectado! Ejecutando SyncService...");
             SyncService.run();
           }
         });
 
-        // 5. Verificar alertas de deudas
+        // 5. Verificar alertas de deudas expiradas
         const debts = await SalesService.getDebtSales();
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -51,16 +51,22 @@ export const useApp = () => {
           );
         }
 
-        return () => unsubscribe();
       } catch (error) {
-        console.error("Error al arrancar:", error);
+        console.error("Error crítico al arrancar la aplicación:", error);
       } finally {
         setIsInitialized(true);
       }
     }
 
     inicializarTodo();
-  }, [isInitialized]);
+
+    // Función de limpieza real de React para remover el escuchador de NetInfo
+    return () => {
+      if (unsubscribeNetInfo) {
+        unsubscribeNetInfo();
+      }
+    };
+  }, []); // Quitamos 'isInitialized' de las dependencias para evitar ejecuciones infinitas
 
   return { isInitialized };
 };

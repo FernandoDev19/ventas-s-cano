@@ -13,7 +13,8 @@ const DATABASE = {
           id TEXT PRIMARY KEY,
           name TEXT NOT NULL,
           sincronizado INTEGER DEFAULT 0,
-          updated_at TEXT NOT NULL
+          updated_at TEXT NOT NULL,
+          deleted_at TEXT
         );
 
         CREATE TABLE IF NOT EXISTS products (
@@ -25,6 +26,7 @@ const DATABASE = {
           category_id TEXT NOT NULL,
           sincronizado INTEGER DEFAULT 0,
           updated_at TEXT NOT NULL,
+          deleted_at TEXT,
           FOREIGN KEY (category_id) REFERENCES categories (id)
         );
 
@@ -34,7 +36,8 @@ const DATABASE = {
           phone TEXT,
           notes TEXT,
           sincronizado INTEGER DEFAULT 0,
-          updated_at TEXT NOT NULL
+          updated_at TEXT NOT NULL,
+          deleted_at TEXT
         );
 
         CREATE TABLE IF NOT EXISTS sales (
@@ -76,6 +79,7 @@ const DATABASE = {
           notes TEXT,
           sincronizado INTEGER DEFAULT 0,
           updated_at TEXT NOT NULL,
+          deleted_at TEXT,
           FOREIGN KEY (category_id) REFERENCES categories (id)
         );
 
@@ -88,6 +92,7 @@ const DATABASE = {
           category_id TEXT,
           sincronizado INTEGER DEFAULT 0,
           updated_at TEXT NOT NULL,
+          deleted_at TEXT,
           FOREIGN KEY (category_id) REFERENCES categories (id)
         );
 
@@ -98,6 +103,7 @@ const DATABASE = {
           quantity REAL NOT NULL,
           sincronizado INTEGER DEFAULT 0,
           updated_at TEXT NOT NULL,
+          deleted_at TEXT,
           FOREIGN KEY (recipe_id) REFERENCES recipes (id),
           FOREIGN KEY (product_id) REFERENCES products (id)
         );

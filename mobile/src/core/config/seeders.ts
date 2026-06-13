@@ -2,15 +2,11 @@ import { CategoriesService } from "@/src/features/categories/services/categories
 import { CategoryType } from "@/src/features/categories/types/category.type";
 import { ProductsService } from "@/src/features/products/services/products.service";
 import { ProductType } from "@/src/features/products/types/product.type";
-import { ENVIRONMENTS } from "../constants/environments";
 import DATABASE from "@/src/core/config/db";
 import { v4 as uuidv4 } from "uuid";
 
-const env = ENVIRONMENTS.NODE_ENV;
-
 export const seeders = {
   run: async () => {
-    let count = 0;
     const polloCategoryId = uuidv4();
     const cerdoCategoryId = uuidv4();
     const embutidosCategoryId = uuidv4();
@@ -22,7 +18,7 @@ export const seeders = {
         {
           id: polloCategoryId,
           name: "Pollos",
-          sincronizado: 1,
+          sincronizado: 0,
           updated_at: new Date().toISOString(),
         },
         {
@@ -40,13 +36,13 @@ export const seeders = {
         {
           id: bebidasCategoryId,
           name: "Bebidas",
-          sincronizado: 1,
+          sincronizado: 0,
           updated_at: new Date().toISOString(),
         },
         {
           id: cervezasCategoryId,
           name: "Cervezas / Alcohol",
-          sincronizado: 1,
+          sincronizado: 0,
           updated_at: new Date().toISOString(),
         },
       ];
@@ -70,7 +66,7 @@ export const seeders = {
           price: 10000,
           stock: 10,
           category_id: polloCategoryId,
-          sincronizado: 1,
+          sincronizado: 0,
           updated_at: new Date().toISOString(),
         },
         {
@@ -81,7 +77,7 @@ export const seeders = {
           price: 15000,
           stock: 5,
           category_id: polloCategoryId,
-          sincronizado: 1,
+          sincronizado: 0,
           updated_at: new Date().toISOString(),
         },
         {
@@ -92,7 +88,7 @@ export const seeders = {
           price: 8000,
           stock: 15,
           category_id: polloCategoryId,
-          sincronizado: 1,
+          sincronizado: 0,
           updated_at: new Date().toISOString(),
         },
       ];
@@ -277,7 +273,7 @@ export const seeders = {
               "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRkK108d_a0kSjD7f60s9D5f6H2G8zJ9i6wYg&s",
               15000,
               polloCategoryId,
-              1,
+              0,
               new Date().toISOString(),
             ],
           );
@@ -316,7 +312,7 @@ export const seeders = {
       }
     }
 
-    if (env === "development" && count === 0) {
+    if (__DEV__) {
       await seeders.reset();
 
       await categoriesTable();
@@ -324,14 +320,13 @@ export const seeders = {
       await recipesTable();
       await salesTable();
       await expensesTable();
-      count += 1;
     } else {
       await categoriesTable();
     }
   },
 
   reset: async () => {
-    if (env === "development") {
+    if (__DEV__) {
       await DATABASE.db.execAsync("DELETE FROM recipe_ingredients");
       await DATABASE.db.execAsync("DELETE FROM recipes");
       await DATABASE.db.execAsync("DELETE FROM sale_products");

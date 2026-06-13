@@ -1,3 +1,17 @@
+node_modules
+.env
+.env.example
+.env.local
+
+/ios
+/android
+/web-build
+/dist
+/.expo
+
+.expo-shared
+
 frontend/node_modules
+frontend/.env
 backend/node_modules
 frontend_old

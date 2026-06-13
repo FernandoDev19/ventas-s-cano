@@ -1,14 +1,15 @@
 import DATABASE from "@/src/core/config/db";
 import { ClientType } from "../types/client.type";
 import { v4 as uuidv4 } from 'uuid';
+import { SyncService } from "@/src/shared/services/sync.service";
 
 export const ClientsService = {
   getAll: async (): Promise<ClientType[]> => {
-    return await DATABASE.db.getAllAsync("SELECT * FROM clients ORDER BY name ASC") as ClientType[];
+    return await DATABASE.db.getAllAsync("SELECT * FROM clients WHERE deleted_at IS NULL ORDER BY name ASC") as ClientType[];
   },
 
   getById: async (id: number): Promise<ClientType | null> => {
-    return await DATABASE.db.getFirstAsync("SELECT * FROM clients WHERE id = ?", [id]) as ClientType | null;
+    return await DATABASE.db.getFirstAsync("SELECT * FROM clients WHERE id = ? AND deleted_at IS NULL", [id]) as ClientType | null;
   },
 
   create: async (client: Omit<ClientType, "id">): Promise<ClientType> => {
@@ -33,7 +34,14 @@ export const ClientsService = {
   },
 
   delete: async (id: string): Promise<void> => {
-    await DATABASE.db.runAsync("DELETE FROM clients WHERE id = ?", [id]);
+    const now = new Date().toISOString();
+    await DATABASE.db.runAsync("UPDATE clients SET sincronizado = 0, updated_at = ?, deleted_at = ? WHERE id = ?", [
+      now,
+      now,
+      id,
+    ]);
+
+    SyncService.run().catch(err => console.error("Error sincronizando cliente:", err));
   },
 
   // Clientes que tienen ventas fiadas pendientes
@@ -44,7 +52,7 @@ export const ClientsService = {
              COUNT(s.id) as salesCount
       FROM clients c
       JOIN sales s ON s.client_id = c.id
-      WHERE s.is_debt = 1
+      WHERE s.is_debt = 1 AND c.deleted_at IS NULL AND s.deleted_at IS NULL
       GROUP BY c.id
       ORDER BY totalDebt DESC
     `) as any[];

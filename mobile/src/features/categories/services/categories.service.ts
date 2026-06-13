@@ -1,11 +1,12 @@
 import DATABASE from "@/src/core/config/db";
 import { CategoryType } from "../types/category.type";
 import { v4 as uuidv4 } from 'uuid';
+import { SyncService } from "@/src/shared/services/sync.service";
 
 export const CategoriesService = {
   getAll: async () => {
     const categories: CategoryType[] = await DATABASE.db.getAllAsync(
-      "SELECT * FROM categories",
+      "SELECT * FROM categories WHERE deleted_at IS NULL ORDER BY name ASC",
     );
     return categories;
   },
@@ -18,6 +19,8 @@ export const CategoriesService = {
       "INSERT INTO categories (id, name, sincronizado, updated_at) VALUES (?, ?, ?, ?)",
       [id, name, 0, now],
     );
+
+    await SyncService.run().catch(err => console.error("Error sincronizando categoría:", err));
 
     return {
       id,
@@ -53,17 +56,43 @@ export const CategoriesService = {
       new Date().toISOString(),
       id,
     ]);
+
+    await SyncService.run().catch(err => console.error("Error sincronizando categoría:", err));
   },
 
   delete: async (id: string): Promise<void> => {
+    const now = new Date().toISOString();
+    
     await DATABASE.db.withTransactionAsync(async () => {
-      await DATABASE.db.runAsync("DELETE FROM products WHERE category_id = ?", [
+      // Products
+      await DATABASE.db.runAsync("UPDATE products SET sincronizado = 0, updated_at = ?, deleted_at = ? WHERE category_id = ?", [
+        now,
+        now,
         id,
       ]);
-      await DATABASE.db.runAsync("DELETE FROM expenses WHERE category_id = ?", [
+      
+      // Expenses
+      await DATABASE.db.runAsync("UPDATE expenses SET sincronizado = 0, updated_at = ?, deleted_at = ? WHERE category_id = ?", [
+        now,
+        now,
         id,
       ]);
-      await DATABASE.db.runAsync("DELETE FROM categories WHERE id = ?", [id]);
+
+      // Recipes
+      await DATABASE.db.runAsync("UPDATE recipes SET sincronizado = 0, updated_at = ?, deleted_at = ? WHERE category_id = ?", [
+        now,
+        now,
+        id,
+      ]);
+
+      // Categories
+      await DATABASE.db.runAsync("UPDATE categories SET sincronizado = 0, updated_at = ?, deleted_at = ? WHERE id = ?", [
+        now,
+        now,
+        id,
+      ]);
     });
+
+    SyncService.run().catch(err => console.error("Error sincronizando categoría:", err));
   },
 };

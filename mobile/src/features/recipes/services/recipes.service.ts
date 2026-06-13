@@ -1,11 +1,12 @@
 import DATABASE from "@/src/core/config/db";
 import { RecipeIngredientType, RecipeType } from "../types/recipe.type";
 import { v4 as uuidv4 } from 'uuid';
+import { SyncService } from "@/src/shared/services/sync.service";
 
 export const RecipesService = {
   getAll: async (): Promise<RecipeType[]> => {
     const recipes: any[] = await DATABASE.db.getAllAsync(
-      "SELECT * FROM recipes ORDER BY name ASC"
+      "SELECT * FROM recipes WHERE deleted_at IS NULL ORDER BY name ASC"
     );
 
     const result: RecipeType[] = [];
@@ -22,7 +23,7 @@ export const RecipesService = {
 
   getById: async (id: string): Promise<RecipeType | null> => {
     const recipe: any = await DATABASE.db.getFirstAsync(
-      "SELECT * FROM recipes WHERE id = ?",
+      "SELECT * FROM recipes WHERE id = ? AND deleted_at IS NULL",
       [id]
     );
     if (!recipe) return null;
@@ -35,7 +36,7 @@ export const RecipesService = {
       `SELECT ri.*, p.name as product_name, p.image_url as product_image, p.stock as product_stock
        FROM recipe_ingredients ri
        JOIN products p ON ri.product_id = p.id
-       WHERE ri.recipe_id = ?`,
+       WHERE ri.recipe_id = ? AND ri.deleted_at IS NULL AND p.deleted_at IS NULL`,
       [recipeId]
     );
     return rows as RecipeIngredientType[];
@@ -69,6 +70,8 @@ export const RecipesService = {
         );
       }
     });
+
+    SyncService.run().catch(err => console.error("Error sincronizando al crear receta:", err));
 
     return { ...recipe, id: recipeId };
   },
@@ -111,19 +114,25 @@ export const RecipesService = {
         }
       }
     });
+
+    SyncService.run().catch(err => console.error("Error sincronizando al actualizar receta:", err));
   },
 
   delete: async (id: string): Promise<void> => {
+    const now = new Date().toISOString();
+
     await DATABASE.db.withTransactionAsync(async () => {
       await DATABASE.db.runAsync(
-        "DELETE FROM recipe_ingredients WHERE recipe_id = ?",
-        [id]
+        "UPDATE recipe_ingredients SET sincronizado = 0, updated_at = ?, deleted_at = ? WHERE recipe_id = ?",
+        [now, now, id],
       );
       await DATABASE.db.runAsync(
-        "DELETE FROM recipes WHERE id = ?",
-        [id]
+        "UPDATE recipes SET sincronizado = 0, updated_at = ?, deleted_at = ? WHERE id = ?",
+        [now, now, id],
       );
     });
+
+    SyncService.run().catch(err => console.error("Error sincronizando al borrar receta:", err));
   },
 
   /** Deduct ingredient stock when a recipe is sold (called per unit sold) */
@@ -132,11 +141,13 @@ export const RecipesService = {
     await DATABASE.db.withTransactionAsync(async () => {
       for (const ing of ingredients) {
         await DATABASE.db.runAsync(
-          "UPDATE products SET stock = stock - ?, sincronizado = 0, updated_at = ? WHERE id = ?",
+          "UPDATE products SET stock = stock - ?, sincronizado = 0, updated_at = ? WHERE id = ? AND deleted_at IS NULL",
           [ing.quantity * units, new Date().toISOString(), ing.product_id]
         );
       }
     });
+
+    SyncService.run().catch(err => console.error("Error sincronizando al deducir stock de receta:", err));
   },
 
   /** Returns low stock products after a recipe sale */
@@ -145,7 +156,7 @@ export const RecipesService = {
     const low: { name: string; stock: number }[] = [];
     for (const ing of ingredients) {
       const prod: any = await DATABASE.db.getFirstAsync(
-        "SELECT name, stock FROM products WHERE id = ?",
+        "SELECT name, stock FROM products WHERE id = ? AND deleted_at IS NULL",
         [ing.product_id]
       );
       if (prod && prod.stock <= 10) {

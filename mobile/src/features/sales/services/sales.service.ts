@@ -1,6 +1,7 @@
 import DATABASE from "@/src/core/config/db";
 import { SaleType } from "../types/sale.type";
 import { v4 as uuidv4 } from 'uuid';
+import { SyncService } from "@/src/shared/services/sync.service";
 
 // TODO: Agregar nombre del cliente al getSaleById
 export const SalesService = {
@@ -46,6 +47,8 @@ export const SalesService = {
         );
       }
     });
+
+    SyncService.run().catch(err => console.error("Error sincronizando al crear venta:", err));
 
     return {
       id: saleId,
@@ -374,6 +377,8 @@ export const SalesService = {
         );
       }
     });
+
+    SyncService.run().catch(err => console.error("Error sincronizando al actualizar venta:", err));
   },
 
   deleteSale: async (id: string, cancelReason?: string): Promise<void> => {
@@ -398,6 +403,8 @@ export const SalesService = {
         [cancelReason || "", new Date().toISOString(), id],
       );
     });
+
+    SyncService.run().catch(err => console.error("Error sincronizando al borrar/anular venta:", err));
   },
 
   getTodaySales: async (): Promise<SaleType[]> => {
@@ -450,6 +457,8 @@ export const SalesService = {
       "UPDATE sales SET is_debt = 0, debt_amount = 0, sincronizado = 0, updated_at = ? WHERE id = ?",
       [new Date().toISOString(), saleId],
     );
+
+    SyncService.run().catch(err => console.error("Error sincronizando al marcar como pagada:", err));
   },
 
   createMany: async (sales: SaleType[]) => {
