@@ -8,8 +8,8 @@ import { v4 as uuidv4 } from "uuid";
 export const seeders = {
   run: async () => {
     const polloCategoryId = uuidv4();
-    const cerdoCategoryId = uuidv4();
-    const embutidosCategoryId = uuidv4();
+    // const cerdoCategoryId = uuidv4();
+    // const embutidosCategoryId = uuidv4();
     const bebidasCategoryId = uuidv4();
     const cervezasCategoryId = uuidv4();
 
@@ -19,18 +19,6 @@ export const seeders = {
           id: polloCategoryId,
           name: "Pollos",
           sincronizado: 0,
-          updated_at: new Date().toISOString(),
-        },
-        {
-          id: cerdoCategoryId,
-          name: "Cerdo & Picadas",
-          sincronizado: 1,
-          updated_at: new Date().toISOString(),
-        },
-        {
-          id: embutidosCategoryId,
-          name: "Embutidos (Buti/Chorizo)",
-          sincronizado: 1,
           updated_at: new Date().toISOString(),
         },
         {
@@ -284,28 +272,28 @@ export const seeders = {
           );
 
           // Recipe 2: Picada Sencilla
-          const recipe_2_id = uuidv4();
-          await DATABASE.db.runAsync(
-            "INSERT INTO recipes (id, name, description, image_url, selling_price, category_id, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            [
-              recipe_2_id,
-              "Picada Sencilla",
-              "1/2 Pollo + 1/4 Pollo",
-              "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTVbQ7yB7sA7nL-Gv8S1vG7gG_s7G6yE0K7bA&s",
-              20000,
-              cerdoCategoryId,
-              1,
-              new Date().toISOString(),
-            ],
-          );
-          await DATABASE.db.runAsync(
-            "INSERT INTO recipe_ingredients (id, recipe_id, product_id, quantity, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
-            [uuidv4(), recipe_2_id, polloMedioId, 1, 1, new Date().toISOString()], // 1x Pollo 1/2
-          );
-          await DATABASE.db.runAsync(
-            "INSERT INTO recipe_ingredients (id, recipe_id, product_id, quantity, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
-            [uuidv4(), recipe_2_id, polloCuartoId, 1, 1, new Date().toISOString()], // 1x Pollo 1/4
-          );
+          // const recipe_2_id = uuidv4();
+          // await DATABASE.db.runAsync(
+          //   "INSERT INTO recipes (id, name, description, image_url, selling_price, category_id, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+          //   [
+          //     recipe_2_id,
+          //     "Picada Sencilla",
+          //     "1/2 Pollo + 1/4 Pollo",
+          //     "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTVbQ7yB7sA7nL-Gv8S1vG7gG_s7G6yE0K7bA&s",
+          //     20000,
+          //     cerdoCategoryId,
+          //     1,
+          //     new Date().toISOString(),
+          //   ],
+          // );
+          // await DATABASE.db.runAsync(
+          //   "INSERT INTO recipe_ingredients (id, recipe_id, product_id, quantity, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+          //   [uuidv4(), recipe_2_id, polloMedioId, 1, 1, new Date().toISOString()], // 1x Pollo 1/2
+          // );
+          // await DATABASE.db.runAsync(
+          //   "INSERT INTO recipe_ingredients (id, recipe_id, product_id, quantity, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+          //   [uuidv4(), recipe_2_id, polloCuartoId, 1, 1, new Date().toISOString()], // 1x Pollo 1/4
+          // );
         });
 
         console.log("Recipes seeded successfully");
