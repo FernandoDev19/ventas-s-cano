@@ -1,16 +1,9 @@
-import { OrderItem } from "@/src/core/context/OrderContext";
 import Button from "@/src/shared/components/ui/Button";
 import Input from "@/src/shared/components/ui/Input";
 import { priceFormat } from "@/src/shared/helpers/price-format.helper";
-import { useOrder } from "@/src/shared/hooks/useOrder";
-import {
-  PaymentMethods,
-  PaymentMethodsType,
-} from "@/src/shared/types/payment-methods.type";
+import { PaymentMethods } from "@/src/shared/types/payment-methods.type";
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useState } from "react";
 import {
-  Alert,
   FlatList,
   Image,
   KeyboardAvoidingView,
@@ -20,168 +13,47 @@ import {
   Text,
   View,
 } from "react-native";
-import { SalesService } from "../../sales/services/sales.service";
-import { SaleType } from "../../sales/types/sale.type";
-import { ClientType } from "../../clients/types/client.type";
-import { ClientsService } from "../../clients/services/clients.service";
-import { ProductsService } from "../../products/services/products.service";
-import { RecipesService } from "../../recipes/services/recipes.service";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { useCartModal } from "../hooks/useCartModal";
 
 type Props = {
   onSaleCreated: () => void;
 };
 
 const CartModal = ({ onSaleCreated }: Props) => {
-  const { order, addToOrder, addRecipeToOrder, removeFromOrder, clearOrder } = useOrder();
-
-  const totalItems = order.reduce((sum, item) => sum + item.quantity, 0);
-  const totalPrecio = order.reduce((sum, item) => {
-    if (item.type === "product") return sum + item.product.price * item.quantity;
-    if (item.type === "recipe") return sum + item.recipe.selling_price * item.quantity;
-    return sum;
-  }, 0);
-
-  const [clients, setClients] = useState<ClientType[]>([]);
-  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
-  const [showClientPicker, setShowClientPicker] = useState(false);
-
-  const [isDebt, setIsDebt] = useState(false);
-  const [note, setNote] = useState("");
-  const [modalVisible, setModalVisible] = useState(false);
-  const [amountDebt, setAmountDebt] = useState<number>(0);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodsType>("cash");
-  const [debtDate, setDebtDate] = useState<Date>(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 7);
-    return d;
-  });
-  const [showDatePicker, setShowDatePicker] = useState(false);
-
-  useEffect(() => {
-    if (modalVisible) {
-      ClientsService.getAll().then(setClients);
-      setAmountDebt(totalPrecio);
-    }
-  }, [modalVisible, totalPrecio]);
+  const {
+    handleCheckout,
+    setModalVisible,
+    handleDecrement,
+    handleIncrement,
+    getItemLabel,
+    getItemImage,
+    getItemPrice,
+    setShowClientPicker,
+    setPaymentMethod,
+    setDebtDate,
+    setShowDatePicker,
+    setSelectedClientId,
+    setIsDebt,
+    setAmountDebt,
+    setNote,
+    buildSale,
+    showClientPicker,
+    totalPrecio,
+    modalVisible,
+    totalItems,
+    order,
+    selectedClientId,
+    clients,
+    note,
+    paymentMethod,
+    isDebt,
+    debtDate,
+    amountDebt,
+    showDatePicker,
+  } = useCartModal(onSaleCreated);
 
   if (totalItems === 0) return null;
-
-  const buildSale = (): SaleType => ({
-    total: totalPrecio,
-    note,
-    is_debt: isDebt,
-    debt_amount: isDebt ? (amountDebt > 0 ? amountDebt : totalPrecio) : 0,
-    debt_date: isDebt ? debtDate.toISOString().split("T")[0] : null,
-    payment_method: paymentMethod,
-    client_id: isDebt ? selectedClientId : null,
-  });
-
-  const handleCheckout = async (sale: SaleType, order: OrderItem[]) => {
-    try {
-      // Build sale_products from order (recipes contribute via a proxy product approach,
-      // we record the recipe's selling_price as if it were a single line item with product_id = 0)
-      // Instead: we record each recipe as a special sale line, using product_id from first ingredient OR placeholder
-      // Better approach: store recipe items as sale_products with a "recipe sale product" approach.
-      // We create a flat list for the sale: recipe lines use product_id of the recipe id (negative) – but since
-      // sale_products requires a valid product_id FK, we simply record them as a sum without product detail.
-      // The simplest correct approach: 
-      //  - For products: normal flow
-      //  - For recipes: deduct stock via RecipesService.deductStock, don't add to sale_products
-
-      const productItems = order.filter((i) => i.type === "product");
-      const recipeItems = order.filter((i) => i.type === "recipe");
-
-      const productsToSave = productItems.map((o) => {
-        if (o.type !== "product") return null as any;
-        return {
-          product_id: o.product.id,
-          quantity: o.quantity,
-          price: o.product.price * o.quantity,
-        };
-      }).filter(Boolean);
-
-      await SalesService.createSale(sale, productsToSave);
-
-      // Deduct stock for recipe ingredients
-      for (const item of recipeItems) {
-        if (item.type !== "recipe") continue;
-        await RecipesService.deductStock(item.recipe.id!, item.quantity);
-      }
-
-      onSaleCreated();
-
-      // Check low stock: products
-      const lowStockAlerts: string[] = [];
-      for (const item of productItems) {
-        if (item.type !== "product") continue;
-        const prod = await ProductsService.getProductById(item.product.id);
-        if (prod && prod.stock <= 10) {
-          lowStockAlerts.push(`${prod.name} (Quedan: ${prod.stock})`);
-        }
-      }
-      // Check low stock: recipe ingredients
-      for (const item of recipeItems) {
-        if (item.type !== "recipe") continue;
-        const low = await RecipesService.checkLowStock(item.recipe.id!);
-        for (const l of low) {
-          lowStockAlerts.push(`${l.name} (Quedan: ${l.stock})`);
-        }
-      }
-
-      clearOrder();
-      setIsDebt(false);
-      setAmountDebt(0);
-      setNote("");
-      setModalVisible(false);
-      setSelectedClientId(null);
-      setDebtDate(() => {
-        const d = new Date();
-        d.setDate(d.getDate() + 7);
-        return d;
-      });
-
-      if (lowStockAlerts.length > 0) {
-        Alert.alert(
-          "¡Pedido creado correctamente!",
-          `⚠️ ¡Alerta de Stock Bajo!\nLos siguientes productos tienen stock bajo:\n\n${lowStockAlerts.map(a => `• ${a}`).join("\n")}`
-        );
-      } else {
-        Alert.alert("¡Pedido creado correctamente!");
-      }
-    } catch (error: any) {
-      console.error(error);
-      Alert.alert(
-        "Error",
-        `El pedido no ha podido ser creado, detalles: \n${error?.message}`,
-      );
-    }
-  };
-
-  const getItemLabel = (item: OrderItem) => {
-    if (item.type === "product") return item.product.name;
-    return `🍽 ${item.recipe.name}`;
-  };
-
-  const getItemImage = (item: OrderItem) => {
-    if (item.type === "product") return item.product.image_url;
-    return item.recipe.image_url;
-  };
-
-  const getItemPrice = (item: OrderItem) => {
-    if (item.type === "product") return item.product.price * item.quantity;
-    return item.recipe.selling_price * item.quantity;
-  };
-
-  const handleIncrement = (item: OrderItem) => {
-    if (item.type === "product") addToOrder(item.product);
-    else addRecipeToOrder(item.recipe);
-  };
-
-  const handleDecrement = (item: OrderItem) => {
-    if (item.type === "product") removeFromOrder(item.product.id, "product");
-    else removeFromOrder(item.recipe.id!, "recipe");
-  };
 
   return (
     <>
@@ -253,14 +125,24 @@ const CartModal = ({ onSaleCreated }: Props) => {
                       <View className="flex-1">
                         <View className="flex-row items-center gap-1 flex-1">
                           {item.type === "recipe" && (
-                            <View style={{
-                              backgroundColor: "#ff572220",
-                              borderRadius: 4,
-                              paddingHorizontal: 5,
-                              paddingVertical: 2,
-                              marginRight: 4,
-                            }}>
-                              <Text style={{ color: "#ff5722", fontSize: 9, fontWeight: "800" }}>RECETA</Text>
+                            <View
+                              style={{
+                                backgroundColor: "#ff572220",
+                                borderRadius: 4,
+                                paddingHorizontal: 5,
+                                paddingVertical: 2,
+                                marginRight: 4,
+                              }}
+                            >
+                              <Text
+                                style={{
+                                  color: "#ff5722",
+                                  fontSize: 9,
+                                  fontWeight: "800",
+                                }}
+                              >
+                                RECETA
+                              </Text>
                             </View>
                           )}
                           <Text
@@ -313,13 +195,24 @@ const CartModal = ({ onSaleCreated }: Props) => {
                     onPress={() => setShowClientPicker(true)}
                     className="h-16 bg-neutral-800 shadow-lg rounded-lg px-4 flex-row items-center gap-2"
                   >
-                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
+                    >
                       <Ionicons
                         name="person-outline"
                         size={18}
                         color={selectedClientId ? "#ff5722" : "#737373"}
                       />
-                      <Text style={{ color: selectedClientId ? "#fff" : "#737373", fontSize: 15 }}>
+                      <Text
+                        style={{
+                          color: selectedClientId ? "#fff" : "#737373",
+                          fontSize: 15,
+                        }}
+                      >
                         {selectedClientId
                           ? clients.find((c) => c.id === selectedClientId)?.name
                           : "Asignar cliente (opcional)"}
@@ -402,7 +295,14 @@ const CartModal = ({ onSaleCreated }: Props) => {
                     />
 
                     <View>
-                      <Text style={{ color: "#a3a3a3", fontSize: 13, fontWeight: "600", marginBottom: 6 }}>
+                      <Text
+                        style={{
+                          color: "#a3a3a3",
+                          fontSize: 13,
+                          fontWeight: "600",
+                          marginBottom: 6,
+                        }}
+                      >
                         Fecha Límite de Pago
                       </Text>
                       <Pressable
@@ -419,14 +319,24 @@ const CartModal = ({ onSaleCreated }: Props) => {
                           justifyContent: "space-between",
                         }}
                       >
-                        <Text style={{ color: "#fff", fontSize: 15, fontWeight: "700" }}>
+                        <Text
+                          style={{
+                            color: "#fff",
+                            fontSize: 15,
+                            fontWeight: "700",
+                          }}
+                        >
                           {debtDate.toLocaleDateString("es-CO", {
                             day: "2-digit",
                             month: "short",
                             year: "numeric",
                           })}
                         </Text>
-                        <Ionicons name="calendar-outline" size={20} color="#ff5722" />
+                        <Ionicons
+                          name="calendar-outline"
+                          size={20}
+                          color="#ff5722"
+                        />
                       </Pressable>
                       {showDatePicker && (
                         <DateTimePicker
@@ -446,21 +356,52 @@ const CartModal = ({ onSaleCreated }: Props) => {
                 )}
 
                 {/* Client picker modal */}
-                <Modal visible={showClientPicker} transparent animationType="slide">
-                  <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" }}>
-                    <View style={{
-                      backgroundColor: "#141414",
-                      borderTopLeftRadius: 28,
-                      borderTopRightRadius: 28,
-                      padding: 24,
-                      maxHeight: "60%",
-                      paddingBottom: 40,
-                    }}>
-                      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                        <Text style={{ color: "#fff", fontSize: 18, fontWeight: "800" }}>Seleccionar Cliente</Text>
+                <Modal
+                  visible={showClientPicker}
+                  transparent
+                  animationType="slide"
+                >
+                  <View
+                    style={{
+                      flex: 1,
+                      backgroundColor: "rgba(0,0,0,0.6)",
+                      justifyContent: "flex-end",
+                    }}
+                  >
+                    <View
+                      style={{
+                        backgroundColor: "#141414",
+                        borderTopLeftRadius: 28,
+                        borderTopRightRadius: 28,
+                        padding: 24,
+                        maxHeight: "60%",
+                        paddingBottom: 40,
+                      }}
+                    >
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginBottom: 16,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            color: "#fff",
+                            fontSize: 18,
+                            fontWeight: "800",
+                          }}
+                        >
+                          Seleccionar Cliente
+                        </Text>
                         <Pressable
                           onPress={() => setShowClientPicker(false)}
-                          style={{ backgroundColor: "#2a2a2a", borderRadius: 20, padding: 8 }}
+                          style={{
+                            backgroundColor: "#2a2a2a",
+                            borderRadius: 20,
+                            padding: 8,
+                          }}
                         >
                           <Ionicons name="close" size={18} color="#fff" />
                         </Pressable>
@@ -470,30 +411,68 @@ const CartModal = ({ onSaleCreated }: Props) => {
                         keyExtractor={(c) => String(c.id)}
                         renderItem={({ item }) => (
                           <Pressable
-                            onPress={() => { setSelectedClientId(item.id); setShowClientPicker(false); }}
+                            onPress={() => {
+                              setSelectedClientId(item.id);
+                              setShowClientPicker(false);
+                            }}
                             style={{
                               padding: 14,
                               borderRadius: 12,
                               marginBottom: 8,
-                              backgroundColor: selectedClientId === item.id ? "#ff572222" : "#1a1a1a",
+                              backgroundColor:
+                                selectedClientId === item.id
+                                  ? "#ff572222"
+                                  : "#1a1a1a",
                               borderWidth: 1,
-                              borderColor: selectedClientId === item.id ? "#ff5722" : "#2a2a2a",
+                              borderColor:
+                                selectedClientId === item.id
+                                  ? "#ff5722"
+                                  : "#2a2a2a",
                               flexDirection: "row",
                               alignItems: "center",
                               gap: 10,
                             }}
                           >
-                            <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: "#ff572233", alignItems: "center", justifyContent: "center" }}>
-                              <Text style={{ color: "#ff5722", fontWeight: "800" }}>{item.name[0].toUpperCase()}</Text>
+                            <View
+                              style={{
+                                width: 36,
+                                height: 36,
+                                borderRadius: 18,
+                                backgroundColor: "#ff572233",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              <Text
+                                style={{ color: "#ff5722", fontWeight: "800" }}
+                              >
+                                {item.name[0].toUpperCase()}
+                              </Text>
                             </View>
                             <View>
-                              <Text style={{ color: "#fff", fontWeight: "600" }}>{item.name}</Text>
-                              {item.phone && <Text style={{ color: "#737373", fontSize: 12 }}>{item.phone}</Text>}
+                              <Text
+                                style={{ color: "#fff", fontWeight: "600" }}
+                              >
+                                {item.name}
+                              </Text>
+                              {item.phone && (
+                                <Text
+                                  style={{ color: "#737373", fontSize: 12 }}
+                                >
+                                  {item.phone}
+                                </Text>
+                              )}
                             </View>
                           </Pressable>
                         )}
                         ListEmptyComponent={
-                          <Text style={{ color: "#555", textAlign: "center", marginTop: 20 }}>
+                          <Text
+                            style={{
+                              color: "#555",
+                              textAlign: "center",
+                              marginTop: 20,
+                            }}
+                          >
                             No hay clientes registrados
                           </Text>
                         }

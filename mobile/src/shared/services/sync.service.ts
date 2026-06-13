@@ -21,11 +21,12 @@ export const SyncService = {
       await SyncService.syncTable("categories");
       await SyncService.syncTable("products");
       await SyncService.syncTable("clients");
+      await SyncService.syncTable("recipes");
       await SyncService.syncTable("sales");
       await SyncService.syncTable("sale_products");
-      await SyncService.syncTable("expenses");
-      await SyncService.syncTable("recipes");
+      await SyncService.syncTable("sale_recipes");
       await SyncService.syncTable("recipe_ingredients");
+      await SyncService.syncTable("expenses");
 
       console.log("¡Sincronización completada exitosamente!");
     } catch (error) {
@@ -79,7 +80,7 @@ export const SyncService = {
     }
 
     if (recordsToUpsert.length > 0) {
-      // Quitamos las columnas locales antes de enviar a la nube
+      // Quitar las columnas locales antes de enviar a la nube
       const cleanRecords = recordsToUpsert.map(
         ({ sincronizado, deleted_at, ...rest }) => rest,
       );
@@ -102,7 +103,7 @@ export const SyncService = {
         `UPDATE ${tableName} SET sincronizado = 1 WHERE id IN (${formattedIds})`,
       );
     }
-    
+
     return true;
   },
 };

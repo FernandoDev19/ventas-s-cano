@@ -350,12 +350,12 @@ export default function CreateProductModal({
             <CategoriesModal
               onSelect={(id) => {
                 setIsCategoriesModalOpen(false);
-                setCategoryId(id)
+                setCategoryId(id);
               }}
               visible={isCategoriesModalOpen}
               onCreated={(id) => {
                 setIsCategoriesModalOpen(false);
-                setCategoryId(id)
+                setCategoryId(id);
               }}
               onClose={() => setIsCategoriesModalOpen(false)}
             />

@@ -109,6 +109,19 @@ const DATABASE = {
           FOREIGN KEY (recipe_id) REFERENCES recipes (id),
           FOREIGN KEY (product_id) REFERENCES products (id)
         );
+
+        CREATE TABLE IF NOT EXISTS sale_recipes (
+          id TEXT PRIMARY KEY,
+          sale_id TEXT NOT NULL,
+          recipe_id TEXT NOT NULL,
+          quantity INTEGER NOT NULL,
+          price REAL NOT NULL,
+          sincronizado INTEGER DEFAULT 0,
+          updated_at TEXT NOT NULL,
+          deleted_at TEXT,
+          FOREIGN KEY (sale_id) REFERENCES sales (id),
+          FOREIGN KEY (recipe_id) REFERENCES recipes (id)
+        );
       `);
 
       // Migración automática: aseguramos que la columna deleted_at existe en todas las tablas
@@ -120,7 +133,8 @@ const DATABASE = {
         "sale_products",
         "expenses",
         "recipes",
-        "recipe_ingredients"
+        "recipe_ingredients",
+        "sale_recipes",
       ];
       for (const tableName of tables) {
         try {

@@ -1,13 +1,13 @@
 import DATABASE from "@/src/core/config/db";
 import { SaleType } from "../types/sale.type";
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 import { SyncService } from "@/src/shared/services/sync.service";
 
-// TODO: Agregar nombre del cliente al getSaleById
 export const SalesService = {
   createSale: async (
     sale: Omit<SaleType, "id" | "created_at">,
     products: { product_id: string; quantity: number; price: number }[],
+    recipes?: { recipe_id: string; quantity: number; price: number }[], // ✅ NUEVO
   ): Promise<SaleType> => {
     const createdAtStr = new Date().toISOString();
     const debtDateStr = sale.debt_date
@@ -17,6 +17,7 @@ export const SalesService = {
     const saleId = uuidv4();
 
     await DATABASE.db.withTransactionAsync(async () => {
+      // Crear la venta
       await DATABASE.db.runAsync(
         "INSERT INTO sales (id, total, note, is_debt, debt_amount, debt_date, payment_method, client_id, sincronizado, updated_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         [
@@ -34,21 +35,52 @@ export const SalesService = {
         ],
       );
 
+      // Guardar PRODUCTOS en sale_products
       for (const prod of products) {
         let prodId = uuidv4();
         await DATABASE.db.runAsync(
           "INSERT INTO sale_products (id, sale_id, product_id, quantity, price, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-          [prodId, saleId, prod.product_id, prod.quantity, prod.price, 0, new Date().toISOString()],
+          [
+            prodId,
+            saleId,
+            prod.product_id,
+            prod.quantity,
+            prod.price,
+            0,
+            new Date().toISOString(),
+          ],
         );
 
+        // Deducir stock de productos
         await DATABASE.db.runAsync(
           "UPDATE products SET stock = stock - ?, sincronizado = 0, updated_at = ? WHERE id = ?",
           [prod.quantity, new Date().toISOString(), prod.product_id],
         );
       }
+
+      // Guardar RECETAS en sale_recipes (separado!)
+      if (recipes && recipes.length > 0) {
+        for (const recipe of recipes) {
+          let recipeId = uuidv4();
+          await DATABASE.db.runAsync(
+            "INSERT INTO sale_recipes (id, sale_id, recipe_id, quantity, price, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            [
+              recipeId,
+              saleId,
+              recipe.recipe_id,
+              recipe.quantity,
+              recipe.price,
+              0,
+              new Date().toISOString(),
+            ],
+          );
+        }
+      }
     });
 
-    SyncService.run().catch(err => console.error("Error sincronizando al crear venta:", err));
+    SyncService.run().catch((err) =>
+      console.error("Error sincronizando al crear venta:", err),
+    );
 
     return {
       id: saleId,
@@ -241,7 +273,11 @@ export const SalesService = {
   getSaleById: async (
     id: string,
   ): Promise<
-    | (SaleType & { products: any[]; client: { id: string; name: string } })
+    | (SaleType & {
+        products: any[];
+        recipes: any[];
+        client: { id: string; name: string } | null;
+      })
     | null
   > => {
     const sale: any = await DATABASE.db.getFirstAsync(
@@ -254,13 +290,24 @@ export const SalesService = {
         WHERE s.id = ?`,
       [id],
     );
+
     if (!sale) return null;
 
+    // Obtener productos vendidos
     const products = await DATABASE.db.getAllAsync(
       `SELECT sp.*, p.name as product_name, p.image_url as product_image 
        FROM sale_products sp
        JOIN products p ON sp.product_id = p.id
        WHERE sp.sale_id = ?`,
+      [id],
+    );
+
+    // Obtener recetas vendidas
+    const recipes = await DATABASE.db.getAllAsync(
+      `SELECT sr.*, r.name as recipe_name, r.image_url as recipe_image
+       FROM sale_recipes sr
+       JOIN recipes r ON sr.recipe_id = r.id
+       WHERE sr.sale_id = ?`,
       [id],
     );
 
@@ -270,6 +317,7 @@ export const SalesService = {
       created_at: new Date(sale.created_at),
       debt_date: sale.debt_date ? new Date(sale.debt_date) : null,
       products,
+      recipes,
       client: sale.client_id
         ? {
             id: sale.client_id,
@@ -283,18 +331,19 @@ export const SalesService = {
     id: string,
     sale: Partial<SaleType> & {
       products?: { product_id: string; quantity: number; price: number }[];
+      recipes?: { recipe_id: string; quantity: number; price: number }[]; // ✅ NUEVO
     },
   ): Promise<void> => {
     await DATABASE.db.withTransactionAsync(async () => {
-      // 1. Si viene la lista de productos, actualizar stock e ítems
+      // ✅ 1. Si vienen productos, actualizar stock
       if (sale.products) {
-        // a. Obtener productos previos de la venta
+        // Obtener productos previos
         const prevProducts: any[] = await DATABASE.db.getAllAsync(
           "SELECT product_id, quantity FROM sale_products WHERE sale_id = ?",
           [id],
         );
 
-        // b. Devolver stock de productos previos
+        // Devolver stock de productos previos
         for (const item of prevProducts) {
           await DATABASE.db.runAsync(
             "UPDATE products SET stock = stock + ?, sincronizado = 0, updated_at = ? WHERE id = ?",
@@ -302,20 +351,29 @@ export const SalesService = {
           );
         }
 
-        // c. Eliminar productos previos de la venta
+        // Eliminar productos previos
         await DATABASE.db.runAsync(
           "DELETE FROM sale_products WHERE sale_id = ?",
           [id],
         );
 
-        // d. Insertar nuevos productos de la venta y descontar del stock
+        // Insertar nuevos productos
         for (const prod of sale.products) {
           let prodId = uuidv4();
           await DATABASE.db.runAsync(
             "INSERT INTO sale_products (id, sale_id, product_id, quantity, price, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            [prodId, id, prod.product_id, prod.quantity, prod.price, 0, new Date().toISOString()],
+            [
+              prodId,
+              id,
+              prod.product_id,
+              prod.quantity,
+              prod.price,
+              0,
+              new Date().toISOString(),
+            ],
           );
 
+          // Deducir nuevo stock
           await DATABASE.db.runAsync(
             "UPDATE products SET stock = stock - ?, sincronizado = 0, updated_at = ? WHERE id = ?",
             [prod.quantity, new Date().toISOString(), prod.product_id],
@@ -323,7 +381,33 @@ export const SalesService = {
         }
       }
 
-      // 2. Actualizar campos de la venta
+      // ✅ 2. Si vienen recetas, actualizar sale_recipes (NUEVO!)
+      if (sale.recipes) {
+        // Eliminar recetas previas
+        await DATABASE.db.runAsync(
+          "DELETE FROM sale_recipes WHERE sale_id = ?",
+          [id],
+        );
+
+        // Insertar nuevas recetas
+        for (const recipe of sale.recipes) {
+          let recipeId = uuidv4();
+          await DATABASE.db.runAsync(
+            "INSERT INTO sale_recipes (id, sale_id, recipe_id, quantity, price, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            [
+              recipeId,
+              id,
+              recipe.recipe_id,
+              recipe.quantity,
+              recipe.price,
+              0,
+              new Date().toISOString(),
+            ],
+          );
+        }
+      }
+
+      // ✅ 3. Actualizar campos de la venta
       const fields: string[] = [];
       const values: any[] = [];
 
@@ -357,7 +441,9 @@ export const SalesService = {
       }
       if (sale.created_at !== undefined) {
         fields.push("created_at = ?");
-        values.push(new Date(sale.created_at || "").toISOString().split("T")[0]);
+        values.push(
+          new Date(sale.created_at || "").toISOString().split("T")[0],
+        );
       }
       if (sale.client_id !== undefined) {
         fields.push("client_id = ?");
@@ -378,32 +464,37 @@ export const SalesService = {
       }
     });
 
-    SyncService.run().catch(err => console.error("Error sincronizando al actualizar venta:", err));
+    SyncService.run().catch((err) =>
+      console.error("Error sincronizando al actualizar venta:", err),
+    );
   },
 
   deleteSale: async (id: string, cancelReason?: string): Promise<void> => {
     await DATABASE.db.withTransactionAsync(async () => {
-      // 1. Obtener productos de la venta para devolverlos al stock
+      // Obtener productos para devolverlos al stock
       const saleProducts: any[] = await DATABASE.db.getAllAsync(
         "SELECT product_id, quantity FROM sale_products WHERE sale_id = ?",
         [id],
       );
-
-      // 2. Devolver stock de cada producto
+ 
+      // Devolver stock de cada producto
       for (const item of saleProducts) {
         await DATABASE.db.runAsync(
           "UPDATE products SET stock = stock + ?, sincronizado = 0, updated_at = ? WHERE id = ?",
           [item.quantity, new Date().toISOString(), item.product_id],
         );
       }
-
-      // 3. Marcar la venta como anulada/cancelada y guardar el motivo
+ 
+      // ✅ Eliminar registros de recetas (no se devuelven ingredientes al eliminar venta completa)
+      await DATABASE.db.runAsync("DELETE FROM sale_recipes WHERE sale_id = ?", [id]);
+ 
+      // Marcar la venta como anulada
       await DATABASE.db.runAsync(
         "UPDATE sales SET status = 'cancelled', cancel_reason = ?, sincronizado = 0, updated_at = ? WHERE id = ?",
         [cancelReason || "", new Date().toISOString(), id],
       );
     });
-
+ 
     SyncService.run().catch(err => console.error("Error sincronizando al borrar/anular venta:", err));
   },
 
@@ -458,7 +549,9 @@ export const SalesService = {
       [new Date().toISOString(), saleId],
     );
 
-    SyncService.run().catch(err => console.error("Error sincronizando al marcar como pagada:", err));
+    SyncService.run().catch((err) =>
+      console.error("Error sincronizando al marcar como pagada:", err),
+    );
   },
 
   createMany: async (sales: SaleType[]) => {

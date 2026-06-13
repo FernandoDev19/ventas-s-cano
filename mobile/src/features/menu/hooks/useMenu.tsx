@@ -6,6 +6,7 @@ import { Alert } from "react-native";
 export const useMenu = () => {
   const [filter, setFilter] = useState("");
   const [categories, setCategories] = useState<Partial<CategoryType>[]>([]);
+   const [showQRModal, setShowQRModal] = useState(false);
 
   const loadCategories = useCallback(async () => {
     try {
@@ -30,5 +31,7 @@ export const useMenu = () => {
     filter,
     categories,
     setFilter,
+    showQRModal,
+    setShowQRModal,
   };
 };

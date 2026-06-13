@@ -23,7 +23,7 @@ import { ClientsService } from "@/src/features/clients/services/clients.service"
 import { ClientType } from "@/src/features/clients/types/client.type";
 import ReasonDialog from "./ReasonDialog";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import * as Clipboard from 'expo-clipboard';
+import * as Clipboard from "expo-clipboard";
 
 type SaleDetailModalProps = {
   visible: boolean;
@@ -38,6 +38,14 @@ type FullSaleType = SaleType & {
     product_id: string;
     product_name: string;
     product_image?: string;
+    quantity: number;
+    price: number;
+  }[];
+  recipes: {
+    id: string;
+    recipe_id: string;
+    recipe_name: string;
+    recipe_image?: string;
     quantity: number;
     price: number;
   }[];
@@ -366,7 +374,9 @@ export default function SaleDetailModal({
                 {isEditing ? "Modificando Venta" : "Detalle de Venta"}
               </Text>
               <TouchableOpacity onPress={() => copyToClipboard(saleId || "")}>
-                <Text style={{ color: "#fff", fontSize: 20, fontWeight: "800" }}>
+                <Text
+                  style={{ color: "#fff", fontSize: 20, fontWeight: "800" }}
+                >
                   {saleId ? `#${String(saleId).slice(0, 8)}...` : ""}
                 </Text>
               </TouchableOpacity>
@@ -1225,6 +1235,86 @@ export default function SaleDetailModal({
                       </View>
                     ))}
                   </View>
+
+                  {/* ✅ RECETAS VENDIDAS */}
+                  {sale.recipes && sale.recipes.length > 0 && (
+                    <>
+                      <Text
+                        style={{
+                          color: "#737373",
+                          fontSize: 11,
+                          textTransform: "uppercase",
+                          letterSpacing: 1,
+                          marginBottom: 8,
+                        }}
+                      >
+                        Recetas Vendidas
+                      </Text>
+
+                      <View style={{ gap: 8, marginBottom: 16 }}>
+                        {sale.recipes.map((item) => (
+                          <View
+                            key={item.id}
+                            style={{
+                              flexDirection: "row",
+                              backgroundColor: "#1a1a1a",
+                              borderRadius: 14,
+                              padding: 10,
+                              borderWidth: 1,
+                              borderColor: "#ff572244",
+                              alignItems: "center",
+                            }}
+                          >
+                            <Image
+                              source={
+                                item.recipe_image
+                                  ? { uri: item.recipe_image }
+                                  : require("@/assets/images/default-food.png")
+                              }
+                              style={{
+                                width: 44,
+                                height: 44,
+                                borderRadius: 8,
+                                marginRight: 10,
+                              }}
+                              resizeMode="cover"
+                            />
+                            <View style={{ flex: 1, marginRight: 8 }}>
+                              <Text
+                                style={{
+                                  color: "#fff",
+                                  fontSize: 14,
+                                  fontWeight: "600",
+                                }}
+                                numberOfLines={1}
+                              >
+                                {item.recipe_name}
+                              </Text>
+                              <Text
+                                style={{
+                                  color: "#737373",
+                                  fontSize: 11,
+                                  marginTop: 2,
+                                }}
+                              >
+                                {item.quantity}x{" "}
+                                {priceFormat(item.price / item.quantity)}
+                              </Text>
+                            </View>
+                            <Text
+                              style={{
+                                color: "#ff5722",
+                                fontSize: 14,
+                                fontWeight: "700",
+                              }}
+                            >
+                              {priceFormat(item.price)}
+                            </Text>
+                          </View>
+                        ))}
+                      </View>
+                    </>
+                  )}
 
                   {/* Nota */}
                   <Text
