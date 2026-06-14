@@ -28,7 +28,7 @@
 
 body {
   font-family: var(--font-inter);
-  background-color: var(--color-cream);
+  background-color: var(--color-background);
   color: var(--color-text-main);
   margin: 0;
 }
