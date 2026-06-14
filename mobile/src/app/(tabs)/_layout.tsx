@@ -11,14 +11,9 @@ const tabs = [
     icon: "book",
   },
   {
-    name: "(recipes)/recipes",
-    title: "Recetas",
-    icon: "restaurant-outline",
-  },
-  {
-    name: "(orders)/orders",
-    title: "Pedidos",
-    icon: "list",
+    name: "(sales)/sales",
+    title: "Ventas",
+    icon: "receipt-outline",
   },
   {
     name: "(inventory)/inventory",

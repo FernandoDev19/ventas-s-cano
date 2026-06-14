@@ -2,6 +2,7 @@ import DATABASE from "@/src/core/config/db";
 import { SaleType } from "../types/sale.type";
 import { v4 as uuidv4 } from "uuid";
 import { SyncService } from "@/src/shared/services/sync.service";
+import { OrderPro } from "../../orders/types/order.type";
 
 export const SalesService = {
   createSale: async (
@@ -91,6 +92,131 @@ export const SalesService = {
       debt_date: sale.debt_date,
       created_at: new Date(createdAtStr),
     };
+  },
+
+  crearVentaDesdeOrdenWeb: async (
+    orden: OrderPro,
+    tipoPago: "efectivo" | "transferencia" | "deuda",
+  ): Promise<boolean> => {
+    try {
+      const hoy = new Date().toISOString();
+      const debtDateStr = tipoPago === "deuda" ? hoy.split("T")[0] : null;
+      const saleId = uuidv4();
+
+      await DATABASE.db.withTransactionAsync(async () => {
+        if (orden.client_id) {
+          const clienteLocal = await DATABASE.db.getFirstAsync<{ id: string }>(
+            "SELECT id FROM clients WHERE id = ?;",
+            [orden.client_id],
+          );
+
+          if (!clienteLocal) {
+            console.log(
+              `🕵️‍♂️ Cliente nuevo de la web. Registrando en SQLite: ${orden.customer_name}`,
+            );
+            await DATABASE.db.runAsync(
+              "INSERT INTO clients (id, name, phone, notes, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+              [
+                orden.client_id,
+                orden.customer_name,
+                orden.customer_phone,
+                orden.delivery_address || "Cliente de la Web",
+                1,
+                hoy,
+              ],
+            );
+          }
+        }
+
+        // =================================================================
+        // 💰 2. CREAR LA VENTA PRINCIPAL
+        // =================================================================
+        await DATABASE.db.runAsync(
+          "INSERT INTO sales (id, total, note, is_debt, debt_amount, debt_date, payment_method, client_id, sincronizado, updated_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          [
+            saleId,
+            orden.total_price,
+            orden.comments || "",
+            tipoPago === "deuda" ? 1 : 0,
+            tipoPago === "deuda" ? orden.total_price : 0,
+            debtDateStr,
+            tipoPago,
+            orden.client_id || null,
+            0,
+            hoy,
+            hoy,
+          ],
+        );
+
+        // =================================================================
+        // 📦 3. DESGLOSAR ÍTEMS EN PRODUCTOS O RECETAS Y ACTUALIZAR STOCK
+        // =================================================================
+        for (const item of orden.order_items) {
+          if (item.product_id) {
+            // Es un producto individual
+            await DATABASE.db.runAsync(
+              "INSERT INTO sale_products (id, sale_id, product_id, quantity, price, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+              [
+                uuidv4(),
+                saleId,
+                item.product_id,
+                item.quantity,
+                item.price_at_time,
+                0,
+                hoy,
+              ],
+            );
+
+            // Deducir stock del producto local
+            await DATABASE.db.runAsync(
+              "UPDATE products SET stock = stock - ?, sincronizado = 0, updated_at = ? WHERE id = ?",
+              [item.quantity, hoy, item.product_id],
+            );
+          } else if (item.recipe_id) {
+            // Es una receta / combo especial
+            await DATABASE.db.runAsync(
+              "INSERT INTO sale_recipes (id, sale_id, recipe_id, quantity, price, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+              [
+                uuidv4(),
+                saleId,
+                item.recipe_id,
+                item.quantity,
+                item.price_at_time,
+                0,
+                hoy,
+              ],
+            );
+
+            const ingredientes = await DATABASE.db.getAllAsync<{ product_id: string; quantity: number }>(
+              "SELECT product_id, quantity FROM recipe_ingredients WHERE recipe_id = ?;",
+              [item.recipe_id]
+            );
+
+            for (const ing of ingredientes) {
+              const cantidadATorcer = ing.quantity * item.quantity;
+
+              await DATABASE.db.runAsync(
+                "UPDATE products SET stock = stock - ?, sincronizado = 0, updated_at = ? WHERE id = ?",
+                [cantidadATorcer, hoy, ing.product_id]
+              );
+            }
+          }
+        }
+      });
+
+      // Disparar la sincronización
+      SyncService.run().catch((err) =>
+        console.error("Error sincronizando al aceptar orden web:", err),
+      );
+
+      console.log(
+        `✅ ¡Orden web integrada limpiamente en SQLite con ID: ${saleId}!`,
+      );
+      return true;
+    } catch (error) {
+      console.error("Error guardando la orden web en SQLite:", error);
+      throw error;
+    }
   },
 
   getSales: async (): Promise<SaleType[]> => {
@@ -476,7 +602,7 @@ export const SalesService = {
         "SELECT product_id, quantity FROM sale_products WHERE sale_id = ?",
         [id],
       );
- 
+
       // Devolver stock de cada producto
       for (const item of saleProducts) {
         await DATABASE.db.runAsync(
@@ -484,18 +610,22 @@ export const SalesService = {
           [item.quantity, new Date().toISOString(), item.product_id],
         );
       }
- 
+
       // ✅ Eliminar registros de recetas (no se devuelven ingredientes al eliminar venta completa)
-      await DATABASE.db.runAsync("DELETE FROM sale_recipes WHERE sale_id = ?", [id]);
- 
+      await DATABASE.db.runAsync("DELETE FROM sale_recipes WHERE sale_id = ?", [
+        id,
+      ]);
+
       // Marcar la venta como anulada
       await DATABASE.db.runAsync(
         "UPDATE sales SET status = 'cancelled', cancel_reason = ?, sincronizado = 0, updated_at = ? WHERE id = ?",
         [cancelReason || "", new Date().toISOString(), id],
       );
     });
- 
-    SyncService.run().catch(err => console.error("Error sincronizando al borrar/anular venta:", err));
+
+    SyncService.run().catch((err) =>
+      console.error("Error sincronizando al borrar/anular venta:", err),
+    );
   },
 
   getTodaySales: async (): Promise<SaleType[]> => {

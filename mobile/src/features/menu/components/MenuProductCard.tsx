@@ -3,7 +3,7 @@ import { priceFormat } from "@/src/shared/helpers/price-format.helper";
 import { useOrder } from "@/src/shared/hooks/useOrder";
 import { Ionicons } from "@expo/vector-icons";
 import { Image, Pressable, Text, View } from "react-native";
-import { ProductType } from "../../products/types/product.type";
+import { ProductType } from "../../inventory/types/product.type";
 
 type Props = {
   product: ProductType;
@@ -13,12 +13,15 @@ const MenuProductCard = ({ product }: Props) => {
   const { addToOrder, order } = useOrder();
 
   const orderItem = order.find(
-    (item) => item.type === "product" && item.product.id === product.id
+    (item) => item.type === "product" && item.product.id === product.id,
   );
   const qty = orderItem?.quantity ?? 0;
 
   return (
-    <Pressable onPress={() => addToOrder(product)} className={`${!product.stock ? "opacity-50 pointer-not-allowed border-2 border-red-500" : ""} bg-neutral-800 rounded-2xl border-[0.3px] border-primary flex-1 overflow-hidden`}>
+    <Pressable
+      onPress={() => addToOrder(product)}
+      className={`${!product.stock ? "opacity-50 pointer-not-allowed border-2 border-red-500" : ""} bg-neutral-800 rounded-2xl border-[0.3px] border-primary flex-1 overflow-hidden`}
+    >
       <Image
         source={
           product.image_url
@@ -31,7 +34,9 @@ const MenuProductCard = ({ product }: Props) => {
 
       {!product.stock && (
         <View className="absolute top-0 flex-1 h-40 w-full items-center justify-center">
-          <Text className="text-xl text-red-500 font-extrabold opacity-100 z-1">Sin Stock</Text>
+          <Text className="text-xl text-red-500 font-extrabold opacity-100 z-1">
+            Sin Stock
+          </Text>
         </View>
       )}
 

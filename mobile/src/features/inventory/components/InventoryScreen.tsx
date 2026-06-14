@@ -11,15 +11,24 @@ import {
   ScrollView,
   Text,
   TextInput,
-  View
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { getStockStatus, STOCK_CRITICAL_THRESHOLD, STOCK_LOW_THRESHOLD } from "../helpers/stock-status.helper";
+import {
+  getStockStatus,
+  STOCK_CRITICAL_THRESHOLD,
+  STOCK_LOW_THRESHOLD,
+} from "../helpers/stock-status.helper";
 import { useInventory } from "../hooks/useInventory";
 import CreateProductModal from "./CreateProductModal";
 import EditProductModal from "./EditProductModal";
 
-// ───────────────────────── Pantalla principal ─────────────────────────
-export default function InventoryScreen() {
+type Props = {
+  activeTab: "productos" | "recetas";
+  onChangeTab: (tab: "productos" | "recetas") => void;
+};
+
+export default function InventoryScreen({ activeTab, onChangeTab }: Props) {
   const {
     isLoading,
     filteredProducts,
@@ -40,20 +49,46 @@ export default function InventoryScreen() {
     editingProduct,
     openEdit,
     closeEdit,
-    loadData
+    loadData,
   } = useInventory();
 
   if (isLoading) {
     return (
-      <View className="flex-1 items-center justify-center" style={{ backgroundColor: "#0f0f0f" }}>
+      <View
+        className="flex-1 items-center justify-center"
+        style={{ backgroundColor: "#0f0f0f" }}
+      >
         <ActivityIndicator size="large" color="#ff5722" />
-        <Text className="text-neutral-500 mt-3 text-sm">Cargando inventario...</Text>
+        <Text className="text-neutral-500 mt-3 text-sm">
+          Cargando inventario...
+        </Text>
       </View>
     );
   }
 
   return (
     <View className="flex-1 bg-background">
+      <View className="flex-row bg-background border-b border-neutral-800">
+        {(["productos", "recetas"] as ("productos" | "recetas")[]).map(
+          (tab) => (
+            <TouchableOpacity
+              key={tab}
+              className={`flex-1 py-4 items-center border-b-2 ${
+                activeTab === tab ? "border-orange-500" : "border-transparent"
+              }`}
+              onPress={() => onChangeTab(tab)}
+            >
+              <Text
+                className={`font-bold text-xs uppercase tracking-wider ${
+                  activeTab === tab ? "text-orange-600" : "text-neutral-400"
+                }`}
+              >
+                {tab}
+              </Text>
+            </TouchableOpacity>
+          ),
+        )}
+      </View>
       <FlatList
         data={filteredProducts}
         keyExtractor={(item) => String(item.id)}
@@ -247,7 +282,12 @@ export default function InventoryScreen() {
                         ? { uri: item.image_url }
                         : require("@/assets/images/default-food.png")
                     }
-                    style={{ width: 50, height: 50, borderRadius: 10, marginRight: 12 }}
+                    style={{
+                      width: 50,
+                      height: 50,
+                      borderRadius: 10,
+                      marginRight: 12,
+                    }}
                     resizeMode="cover"
                   />
                   <View className="flex-1">

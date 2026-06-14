@@ -15,7 +15,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { RecipesService } from "../services/recipes.service";
 import { RecipeType, RecipeIngredientType } from "../types/recipe.type";
-import { ProductType } from "@/src/features/products/types/product.type";
+import { ProductType } from "@/src/features/inventory/types/product.type";
 import { CategoryType } from "@/src/features/categories/types/category.type";
 import { priceFormat } from "@/src/shared/helpers/price-format.helper";
 import { useFiles } from "@/src/shared/hooks/useFiles";
@@ -44,16 +44,16 @@ export default function CreateRecipeModal({
   const [name, setName] = useState(editRecipe?.name ?? "");
   const [description, setDescription] = useState(editRecipe?.description ?? "");
   const [price, setPrice] = useState(
-    editRecipe?.selling_price ? String(editRecipe.selling_price) : ""
+    editRecipe?.selling_price ? String(editRecipe.selling_price) : "",
   );
   const [imageUri, setImageUri] = useState<string | null>(
-    editRecipe?.image_url ?? null
+    editRecipe?.image_url ?? null,
   );
   const [ingredients, setIngredients] = useState<RecipeIngredientType[]>(
-    editRecipe?.ingredients ?? []
+    editRecipe?.ingredients ?? [],
   );
   const [categoryId, setCategoryId] = useState<string | null>(
-    editRecipe?.category_id ?? null
+    editRecipe?.category_id ?? null,
   );
   const [showIngredientPicker, setShowIngredientPicker] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -67,7 +67,7 @@ export default function CreateRecipeModal({
       setName(editRecipe?.name ?? "");
       setDescription(editRecipe?.description ?? "");
       setPrice(
-        editRecipe?.selling_price ? String(editRecipe.selling_price) : ""
+        editRecipe?.selling_price ? String(editRecipe.selling_price) : "",
       );
       setImageUri(editRecipe?.image_url ?? null);
       setIngredients(editRecipe?.ingredients ?? []);
@@ -104,7 +104,7 @@ export default function CreateRecipeModal({
       const existing = prev.find((i) => i.product_id === product.id);
       if (existing) {
         return prev.map((i) =>
-          i.product_id === product.id ? { ...i, quantity: i.quantity + 1 } : i
+          i.product_id === product.id ? { ...i, quantity: i.quantity + 1 } : i,
         );
       }
       return [
@@ -124,9 +124,11 @@ export default function CreateRecipeModal({
     setIngredients((prev) =>
       prev
         .map((i) =>
-          i.product_id === productId ? { ...i, quantity: i.quantity + delta } : i
+          i.product_id === productId
+            ? { ...i, quantity: i.quantity + delta }
+            : i,
         )
-        .filter((i) => i.quantity > 0)
+        .filter((i) => i.quantity > 0),
     );
   };
 
@@ -159,10 +161,9 @@ export default function CreateRecipeModal({
 
         // Eliminar imagen anterior si estamos editando
         if (isEditing && editRecipe?.image_url) {
-          const oldFileName =
-            SupabaseStorageService.extractFileNameFromUrl(
-              editRecipe.image_url
-            );
+          const oldFileName = SupabaseStorageService.extractFileNameFromUrl(
+            editRecipe.image_url,
+          );
           if (oldFileName) {
             await SupabaseStorageService.deleteProductImage(oldFileName);
           }
@@ -172,13 +173,13 @@ export default function CreateRecipeModal({
         const fileName = `recipe_${uuidv4()}.jpg`;
         const uploadedUrl = await SupabaseStorageService.uploadProductImage(
           imageUri,
-          fileName
+          fileName,
         );
 
         if (!uploadedUrl) {
           Alert.alert(
             "Aviso",
-            "La receta se guardó pero la imagen no se pudo subir. Intenta nuevamente desde edición."
+            "La receta se guardó pero la imagen no se pudo subir. Intenta nuevamente desde edición.",
           );
           finalImageUrl = "";
         } else {
@@ -325,14 +326,19 @@ export default function CreateRecipeModal({
                   )}
                 </Pressable>
                 {imageUri && !isUploadingImage && (
-                  <Pressable onPress={() => setImageUri(null)} style={{ marginTop: 6 }}>
+                  <Pressable
+                    onPress={() => setImageUri(null)}
+                    style={{ marginTop: 6 }}
+                  >
                     <Text style={{ color: "#555", fontSize: 11 }}>
                       Quitar imagen
                     </Text>
                   </Pressable>
                 )}
                 {isUploadingImage && (
-                  <Text style={{ color: "#ff5722", fontSize: 11, marginTop: 6 }}>
+                  <Text
+                    style={{ color: "#ff5722", fontSize: 11, marginTop: 6 }}
+                  >
                     Subiendo imagen...
                   </Text>
                 )}
@@ -376,7 +382,14 @@ export default function CreateRecipeModal({
                   },
                 ]}
               >
-                <Text style={{ color: "#ff5722", fontSize: 18, fontWeight: "900", marginRight: 6 }}>
+                <Text
+                  style={{
+                    color: "#ff5722",
+                    fontSize: 18,
+                    fontWeight: "900",
+                    marginRight: 6,
+                  }}
+                >
                   $
                 </Text>
                 <TextInput
@@ -422,8 +435,7 @@ export default function CreateRecipeModal({
                     >
                       <Text
                         style={{
-                          color:
-                            categoryId === cat.id ? "#fff" : "#a3a3a3",
+                          color: categoryId === cat.id ? "#fff" : "#a3a3a3",
                           fontWeight: "600",
                           fontSize: 13,
                         }}
@@ -458,7 +470,13 @@ export default function CreateRecipeModal({
                   }}
                 >
                   <Ionicons name="add" size={14} color="#ff5722" />
-                  <Text style={{ color: "#ff5722", fontSize: 12, fontWeight: "700" }}>
+                  <Text
+                    style={{
+                      color: "#ff5722",
+                      fontSize: 12,
+                      fontWeight: "700",
+                    }}
+                  >
                     Agregar
                   </Text>
                 </Pressable>
@@ -478,9 +496,7 @@ export default function CreateRecipeModal({
                   }}
                 >
                   <Ionicons name="basket-outline" size={28} color="#444" />
-                  <Text
-                    style={{ color: "#555", fontSize: 12, marginTop: 8 }}
-                  >
+                  <Text style={{ color: "#555", fontSize: 12, marginTop: 8 }}>
                     Sin ingredientes. Agrega productos del inventario.
                   </Text>
                 </View>
@@ -537,9 +553,7 @@ export default function CreateRecipeModal({
                         }}
                       >
                         <Pressable
-                          onPress={() =>
-                            handleChangeQty(ing.product_id, -1)
-                          }
+                          onPress={() => handleChangeQty(ing.product_id, -1)}
                           style={{ padding: 2 }}
                         >
                           <Ionicons
@@ -573,7 +587,7 @@ export default function CreateRecipeModal({
                       <Pressable
                         onPress={() =>
                           setIngredients((p) =>
-                            p.filter((i) => i.product_id !== ing.product_id)
+                            p.filter((i) => i.product_id !== ing.product_id),
                           )
                         }
                         style={{ padding: 4 }}
@@ -605,7 +619,9 @@ export default function CreateRecipeModal({
                 {isSaving || isUploadingImage ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
-                  <Text style={{ color: "#fff", fontSize: 17, fontWeight: "800" }}>
+                  <Text
+                    style={{ color: "#fff", fontSize: 17, fontWeight: "800" }}
+                  >
                     {isEditing ? "Guardar Cambios" : "Crear Receta"}
                   </Text>
                 )}
@@ -613,7 +629,11 @@ export default function CreateRecipeModal({
             </ScrollView>
 
             {/* Ingredient picker modal */}
-            <Modal visible={showIngredientPicker} transparent animationType="slide">
+            <Modal
+              visible={showIngredientPicker}
+              transparent
+              animationType="slide"
+            >
               <View
                 style={{
                   flex: 1,
@@ -673,7 +693,7 @@ export default function CreateRecipeModal({
                             padding: 12,
                             borderWidth: 1,
                             borderColor: ingredients.some(
-                              (i) => i.product_id === prod.id
+                              (i) => i.product_id === prod.id,
                             )
                               ? "#ff5722"
                               : "#2a2a2a",
@@ -714,7 +734,7 @@ export default function CreateRecipeModal({
                             </Text>
                           </View>
                           {ingredients.some(
-                            (i) => i.product_id === prod.id
+                            (i) => i.product_id === prod.id,
                           ) && (
                             <Ionicons
                               name="checkmark-circle"

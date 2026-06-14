@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react"; // 1. Importamos useRef
+import { useEffect, useState, useRef, useCallback } from "react"; // 1. Importamos useRef
 import { MenuService, type MenuExtendedItem } from "./services/menu.service";
 import Cart from "./components/cart/Cart";
 import CardContainer from "./components/card-container/CardContainer";
@@ -59,22 +59,23 @@ export default function App() {
     });
   }, []);
 
+  const fetchMenu = useCallback(() => {
+    return selectedCategory === "all"
+      ? MenuService.getMenu()
+      : MenuService.getMenuByCategory(selectedCategory);
+  }, [selectedCategory]);
+
   useEffect(() => {
     if (!selectedCategory) return;
     setLoading(true);
 
-    const fetchMenu =
-      selectedCategory === "all"
-        ? MenuService.getMenu()
-        : MenuService.getMenuByCategory(selectedCategory);
-
-    fetchMenu
+    fetchMenu()
       .then((items) => {
         setMenuItems(items);
       })
       .catch((err) => console.error(err))
       .finally(() => setLoading(false));
-  }, [selectedCategory]);
+  }, [selectedCategory, fetchMenu]);
 
   // 4. Efecto para abrir/cerrar el dialog usando los métodos nativos del navegador
   useEffect(() => {
@@ -265,7 +266,7 @@ export default function App() {
         </dialog>
       )}
 
-      {isConfirmationOpen && <CartConfirmation />}
+      {isConfirmationOpen && <CartConfirmation onNewOrder={fetchMenu} />}
       {isCheckoutOpen && <CheckoutModal />}
     </main>
   );

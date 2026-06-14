@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useCartStore } from "../../store/cart.store";
+import type { OrderCheckoutType } from "../../types/order.type";
+import { CheckoutService } from "../../services/checkout.service";
 
 export default function CheckoutModal() {
   // Traemos los estados del store (debes agregar isOpenCheckout y closeCheckout a tu Zustand)
@@ -14,22 +16,36 @@ export default function CheckoutModal() {
 
   if (!isCheckoutOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const orderItems = items.map((item) => ({
+      id: String(item.id),
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity,
+      is_recipe: item.type === "recipe" ? true : false,
+    }));
     
-    // Aquí estructuras el mensaje final que va para el WhatsApp o tu API
-    const orderData = {
-      tipoEntrega: deliveryType === "domicilio" ? "🛵 Domicilio" : "🏪 Recoger en local",
+    const orderData: OrderCheckoutType = {
+      tipoEntrega: deliveryType,
       nombre,
       celular,
       direccion: deliveryType === "domicilio" ? direccion : "N/A",
       comentarios,
-      productos: items
+      items: orderItems
     };
 
-    console.log("Pedido listo para procesar:", orderData);
-    closeCheckout();
-    openConfirmation();
+    try {
+      await CheckoutService.createOrder(orderData);
+      
+      closeCheckout();
+      openConfirmation();
+    } catch (error) {
+      console.error("Error al crear el pedido:", error);
+      alert("Error al crear el pedido. Por favor, intenta de nuevo.");
+    }
+
   };
 
   return (

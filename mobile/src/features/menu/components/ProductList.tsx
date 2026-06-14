@@ -1,6 +1,12 @@
-import { ActivityIndicator, FlatList, RefreshControl, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  RefreshControl,
+  Text,
+  View,
+} from "react-native";
 import { CategoryType } from "../../categories/types/category.type";
-import { ProductType } from "../../products/types/product.type";
+import { ProductType } from "../../inventory/types/product.type";
 import { RecipeType } from "../../recipes/types/recipe.type";
 import MenuHeader from "./MenuHeader";
 import MenuProductCard from "./MenuProductCard";
@@ -35,7 +41,14 @@ const ProductList = ({
 }: Props) => {
   if (isLoading)
     return (
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#0f0f0f" }}>
+      <View
+        style={{
+          flex: 1,
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "#0f0f0f",
+        }}
+      >
         <ActivityIndicator size="large" color="#ff5722" />
       </View>
     );
@@ -50,7 +63,10 @@ const ProductList = ({
       refreshControl={
         <RefreshControl
           refreshing={isRefreshing}
-          onRefresh={() => { setIsRefreshing(true); loadData(true); }}
+          onRefresh={() => {
+            setIsRefreshing(true);
+            loadData(true);
+          }}
           tintColor="#ff5722"
         />
       }
@@ -67,12 +83,31 @@ const ProductList = ({
           {/* Recipes section — only show if there are recipes */}
           {allRecipes.length > 0 && (
             <View style={{ marginBottom: 20 }}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 }}>
-                <Text style={{ color: "#737373", fontSize: 11, textTransform: "uppercase", letterSpacing: 1.5, fontWeight: "700" }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 10,
+                  marginBottom: 12,
+                }}
+              >
+                <Text
+                  style={{
+                    color: "#737373",
+                    fontSize: 11,
+                    textTransform: "uppercase",
+                    letterSpacing: 1.5,
+                    fontWeight: "700",
+                  }}
+                >
                   🍽 Platos / Combos
                 </Text>
-                <View style={{ flex: 1, height: 1, backgroundColor: "#2a2a2a" }} />
-                <Text style={{ color: "#ff5722", fontSize: 11, fontWeight: "700" }}>
+                <View
+                  style={{ flex: 1, height: 1, backgroundColor: "#2a2a2a" }}
+                />
+                <Text
+                  style={{ color: "#ff5722", fontSize: 11, fontWeight: "700" }}
+                >
                   {availableRecipes.length}/{allRecipes.length} disponibles
                 </Text>
               </View>
@@ -87,8 +122,23 @@ const ProductList = ({
           )}
 
           {/* Products section label */}
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 12 }}>
-            <Text style={{ color: "#737373", fontSize: 11, textTransform: "uppercase", letterSpacing: 1.5, fontWeight: "700" }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 10,
+              marginBottom: 12,
+            }}
+          >
+            <Text
+              style={{
+                color: "#737373",
+                fontSize: 11,
+                textTransform: "uppercase",
+                letterSpacing: 1.5,
+                fontWeight: "700",
+              }}
+            >
               Productos
             </Text>
             <View style={{ flex: 1, height: 1, backgroundColor: "#2a2a2a" }} />

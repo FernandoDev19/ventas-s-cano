@@ -3,14 +3,81 @@ import { Alert } from "react-native";
 import { SyncService } from "../services/sync.service";
 import { seeders } from "@/src/core/config/seeders";
 import DATABASE from "@/src/core/config/db";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import NetInfo from "@react-native-community/netinfo";
+import { supabase } from "@/src/core/config/supabase";
+import { Audio } from "expo-av";
+import { useRouter } from "expo-router";
 
 export const useApp = () => {
   const [isInitialized, setIsInitialized] = useState(false);
+  const router = useRouter();
+
+  async function reproducirSonidAlerta() {
+    try {
+      const { sound } = await Audio.Sound.createAsync(
+        require("@/assets/sounds/alerta-notificacion.mp3"),
+      );
+
+      await sound.playAsync();
+
+      sound.setOnPlaybackStatusUpdate((status) => {
+        if (status.isLoaded && status.didJustFinish) {
+          sound.unloadAsync();
+        }
+      });
+    } catch (error) {
+      console.error("Error al reproducir el sonido de alerta:", error);
+    }
+  }
+
+  const ordersRealtime = useCallback(() => {
+    console.log("🔌 Conectando canal Realtime para pedidos nuevos...");
+
+    const channel = supabase
+      .channel("pedidos-en-vivo")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "orders",
+        },
+        async (payload) => {
+          console.log("📢 PEDIDO NUEVO RECIBIDO EN TIEMPO REAL");
+
+          await reproducirSonidAlerta();
+
+          Alert.alert(
+            "¡PEDIDO NUEVO!",
+            `El cliente ${payload.new.customer_name} solicitó un ${payload.new.delivery_type}. Total: $${Number(payload.new.total_price).toLocaleString("es-CO")}`,
+            [
+              {
+                text: "Ver pedido",
+                onPress: () =>
+                  router.push(
+                    {
+                      pathname: "/(tabs)/(sales)/sales",
+                      params: { tab: "Ordenes" }
+                    }
+                  ),
+              },
+            ],
+          );
+        },
+      )
+      .subscribe();
+
+    // Retorna la función que remueve el canal
+    return () => {
+      console.log("🔌 Desconectando canal Realtime de pedidos...");
+      supabase.removeChannel(channel);
+    };
+  }, [router]);
 
   useEffect(() => {
     let unsubscribeNetInfo: (() => void) | undefined;
+    let unsubscribeRealtime: (() => void) | undefined; // 2. Guardamos la limpieza de realtime
 
     async function inicializarTodo() {
       try {
@@ -26,7 +93,9 @@ export const useApp = () => {
         // 4. Configurar el escuchador de red de forma correcta en el nivel superior
         unsubscribeNetInfo = NetInfo.addEventListener((state) => {
           if (state.isConnected) {
-            console.log("LOG [RED]: ¡Internet detectado! Ejecutando SyncService...");
+            console.log(
+              "LOG [RED]: ¡Internet detectado! Ejecutando SyncService...",
+            );
             SyncService.run();
           }
         });
@@ -51,6 +120,8 @@ export const useApp = () => {
           );
         }
 
+        // 6. CORRECCIÓN AQUÍ: Capturamos la función de limpieza que retorna ordersRealtime
+        unsubscribeRealtime = ordersRealtime();
       } catch (error) {
         console.error("Error crítico al arrancar la aplicación:", error);
       } finally {
@@ -60,13 +131,16 @@ export const useApp = () => {
 
     inicializarTodo();
 
-    // Función de limpieza real de React para remover el escuchador de NetInfo
+    // Función de limpieza de React completa
     return () => {
       if (unsubscribeNetInfo) {
         unsubscribeNetInfo();
       }
+      if (unsubscribeRealtime) {
+        unsubscribeRealtime();
+      }
     };
-  }, []); // Quitamos 'isInitialized' de las dependencias para evitar ejecuciones infinitas
+  }, [ordersRealtime]);
 
   return { isInitialized };
 };

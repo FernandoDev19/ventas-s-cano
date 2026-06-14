@@ -1,7 +1,7 @@
 import { CategoriesService } from "@/src/features/categories/services/categories.service";
 import { CategoryType } from "@/src/features/categories/types/category.type";
-import { ProductsService } from "@/src/features/products/services/products.service";
-import { ProductType } from "@/src/features/products/types/product.type";
+import { ProductsService } from "@/src/features/inventory/services/products.service";
+import { ProductType } from "@/src/features/inventory/types/product.type";
 import DATABASE from "@/src/core/config/db";
 import { v4 as uuidv4 } from "uuid";
 
@@ -110,11 +110,27 @@ export const seeders = {
           );
           await DATABASE.db.runAsync(
             "INSERT INTO sale_products (id, sale_id, product_id, quantity, price, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            [uuidv4(), sale_1_id, polloEnteroId, 2, 10000, 1, new Date().toISOString()], // 2x Pollo Entero
+            [
+              uuidv4(),
+              sale_1_id,
+              polloEnteroId,
+              2,
+              10000,
+              1,
+              new Date().toISOString(),
+            ], // 2x Pollo Entero
           );
           await DATABASE.db.runAsync(
             "INSERT INTO sale_products (id, sale_id, product_id, quantity, price, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            [uuidv4(), sale_1_id, polloMedioId, 1, 15000, 1, new Date().toISOString()], // 1x Pollo 1/2
+            [
+              uuidv4(),
+              sale_1_id,
+              polloMedioId,
+              1,
+              15000,
+              1,
+              new Date().toISOString(),
+            ], // 1x Pollo 1/2
           );
 
           // Sale 2: completed sale
@@ -135,7 +151,15 @@ export const seeders = {
           );
           await DATABASE.db.runAsync(
             "INSERT INTO sale_products (id, sale_id, product_id, quantity, price, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            [uuidv4(), sale_2_id, polloCuartoId, 2, 8000, 1, new Date().toISOString()], // 2x Pollo 1/4
+            [
+              uuidv4(),
+              sale_2_id,
+              polloCuartoId,
+              2,
+              8000,
+              1,
+              new Date().toISOString(),
+            ], // 2x Pollo 1/4
           );
 
           // Sale 3: debt sale (unpaid)
@@ -156,7 +180,15 @@ export const seeders = {
           );
           await DATABASE.db.runAsync(
             "INSERT INTO sale_products (id, sale_id, product_id, quantity, price, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            [uuidv4(), sale_3_id, polloEnteroId, 2, 10000, 1, new Date().toISOString()], // 2x Pollo Entero
+            [
+              uuidv4(),
+              sale_3_id,
+              polloEnteroId,
+              2,
+              10000,
+              1,
+              new Date().toISOString(),
+            ], // 2x Pollo Entero
           );
 
           // Sale 4: partially paid debt
@@ -177,11 +209,27 @@ export const seeders = {
           );
           await DATABASE.db.runAsync(
             "INSERT INTO sale_products (id, sale_id, product_id, quantity, price, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            [uuidv4(), sale_4_id, polloMedioId, 1, 15000, 1, new Date().toISOString()], // 1x Pollo 1/2
+            [
+              uuidv4(),
+              sale_4_id,
+              polloMedioId,
+              1,
+              15000,
+              1,
+              new Date().toISOString(),
+            ], // 1x Pollo 1/2
           );
           await DATABASE.db.runAsync(
             "INSERT INTO sale_products (id, sale_id, product_id, quantity, price, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            [uuidv4(), sale_4_id, polloCuartoId, 2, 8000, 1, new Date().toISOString()], // 2x Pollo 1/4
+            [
+              uuidv4(),
+              sale_4_id,
+              polloCuartoId,
+              2,
+              8000,
+              1,
+              new Date().toISOString(),
+            ], // 2x Pollo 1/4
           );
         });
 
@@ -268,7 +316,14 @@ export const seeders = {
           // ingredients: 1x Pollo Entero (id=1), let's assume we don't have gaseosas in products seeded yet so we just put Pollo Entero for demo
           await DATABASE.db.runAsync(
             "INSERT INTO recipe_ingredients (id, recipe_id, product_id, quantity, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
-            [uuidv4(), recipe_1_id, polloEnteroId, 1, 1, new Date().toISOString()],
+            [
+              uuidv4(),
+              recipe_1_id,
+              polloEnteroId,
+              1,
+              1,
+              new Date().toISOString(),
+            ],
           );
 
           // Recipe 2: Picada Sencilla

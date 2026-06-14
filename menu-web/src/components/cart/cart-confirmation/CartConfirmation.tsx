@@ -3,13 +3,18 @@ import CartTotal from "../CartTotal";
 import CartConfirmationItem from "./CartConfirmationItem";
 import { useCartStore } from "../../../store/cart.store";
 
-export default function CartConfirmation() {
+type Props = {
+  onNewOrder: () => void;
+}
+
+export default function CartConfirmation({ onNewOrder }: Props) {
   const { isConfirmationOpen, closeConfirmation, resetCart } = useCartStore();
   const items = useCartStore((state) => state.items);
 
   const handleClose = () => {
     closeConfirmation();
     resetCart();
+    onNewOrder();
   };
 
   return (

@@ -1,5 +1,5 @@
-import InventoryScreen from "@/src/features/products/components/InventoryScreen";
+import InventoryRecipesScreen from "@/src/features/inventory/components/InventoryRecipesScreen";
 
 export default function InventoryTab() {
-    return <InventoryScreen />;
+  return <InventoryRecipesScreen />;
 }

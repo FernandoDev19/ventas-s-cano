@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { PaymentMethodsType } from "@/src/shared/types/payment-methods.type";
 import { ClientType } from "../../clients/types/client.type";
 import { useOrder } from "@/src/shared/hooks/useOrder";
-import { ProductsService } from "../../products/services/products.service";
+import { ProductsService } from "../../inventory/services/products.service";
 
 export const useCartModal = (onSaleCreated: () => void) => {
   const { order, addToOrder, addRecipeToOrder, removeFromOrder, clearOrder } =
@@ -57,89 +57,93 @@ export const useCartModal = (onSaleCreated: () => void) => {
     client_id: isDebt ? selectedClientId : null,
   });
 
-const handleCheckout = async (sale: SaleType, order: OrderItem[]) => {
-  try {
-    const productItems = order.filter((i) => i.type === "product");
-    const recipeItems = order.filter((i) => i.type === "recipe");
+  const handleCheckout = async (sale: SaleType, order: OrderItem[]) => {
+    try {
+      const productItems = order.filter((i) => i.type === "product");
+      const recipeItems = order.filter((i) => i.type === "recipe");
 
-    // PRODUCTOS: Guardar en sale_products normalmente
-    const productsToSave = productItems.map((o) => {
-      if (o.type !== "product") return null as any;
-      return {
-        product_id: o.product.id,
-        quantity: o.quantity,
-        price: o.product.price * o.quantity,
-      };
-    }).filter(Boolean);
+      // PRODUCTOS: Guardar en sale_products normalmente
+      const productsToSave = productItems
+        .map((o) => {
+          if (o.type !== "product") return null as any;
+          return {
+            product_id: o.product.id,
+            quantity: o.quantity,
+            price: o.product.price * o.quantity,
+          };
+        })
+        .filter(Boolean);
 
-    // RECETAS: Se guardarán en sale_recipes (no en sale_products)
-    const recipesToSave = recipeItems.map((o) => {
-      if (o.type !== "recipe") return null as any;
-      return {
-        recipe_id: o.recipe.id,
-        quantity: o.quantity,
-        price: o.recipe.selling_price * o.quantity,
-      };
-    }).filter(Boolean);
+      // RECETAS: Se guardarán en sale_recipes (no en sale_products)
+      const recipesToSave = recipeItems
+        .map((o) => {
+          if (o.type !== "recipe") return null as any;
+          return {
+            recipe_id: o.recipe.id,
+            quantity: o.quantity,
+            price: o.recipe.selling_price * o.quantity,
+          };
+        })
+        .filter(Boolean);
 
-    // Crear la venta y pasar ambas listas
-    await SalesService.createSale(sale, productsToSave, recipesToSave);
+      // Crear la venta y pasar ambas listas
+      await SalesService.createSale(sale, productsToSave, recipesToSave);
 
-    // Deducir stock de ingredientes de las recetas
-    for (const item of recipeItems) {
-      if (item.type !== "recipe") continue;
-      await RecipesService.deductStock(item.recipe.id!, item.quantity);
-    }
-
-    onSaleCreated();
-
-    // Verificar stock bajo de productos
-    const lowStockAlerts: string[] = [];
-    for (const item of productItems) {
-      if (item.type !== "product") continue;
-      const prod = await ProductsService.getProductById(item.product.id);
-      if (prod && prod.stock <= 10) {
-        lowStockAlerts.push(`${prod.name} (Quedan: ${prod.stock})`);
+      // Deducir stock de ingredientes de las recetas
+      for (const item of recipeItems) {
+        if (item.type !== "recipe") continue;
+        await RecipesService.deductStock(item.recipe.id!, item.quantity);
       }
-    }
-    
-    // Verificar stock bajo de ingredientes de recetas
-    for (const item of recipeItems) {
-      if (item.type !== "recipe") continue;
-      const low = await RecipesService.checkLowStock(item.recipe.id!);
-      for (const l of low) {
-        lowStockAlerts.push(`${l.name} (Quedan: ${l.stock})`);
+
+      onSaleCreated();
+
+      // Verificar stock bajo de productos
+      const lowStockAlerts: string[] = [];
+      for (const item of productItems) {
+        if (item.type !== "product") continue;
+        const prod = await ProductsService.getProductById(item.product.id);
+        if (prod && prod.stock <= 10) {
+          lowStockAlerts.push(`${prod.name} (Quedan: ${prod.stock})`);
+        }
       }
-    }
 
-    clearOrder();
-    setIsDebt(false);
-    setAmountDebt(0);
-    setNote("");
-    setModalVisible(false);
-    setSelectedClientId(null);
-    setDebtDate(() => {
-      const d = new Date();
-      d.setDate(d.getDate() + 7);
-      return d;
-    });
+      // Verificar stock bajo de ingredientes de recetas
+      for (const item of recipeItems) {
+        if (item.type !== "recipe") continue;
+        const low = await RecipesService.checkLowStock(item.recipe.id!);
+        for (const l of low) {
+          lowStockAlerts.push(`${l.name} (Quedan: ${l.stock})`);
+        }
+      }
 
-    if (lowStockAlerts.length > 0) {
+      clearOrder();
+      setIsDebt(false);
+      setAmountDebt(0);
+      setNote("");
+      setModalVisible(false);
+      setSelectedClientId(null);
+      setDebtDate(() => {
+        const d = new Date();
+        d.setDate(d.getDate() + 7);
+        return d;
+      });
+
+      if (lowStockAlerts.length > 0) {
+        Alert.alert(
+          "¡Pedido creado correctamente!",
+          `⚠️ ¡Alerta de Stock Bajo!\nLos siguientes productos tienen stock bajo:\n\n${lowStockAlerts.map((a) => `• ${a}`).join("\n")}`,
+        );
+      } else {
+        Alert.alert("¡Pedido creado correctamente!");
+      }
+    } catch (error: any) {
+      console.error(error);
       Alert.alert(
-        "¡Pedido creado correctamente!",
-        `⚠️ ¡Alerta de Stock Bajo!\nLos siguientes productos tienen stock bajo:\n\n${lowStockAlerts.map(a => `• ${a}`).join("\n")}`
+        "Error",
+        `El pedido no ha podido ser creado, detalles: \n${error?.message}`,
       );
-    } else {
-      Alert.alert("¡Pedido creado correctamente!");
     }
-  } catch (error: any) {
-    console.error(error);
-    Alert.alert(
-      "Error",
-      `El pedido no ha podido ser creado, detalles: \n${error?.message}`,
-    );
-  }
-};
+  };
   const getItemLabel = (item: OrderItem) => {
     if (item.type === "product") return item.product.name;
     return `🍽 ${item.recipe.name}`;

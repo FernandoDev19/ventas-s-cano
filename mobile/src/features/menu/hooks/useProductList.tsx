@@ -1,8 +1,8 @@
 import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { Alert } from "react-native";
-import { ProductsService } from "../../products/services/products.service";
-import { ProductType } from "../../products/types/product.type";
+import { ProductsService } from "../../inventory/services/products.service";
+import { ProductType } from "../../inventory/types/product.type";
 import { RecipesService } from "../../recipes/services/recipes.service";
 import { RecipeType } from "../../recipes/types/recipe.type";
 
@@ -16,9 +16,11 @@ export const useProductList = (filter: string) => {
   const filteredProducts = products.filter((p) =>
     p.name.toLowerCase().includes(search.toLowerCase()),
   );
-  
-  const filteredRecipes = recipes.filter((r) =>
-    r.name.toLowerCase().includes(search.toLowerCase()) && (filter === "" || r.category_id === filter)
+
+  const filteredRecipes = recipes.filter(
+    (r) =>
+      r.name.toLowerCase().includes(search.toLowerCase()) &&
+      (filter === "" || r.category_id === filter),
   );
 
   const loadProducts = useCallback(
@@ -27,7 +29,7 @@ export const useProductList = (filter: string) => {
       try {
         const [loadedProducts, loadedRecipes] = await Promise.all([
           ProductsService.getAll({ category_id: filter.toString() }),
-          RecipesService.getAll()
+          RecipesService.getAll(),
         ]);
         setProducts(loadedProducts);
         setRecipes(loadedRecipes);
@@ -56,7 +58,6 @@ export const useProductList = (filter: string) => {
     setSearch,
     isLoading,
     isRefreshing,
-    setIsRefreshing
+    setIsRefreshing,
   };
 };
-
