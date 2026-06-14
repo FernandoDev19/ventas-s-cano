@@ -47,12 +47,12 @@ export default function ProductCard({ item }: Props) {
 
   return (
     <article 
-      className={`bg-white rounded-xl overflow-hidden border border-gold/15 flex flex-col transition-all duration-200 shadow-sm relative group ${
+      className={`bg-[#181818] rounded-xl overflow-hidden border border-gold/15 flex flex-col transition-all duration-200 shadow-sm relative group ${
         isAvailable ? "hover:-translate-y-1 hover:shadow-[0_12px_32px_rgba(139,26,26,0.1),0_2px_8px_rgba(0,0,0,0.06)]" : "opacity-65 grayscale-80 pointer-events-none"
       }`}
     >
       {/* WRAPPER DE IMAGEN */}
-      <div className="relative overflow-hidden h-40 bg-[#F0E8D8]">
+      <div className="relative overflow-hidden h-40 bg-[#181818]">
         {item.image_url ? (
           <img
             src={item.image_url}
@@ -62,7 +62,12 @@ export default function ProductCard({ item }: Props) {
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#F0E8D8] to-[#E8D8C0] text-3xl">
-            🍽️
+            <img
+              src="/favicon.png"
+              alt="Default Image"
+              loading="lazy"
+              className="w-full h-full object-cover block transition-transform duration-300 group-hover:scale-104"
+            />
           </div>
         )}
 
@@ -85,7 +90,7 @@ export default function ProductCard({ item }: Props) {
 
       {/* CUERPO DE LA TARJETA */}
       <div className="p-4 flex-1 flex flex-col gap-1.5">
-        <h3 className="font-playfair font-bold text-charcoal text-base leading-snug">
+        <h3 className="font-playfair font-bold text-white text-base leading-snug">
           {item.name}
         </h3>
         
@@ -99,7 +104,7 @@ export default function ProductCard({ item }: Props) {
         <div className="flex items-center justify-between mt-3 pt-3 border-t border-gold/15">
           <div>
             <span className="text-[10px] text-muted block tracking-wider uppercase">Precio</span>
-            <span className="font-playfair font-bold text-crimson text-lg">
+            <span className="font-playfair font-bold text-[#D4AF37] text-lg">
               ${finalPrice.toLocaleString("es-CO")}
             </span>
           </div>
@@ -115,10 +120,10 @@ export default function ProductCard({ item }: Props) {
                   <span>+</span> Añadir
                 </button>
               ) : (
-                <div className="bg-crimson text-white rounded-full flex items-center shadow-sm overflow-hidden border border-crimson-dark">
+                <div className="bg-[#181818] text-white rounded-full flex items-center shadow-sm overflow-hidden border border-gold">
                   <button
                     onClick={handleDecrement}
-                    className="px-2.5 py-1 hover:bg-crimson-dark transition-colors font-bold cursor-pointer"
+                    className="px-2.5 py-1 hover:bg-[#D4AF37]/50 transition-colors font-bold cursor-pointer"
                   >
                     -
                   </button>
@@ -128,7 +133,7 @@ export default function ProductCard({ item }: Props) {
                   <button
                     onClick={handleIncrement}
                     disabled={quantity >= item.stock}
-                    className="px-2.5 py-1 hover:bg-crimson-dark transition-colors font-bold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="px-2.5 py-1 hover:bg-gold/50 transition-colors font-bold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     +
                   </button>

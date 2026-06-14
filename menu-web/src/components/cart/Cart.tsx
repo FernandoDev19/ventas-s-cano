@@ -2,20 +2,64 @@ import CartButton from "./CartButton";
 import CartItem from "./CartItem";
 import CartTotal from "./CartTotal";
 import { useCartStore } from "../../store/cart.store";
+import { useEffect, useRef } from "react";
 
 export default function Cart() {
-  const { closeCart, openCheckout } = useCartStore();
+  const { closeCart, openCheckout, isCartOpen } = useCartStore();
   const items = useCartStore((state) => state.items);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
+ useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    if (isCartOpen) {
+      dialog.showModal(); 
+      document.body.style.overflow = "hidden";
+    } else {
+      dialog.close();
+      document.body.style.overflow = "";
+    }
+
+    const handleNativeClose = () => {
+      document.body.style.overflow = "";
+      if (isCartOpen) {
+        closeCart();
+      }
+    };
+
+    dialog.addEventListener("close", handleNativeClose);
+    dialog.addEventListener("cancel", handleNativeClose);
+    return () => {
+      dialog.removeEventListener("close", handleNativeClose);
+      dialog.removeEventListener("cancel", handleNativeClose);
+    };
+  }, [isCartOpen, closeCart]);
 
   const handleConfirm = () => {
     closeCart();
     openCheckout();
   };
 
-  return (
-    <div className="lg:w-[400px] bg-white p-6 rounded-xl h-max md:sticky md:top-4 border border-gold/15 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-      <h2 className="font-playfair text-xl font-bold mb-6 text-charcoal border-b border-gold/15 pb-3">
-        Tu Pedido <span className="text-crimson">({items.length})</span>
+  const startY = useRef(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    startY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const endY = e.changedTouches[0].clientY;
+    const distance = endY - startY.current;
+
+    if (distance > 100) {
+      closeCart();
+    }
+  };
+
+  const CartContent = (
+    <div className="lg:w-[400px] bg-[#181818] p-6 rounded-xl h-max md:sticky md:top-4 border border-gold/15 shadow-[0_8px_30px_rgb(0,0,0,0.04)] w-full">
+      <h2 className="font-playfair text-xl font-bold mb-6 text-gold border-b border-gold/15 pb-3">
+        Tu Pedido <span className="text-gold">({items.length})</span>
       </h2>
 
       {items.length === 0 ? (
@@ -42,5 +86,28 @@ export default function Cart() {
         </>
       )}
     </div>
+  );
+
+  return (
+    <>
+      {CartContent}
+      
+      {/* 3. EN MÓVIL: Envolvemos el mismo contenido dentro del modal nativo deslizante */}
+      <dialog
+        ref={dialogRef}
+        onClose={closeCart}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        className="lg:hidden fixed bottom-0 left-0 w-full h-screen bg-black/60 flex items-end z-50 backdrop-blur-xs open:flex backdrop:bg-transparent border-0 p-0 m-0 max-w-full max-h-full"
+      >
+        <div className="bg-background w-full rounded-t-2xl p-4 max-h-[85vh] overflow-y-auto flex flex-col relative animate-in slide-in-from-bottom duration-200">
+          <div
+            className="w-12 h-1 bg-neutral-300 rounded-full mx-auto mb-4 cursor-pointer"
+            onClick={closeCart}
+          />
+          {CartContent}
+        </div>
+      </dialog>
+    </>
   );
 }

@@ -51,16 +51,16 @@ export default function CheckoutModal() {
   return (
     <div className="fixed inset-0 bg-black/60 z-50 backdrop-blur-xs flex items-center justify-center p-4">
       {/* Contenedor del Modal: En móvil sube completo, en PC se centra */}
-      <div className="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl border border-gold/15 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
+      <div className="bg-[#181818] w-full max-w-md rounded-2xl p-6 shadow-2xl border border-gold/15 max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
         
         {/* Encabezado */}
         <div className="flex justify-between items-center mb-6 border-b border-gold/15 pb-3">
-          <h3 className="font-playfair font-black text-xl text-crimson-dark">
+          <h3 className="font-playfair font-black text-xl text-gold">
             Finalizar Pedido
           </h3>
           <button 
             onClick={closeCheckout}
-            className="text-muted hover:text-charcoal text-xl p-1 cursor-pointer"
+            className="text-muted hover:text-gold text-xl p-1 cursor-pointer"
           >
             ✕
           </button>
@@ -70,36 +70,36 @@ export default function CheckoutModal() {
           
           {/* TIPO DE ENTREGA */}
           <div>
-            <label className="block font-semibold text-charcoal mb-2">
+            <label className="block font-semibold text-white mb-2">
               Tipo de entrega *
             </label>
             <div className="grid grid-cols-2 gap-3">
               <label className={`flex items-center justify-center gap-2 p-3 rounded-xl border cursor-pointer transition-all ${
                 deliveryType === "domicilio"
-                  ? "border-crimson bg-crimson/5 text-crimson font-semibold"
-                  : "border-neutral-200 text-muted hover:bg-cream/30"
+                  ? "border-gold bg-gold/5 text-gold font-semibold"
+                  : "border-gold/30 text-muted hover:bg-cream/30"
               }`}>
                 <input
                   type="radio"
                   name="deliveryType"
                   checked={deliveryType === "domicilio"}
                   onChange={() => setDeliveryType("domicilio")}
-                  className="accent-crimson hidden"
+                  className="accent-gold hidden"
                 />
                 🛵 Domicilio
               </label>
 
               <label className={`flex items-center justify-center gap-2 p-3 rounded-xl border cursor-pointer transition-all ${
                 deliveryType === "local"
-                  ? "border-crimson bg-crimson/5 text-crimson font-semibold"
-                  : "border-neutral-200 text-muted hover:bg-cream/30"
+                  ? "border-gold bg-gold/5 text-gold font-semibold"
+                  : "border-gold/30 text-muted hover:bg-cream/30"
               }`}>
                 <input
                   type="radio"
                   name="deliveryType"
                   checked={deliveryType === "local"}
                   onChange={() => setDeliveryType("local")}
-                  className="accent-crimson hidden"
+                  className="accent-gold hidden"
                 />
                 🏪 Recoger en local
               </label>
@@ -108,7 +108,7 @@ export default function CheckoutModal() {
 
           {/* NOMBRE */}
           <div className="flex flex-col gap-1">
-            <label htmlFor="nombre" className="font-semibold text-charcoal">
+            <label htmlFor="nombre" className="font-semibold text-white">
               Nombre *
             </label>
             <input
@@ -118,13 +118,13 @@ export default function CheckoutModal() {
               placeholder="Ej: Juan Pérez"
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
-              className="w-full p-3 rounded-xl border border-neutral-200 focus:border-gold focus:outline-none bg-neutral-50/50 text-charcoal"
+              className="w-full p-3 rounded-xl placeholder:text-muted border border-gold/30 focus:border-gold focus:outline-none bg-[#181818] text-white"
             />
           </div>
 
           {/* CELULAR */}
           <div className="flex flex-col gap-1">
-            <label htmlFor="celular" className="font-semibold text-charcoal">
+            <label htmlFor="celular" className="font-semibold text-white">
               Celular *
             </label>
             <input
@@ -134,14 +134,14 @@ export default function CheckoutModal() {
               placeholder="Ej: 3001234567"
               value={celular}
               onChange={(e) => setCelular(e.target.value)}
-              className="w-full p-3 rounded-xl border border-neutral-200 focus:border-gold focus:outline-none bg-neutral-50/50 text-charcoal"
+              className="w-full p-3 rounded-xl placeholder:text-muted border border-gold/30 focus:border-gold focus:outline-none bg-[#181818] text-white"
             />
           </div>
 
           {/* DIRECCIÓN (Condicional si es Domicilio) */}
           {deliveryType === "domicilio" && (
             <div className="flex flex-col gap-1 animate-in slide-in-from-top-2 duration-200">
-              <label htmlFor="direccion" className="font-semibold text-charcoal">
+              <label htmlFor="direccion" className="font-semibold text-white">
                 Dirección *
               </label>
               <input
@@ -151,14 +151,14 @@ export default function CheckoutModal() {
                 placeholder="Ej: Cra 43 # 70-10, Apto 3B"
                 value={direccion}
                 onChange={(e) => setDireccion(e.target.value)}
-                className="w-full p-3 rounded-xl border border-neutral-200 focus:border-gold focus:outline-none bg-neutral-50/50 text-charcoal"
+                className="w-full p-3 rounded-xl placeholder:text-muted border border-gold/30 focus:border-gold focus:outline-none bg-[#181818] text-white"
               />
             </div>
           )}
 
           {/* COMENTARIOS */}
           <div className="flex flex-col gap-1">
-            <label htmlFor="comentarios" className="font-semibold text-charcoal">
+            <label htmlFor="comentarios" className="font-semibold text-white">
               Comentarios adicionales
             </label>
             <textarea
@@ -167,7 +167,7 @@ export default function CheckoutModal() {
               placeholder="Ej: Sin cebolla, salsas aparte, tocar el timbre al llegar..."
               value={comentarios}
               onChange={(e) => setComentarios(e.target.value)}
-              className="w-full p-3 rounded-xl border border-neutral-200 focus:border-gold focus:outline-none bg-neutral-50/50 text-charcoal resize-none"
+              className="w-full p-3 rounded-xl placeholder:text-muted border border-gold/30 focus:border-gold focus:outline-none bg-[#181818] text-white resize-none"
             />
           </div>
 

@@ -14,17 +14,18 @@ export default function CartItem({ item }: Props) {
   const removeItem = useCartStore((state) => state.removeItem);
 
   return (
-    <div className="w-full border-b border-gold/10 py-3.5 flex items-center justify-between gap-4">
+    <div className="w-full border-b border-gold/10 bg-[#1e1e1e] py-3.5 pl-4 pr-2 rounded-xl flex items-center justify-between gap-4">
       <div className="flex-1 min-w-0">
-        <h4 className="font-semibold text-charcoal text-sm truncate">{item.name}</h4>
+        <h4 className="font-semibold text-white text-sm truncate">{item.name}</h4>
         <div className="flex gap-2 items-center mt-1">
-          <span className="text-crimson font-bold text-xs bg-crimson/10 px-2 py-0.5 rounded-full">
+          <span className="text-gold font-bold text-xs">
             {item.quantity}x
           </span>
+          <span className="text-gold">·</span>
           <span className="text-muted text-xs">
-            @ ${item.price.toLocaleString("es-CO")}
+            ${item.price.toLocaleString("es-CO")} c/u
           </span>
-          <strong className="text-charcoal font-medium text-xs ml-auto">
+          <strong className="text-gold font-bold text-sm ml-auto">
             ${(item.price * item.quantity).toLocaleString("es-CO")}
           </strong>
         </div>

@@ -35,7 +35,7 @@ export default function CardContainer({ items }: Props) {
       {/* ── SECCIÓN DE RECETAS (COMBOS Y ESPECIALES) ── */}
       {recipesList.length > 0 && (
         <div>
-          <h3 className="font-playfair text-xl font-bold text-crimson-dark px-4 pt-6 pb-2 flex items-center gap-2 after:content-[''] after:flex-1 after:h-[1px] after:bg-gradient-to-r after:from-gold/25 after:to-transparent">
+          <h3 className="font-playfair text-xl font-bold text-gold px-4 pt-6 pb-2 flex items-center gap-2 after:content-[''] after:flex-1 after:h-[1px] after:bg-gradient-to-r after:from-gold/25 after:to-transparent">
             ✨ Combos y Especiales
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 px-4 mb-6">
@@ -49,7 +49,7 @@ export default function CardContainer({ items }: Props) {
       {/* ── SECCIÓN DE PRODUCTOS INDIVIDUALES ── */}
       {productsList.length > 0 && (
         <div>
-          <h3 className="font-playfair text-xl font-bold text-crimson-dark px-4 pt-6 pb-2 flex items-center gap-2 after:content-[''] after:flex-1 after:h-[1px] after:bg-gradient-to-r after:from-gold/25 after:to-transparent">
+          <h3 className="font-playfair text-xl font-bold text-gold px-4 pt-6 pb-2 flex items-center gap-2 after:content-[''] after:flex-1 after:h-[1px] after:bg-gradient-to-r after:from-gold/25 after:to-transparent">
             🍔 Platos y Complementos
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 px-4 mb-6">

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react"; // 1. Importamos useRef
+import { useEffect, useState, useCallback } from "react";
 import { MenuService, type MenuExtendedItem } from "./services/menu.service";
 import Cart from "./components/cart/Cart";
 import CardContainer from "./components/card-container/CardContainer";
@@ -24,15 +24,11 @@ export default function App() {
   // 2. Extraemos de Zustand de forma reactiva y consistente
   const {
     isCartOpen,
-    closeCart,
     openCart,
     isConfirmationOpen,
     items,
     isCheckoutOpen,
   } = useCartStore();
-
-  // 3. Referencia para controlar el elemento HTML dialog
-  const dialogRef = useRef<HTMLDialogElement>(null);
 
   const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
   const totalPrice = items.reduce(
@@ -77,36 +73,6 @@ export default function App() {
       .finally(() => setLoading(false));
   }, [selectedCategory, fetchMenu]);
 
-  // 4. Efecto para abrir/cerrar el dialog usando los métodos nativos del navegador
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    if (isCartOpen) {
-      dialog.showModal();
-      // Opcional: Bloquea el scroll del body de fondo mientras el carrito esté abierto
-      document.body.style.overflow = "hidden";
-    } else {
-      dialog.close();
-      document.body.style.overflow = "";
-    }
-  }, [isCartOpen]);
-
-  const startY = useRef(0);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    startY.current = e.touches[0].clientY;
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    const endY = e.changedTouches[0].clientY;
-    const distance = endY - startY.current;
-
-    if (distance > 100) {
-      closeCart();
-    }
-  };
-
   const filteredItems = menuItems.filter(
     (item) =>
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -115,10 +81,10 @@ export default function App() {
   );
 
   return (
-    <main className="min-h-screen bg-cream/20 text-charcoal max-w-7xl mx-auto p-4 md:p-8 pb-24 md:pb-8">
+    <main className="min-h-screen bg-background text-charcoal max-w-7xl mx-auto p-4 md:p-8 pb-24 md:pb-8">
       <Header />
 
-      <div className="bg-background border border-t-gold/15 rounded-b-xl p-3 mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs shadow-xs">
+      <div className="bg-[#181818] border border-gold/30 rounded-b-xl p-3 mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs shadow-xs">
         <div className="flex items-center gap-2">
           <span
             className={`px-2 py-0.5 rounded-full font-bold text-[10px] uppercase tracking-wider ${
@@ -129,11 +95,11 @@ export default function App() {
           >
             {isOpenNow ? "● Abierto" : "○ Cerrado"}
           </span>
-          <span className="text-white font-medium">
+          <span className="text-gold font-medium">
             3:00 p. m. - 12:00 a. m.
           </span>
         </div>
-        <div className="text-white sm:text-right font-medium flex items-center gap-1">
+        <div className="text-gold sm:text-right font-medium flex items-center gap-1">
           📍{" "}
           <a
             href="https://maps.app.goo.gl/UeqV9Yaj9bW9UkZSA"
@@ -148,20 +114,20 @@ export default function App() {
 
       {/* BARRA DE BÚSQUEDA */}
       <div className="mb-4 relative">
-        <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-muted">
+        <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gold">
           🔍
         </span>
         <input
           type="text"
-          placeholder="¿Qué te provoca hoy? Buscar plato..."
+          placeholder="Buscar pollo asado, picadas, chorizo..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full p-3 pl-10 rounded-xl border border-gold/20 focus:border-gold focus:outline-none bg-white text-sm shadow-xs transition-all placeholder:text-muted/60"
+          className="w-full p-3 pl-10 rounded-xl border border-gold/30 focus:border-gold focus:outline-none bg-[#181818] text-sm shadow-xs transition-all text-white placeholder:text-muted"
         />
         {searchQuery && (
           <button
             onClick={() => setSearchQuery("")}
-            className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted hover:text-charcoal text-xs cursor-pointer"
+            className="absolute inset-y-0 right-0 flex items-center pr-3 text-white hover:text-charcoal text-xs cursor-pointer"
           >
             ✕ Limpiar
           </button>
@@ -178,7 +144,7 @@ export default function App() {
           className={`px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
             selectedCategory === "all"
               ? "bg-gold text-charcoal font-bold"
-              : "bg-white text-muted border border-gold/15 hover:bg-cream"
+              : "bg-[#181818] text-muted border border-gold/15 hover:bg-gold/15"
           }`}
         >
           Todo el menú
@@ -194,7 +160,7 @@ export default function App() {
             className={`px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors cursor-pointer whitespace-nowrap ${
               selectedCategory === cat.id
                 ? "bg-gold text-charcoal font-bold"
-                : "bg-white text-muted border border-gold/15 hover:bg-cream"
+                : "bg-[#181818] text-muted border border-gold/15 hover:bg-gold/15"
             }`}
           >
             {cat.name}
@@ -224,7 +190,7 @@ export default function App() {
           )}
         </div>
 
-        <div className="hidden lg:block shrink-0">
+        <div className="hidden lg:block shrink-0 sticky top-26">
           <Cart />
         </div>
       </div>
@@ -233,7 +199,7 @@ export default function App() {
       {totalItems > 0 && (
         <div className="lg:hidden fixed bottom-4 left-0 right-0 px-4 z-40">
           <button
-            onClick={openCart} // Usa la función reactiva extraída arriba
+            onClick={openCart}
             className="w-full bg-crimson-dark text-cream flex items-center justify-between p-4 rounded-xl shadow-xl border border-crimson/30 active:scale-98 transition-transform cursor-pointer"
           >
             <div className="flex items-center gap-3">
@@ -251,41 +217,24 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL DEL CARRITO EN MÓVIL (Corregido con ref y clases de Backdrop nativas) */}
-      {isCartOpen && (
-        <dialog
-          ref={dialogRef}
-          onClose={closeCart}
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-          className="lg:hidden fixed bottom-0 left-0 w-full h-screen bg-black/60 flex items-end z-50 backdrop-blur-xs open:flex backdrop:bg-transparent border-0 p-0 m-0 max-w-full max-h-full"
-        >
-          <div className="bg-white w-full rounded-t-2xl p-4 max-h-[85vh] overflow-y-auto flex flex-col relative animate-in slide-in-from-bottom duration-200">
-            {/* Barra superior decorativa para cerrar */}
-            <div
-              className="w-12 h-1 bg-neutral-300 rounded-full mx-auto mb-4 cursor-pointer"
-              onClick={closeCart}
-            />
-            <Cart />
-          </div>
-        </dialog>
-      )}
-
+      {isCartOpen && <Cart /> }
       {isConfirmationOpen && <CartConfirmation onNewOrder={fetchMenu} />}
       {isCheckoutOpen && <CheckoutModal />}
 
-      <button className="absolute bottom-4 md:bottom-6 right-4 md:right-6 bg-green-500 text-white p-4 rounded-full shadow-xl border border-green-500/30 active:scale-98 transition-transform cursor-pointer">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="25"
-          height="25"
-          fill="#fff"
-          viewBox="0 0 24 24"
-          aria-label="Realiza tu pedido por WhatsApp"
-        >
-          <path d="M8.016 12.271A4.818 4.818 0 0 1 7 9.709a2.777 2.777 0 0 1 .867-2.066.91.91 0 0 1 .661-.31c.165 0 .33 0 .475.009.145.009.356-.058.557.425.201.483.7 1.715.764 1.839a.451.451 0 0 1 .02.433c-.062.15-.145.289-.247.414-.124.144-.261.323-.372.433-.111.11-.253.258-.109.506.374.637.84 1.215 1.384 1.715a6.777 6.777 0 0 0 1.992 1.229c.248.124.393.1.537-.062.144-.162.619-.723.784-.971.165-.248.331-.206.558-.124.227.082 1.445.682 1.692.806.247.124.413.186.475.289.068.398.018.808-.144 1.178a2.552 2.552 0 0 1-1.672 1.177 3.388 3.388 0 0 1-1.561-.1c-.48-.149-.95-.323-1.412-.521a11.043 11.043 0 0 1-4.233-3.737ZM2.045 22l1.406-5.136a9.914 9.914 0 1 1 8.591 4.964A9.918 9.918 0 0 1 7.3 20.622L2.045 22ZM3.8 11.91a8.217 8.217 0 0 0 1.259 4.384l.2.312-.832 3.04 3.119-.818.3.178A8.24 8.24 0 1 0 3.8 11.91Z"></path>
-        </svg>
-      </button>
+      <a href="https://api.whatsapp.com/send/?phone=573013878360&text=Hola%21+Me+gustar%C3%ADa+realizar+un+pedido&type=phone_number&app_absent=0">
+        <button className="fixed bottom-20 md:bottom-6 right-4 md:right-6 bg-green-500 text-white p-4 rounded-full shadow-xl border border-green-500/30 active:scale-98 transition-transform cursor-pointer">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="25"
+            height="25"
+            fill="#fff"
+            viewBox="0 0 24 24"
+            aria-label="Realiza tu pedido por WhatsApp"
+          >
+            <path d="M8.016 12.271A4.818 4.818 0 0 1 7 9.709a2.777 2.777 0 0 1 .867-2.066.91.91 0 0 1 .661-.31c.165 0 .33 0 .475.009.145.009.356-.058.557.425.201.483.7 1.715.764 1.839a.451.451 0 0 1 .02.433c-.062.15-.145.289-.247.414-.124.144-.261.323-.372.433-.111.11-.253.258-.109.506.374.637.84 1.215 1.384 1.715a6.777 6.777 0 0 0 1.992 1.229c.248.124.393.1.537-.062.144-.162.619-.723.784-.971.165-.248.331-.206.558-.124.227.082 1.445.682 1.692.806.247.124.413.186.475.289.068.398.018.808-.144 1.178a2.552 2.552 0 0 1-1.672 1.177 3.388 3.388 0 0 1-1.561-.1c-.48-.149-.95-.323-1.412-.521a11.043 11.043 0 0 1-4.233-3.737ZM2.045 22l1.406-5.136a9.914 9.914 0 1 1 8.591 4.964A9.918 9.918 0 0 1 7.3 20.622L2.045 22ZM3.8 11.91a8.217 8.217 0 0 0 1.259 4.384l.2.312-.832 3.04 3.119-.818.3.178A8.24 8.24 0 1 0 3.8 11.91Z"></path>
+          </svg>
+        </button>
+      </a>
     </main>
   );
 }
