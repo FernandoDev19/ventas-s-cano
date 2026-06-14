@@ -2,6 +2,7 @@ import DATABASE from "@/src/core/config/db";
 import { ProductType } from "../types/product.type";
 import { v4 as uuidv4 } from "uuid";
 import { SyncService } from "@/src/shared/services/sync.service";
+import { SupabaseStorageService } from "@/src/shared/services/supabase-storage.service";
 
 export const ProductsService = {
   getAll: async (options?: {
@@ -79,13 +80,31 @@ export const ProductsService = {
     };
   },
 
-  updateProduct: async (
+updateProduct: async (
     id: string,
     product: Partial<ProductType>,
   ): Promise<void> => {
+    // Si está actualizando la imagen y es una URI local, eliminar la anterior de Supabase
+    if (product.image_url && !product.image_url.startsWith("http")) {
+      const oldProduct: any = await DATABASE.db.getFirstAsync(
+        "SELECT image_url FROM products WHERE id = ?",
+        [id],
+      );
+      if (oldProduct?.image_url && oldProduct.image_url !== product.image_url) {
+        const oldFileName = SupabaseStorageService.extractFileNameFromUrl(
+          oldProduct.image_url
+        );
+        if (oldFileName) {
+          await SupabaseStorageService.deleteProductImage(oldFileName).catch(err =>
+            console.error("Error eliminando imagen anterior:", err)
+          );
+        }
+      }
+    }
+ 
     const fields: string[] = [];
     const values: any[] = [];
-
+ 
     if (product.image_url !== undefined) {
       fields.push("image_url = ?");
       values.push(product.image_url);
@@ -106,9 +125,9 @@ export const ProductsService = {
       fields.push("category_id = ?");
       values.push(product.category_id);
     }
-
+ 
     if (fields.length === 0) return;
-
+ 
     values.push(new Date().toISOString());
     values.push(id);
     await DATABASE.db.runAsync(
@@ -119,20 +138,37 @@ export const ProductsService = {
       console.error("Error sincronizando producto:", err),
     );
   },
-
+ 
   deleteProduct: async (id: string) => {
     const now = new Date().toISOString();
-
+ 
+    // Obtener el producto para eliminar su imagen de Supabase
+    const product: any = await DATABASE.db.getFirstAsync(
+      "SELECT image_url FROM products WHERE id = ?",
+      [id],
+    );
+ 
+    if (product?.image_url) {
+      const fileName = SupabaseStorageService.extractFileNameFromUrl(
+        product.image_url
+      );
+      if (fileName) {
+        await SupabaseStorageService.deleteProductImage(fileName).catch(err =>
+          console.error("Error eliminando imagen de Supabase:", err)
+        );
+      }
+    }
+ 
     const result = await DATABASE.db.runAsync(
       "UPDATE products SET sincronizado = 0, updated_at = ?, deleted_at = ? WHERE id = ?",
       [now, now, id],
     );
-
+ 
     SyncService.run().catch(err => console.error("Error sincronizando producto:", err));
-
+ 
     return result.changes > 0;
   },
-
+ 
   createMany: async (products: ProductType[]) => {
     const productsCount: { count: number } | null =
       await DATABASE.db.getFirstAsync("SELECT COUNT(*) as count FROM products");

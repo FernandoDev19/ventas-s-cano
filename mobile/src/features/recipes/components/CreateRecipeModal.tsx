@@ -19,6 +19,8 @@ import { ProductType } from "@/src/features/products/types/product.type";
 import { CategoryType } from "@/src/features/categories/types/category.type";
 import { priceFormat } from "@/src/shared/helpers/price-format.helper";
 import { useFiles } from "@/src/shared/hooks/useFiles";
+import { SupabaseStorageService } from "@/src/shared/services/supabase-storage.service";
+import { v4 as uuidv4 } from "uuid";
 
 type Props = {
   visible: boolean;
@@ -41,15 +43,22 @@ export default function CreateRecipeModal({
 
   const [name, setName] = useState(editRecipe?.name ?? "");
   const [description, setDescription] = useState(editRecipe?.description ?? "");
-  const [price, setPrice] = useState(editRecipe?.selling_price ? String(editRecipe.selling_price) : "");
-  const [imageUri, setImageUri] = useState<string | null>(editRecipe?.image_url ?? null);
+  const [price, setPrice] = useState(
+    editRecipe?.selling_price ? String(editRecipe.selling_price) : ""
+  );
+  const [imageUri, setImageUri] = useState<string | null>(
+    editRecipe?.image_url ?? null
+  );
   const [ingredients, setIngredients] = useState<RecipeIngredientType[]>(
     editRecipe?.ingredients ?? []
   );
-  const [categoryId, setCategoryId] = useState<string | null>(editRecipe?.category_id ?? null);
+  const [categoryId, setCategoryId] = useState<string | null>(
+    editRecipe?.category_id ?? null
+  );
   const [showIngredientPicker, setShowIngredientPicker] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPickingImage, setIsPickingImage] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const { elegirImagenProducto } = useFiles();
 
@@ -57,7 +66,9 @@ export default function CreateRecipeModal({
     if (visible) {
       setName(editRecipe?.name ?? "");
       setDescription(editRecipe?.description ?? "");
-      setPrice(editRecipe?.selling_price ? String(editRecipe.selling_price) : "");
+      setPrice(
+        editRecipe?.selling_price ? String(editRecipe.selling_price) : ""
+      );
       setImageUri(editRecipe?.image_url ?? null);
       setIngredients(editRecipe?.ingredients ?? []);
       setCategoryId(editRecipe?.category_id ?? null);
@@ -135,11 +146,52 @@ export default function CreateRecipeModal({
     }
 
     setIsSaving(true);
+    let finalImageUrl = imageUri;
+
     try {
+      // 1. Si la imagen cambió y es una URI local, subirla a Supabase
+      if (
+        imageUri &&
+        !imageUri.startsWith("http") &&
+        imageUri !== editRecipe?.image_url
+      ) {
+        setIsUploadingImage(true);
+
+        // Eliminar imagen anterior si estamos editando
+        if (isEditing && editRecipe?.image_url) {
+          const oldFileName =
+            SupabaseStorageService.extractFileNameFromUrl(
+              editRecipe.image_url
+            );
+          if (oldFileName) {
+            await SupabaseStorageService.deleteProductImage(oldFileName);
+          }
+        }
+
+        // Subir nueva imagen
+        const fileName = `recipe_${uuidv4()}.jpg`;
+        const uploadedUrl = await SupabaseStorageService.uploadProductImage(
+          imageUri,
+          fileName
+        );
+
+        if (!uploadedUrl) {
+          Alert.alert(
+            "Aviso",
+            "La receta se guardó pero la imagen no se pudo subir. Intenta nuevamente desde edición."
+          );
+          finalImageUrl = "";
+        } else {
+          finalImageUrl = uploadedUrl;
+        }
+
+        setIsUploadingImage(false);
+      }
+
       const recipeData = {
         name: name.trim(),
         description: description.trim(),
-        image_url: imageUri ?? "",
+        image_url: finalImageUrl ?? "",
         selling_price: parsedPrice,
         category_id: categoryId,
       };
@@ -160,37 +212,76 @@ export default function CreateRecipeModal({
       Alert.alert("Error", "No se pudo guardar la receta.");
     } finally {
       setIsSaving(false);
+      setIsUploadingImage(false);
     }
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={handleClose}
+    >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.65)", justifyContent: "flex-end" }}>
-          <View style={{
-            backgroundColor: "#141414",
-            borderTopLeftRadius: 28,
-            borderTopRightRadius: 28,
-            padding: 24,
-            paddingBottom: 40,
-            maxHeight: "92%",
-          }}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.65)",
+            justifyContent: "flex-end",
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: "#141414",
+              borderTopLeftRadius: 28,
+              borderTopRightRadius: 28,
+              padding: 24,
+              paddingBottom: 40,
+              maxHeight: "92%",
+            }}
+          >
             {/* Header */}
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 20,
+              }}
+            >
               <View>
-                <Text style={{ color: "#ff5722", fontSize: 10, fontWeight: "800", textTransform: "uppercase", letterSpacing: 1 }}>
+                <Text
+                  style={{
+                    color: "#ff5722",
+                    fontSize: 10,
+                    fontWeight: "800",
+                    textTransform: "uppercase",
+                    letterSpacing: 1,
+                  }}
+                >
                   {isEditing ? "Editar Receta" : "Nueva Receta"}
                 </Text>
-                <Text style={{ color: "#fff", fontSize: 22, fontWeight: "900" }}>
+                <Text
+                  style={{
+                    color: "#fff",
+                    fontSize: 22,
+                    fontWeight: "900",
+                  }}
+                >
                   {isEditing ? name || "Receta" : "Crear Receta"}
                 </Text>
               </View>
               <Pressable
                 onPress={handleClose}
-                style={{ backgroundColor: "#2a2a2a", borderRadius: 20, padding: 8 }}
+                style={{
+                  backgroundColor: "#2a2a2a",
+                  borderRadius: 20,
+                  padding: 8,
+                }}
               >
                 <Ionicons name="close" size={20} color="#fff" />
               </Pressable>
@@ -201,7 +292,7 @@ export default function CreateRecipeModal({
               <View style={{ alignItems: "center", marginBottom: 20 }}>
                 <Pressable
                   onPress={handlePickImage}
-                  disabled={isPickingImage}
+                  disabled={isPickingImage || isUploadingImage}
                   style={{
                     width: 100,
                     height: 100,
@@ -215,21 +306,35 @@ export default function CreateRecipeModal({
                     overflow: "hidden",
                   }}
                 >
-                  {isPickingImage ? (
+                  {isPickingImage || isUploadingImage ? (
                     <ActivityIndicator color="#ff5722" />
                   ) : imageUri ? (
-                    <Image source={{ uri: imageUri }} style={{ width: 100, height: 100 }} />
+                    <Image
+                      source={{ uri: imageUri }}
+                      style={{ width: 100, height: 100 }}
+                    />
                   ) : (
                     <View style={{ alignItems: "center", gap: 4 }}>
-                      <Ionicons name="restaurant-outline" size={32} color="#555" />
+                      <Ionicons
+                        name="restaurant-outline"
+                        size={32}
+                        color="#555"
+                      />
                       <Text style={{ color: "#555", fontSize: 10 }}>Foto</Text>
                     </View>
                   )}
                 </Pressable>
-                {imageUri && (
+                {imageUri && !isUploadingImage && (
                   <Pressable onPress={() => setImageUri(null)} style={{ marginTop: 6 }}>
-                    <Text style={{ color: "#555", fontSize: 11 }}>Quitar imagen</Text>
+                    <Text style={{ color: "#555", fontSize: 11 }}>
+                      Quitar imagen
+                    </Text>
                   </Pressable>
+                )}
+                {isUploadingImage && (
+                  <Text style={{ color: "#ff5722", fontSize: 11, marginTop: 6 }}>
+                    Subiendo imagen...
+                  </Text>
                 )}
               </View>
 
@@ -261,8 +366,19 @@ export default function CreateRecipeModal({
 
               {/* Price */}
               <Text style={styles.label}>Precio de Venta</Text>
-              <View style={[styles.inputWrapper, { flexDirection: "row", alignItems: "center", marginBottom: 20 }]}>
-                <Text style={{ color: "#ff5722", fontSize: 18, fontWeight: "900", marginRight: 6 }}>$</Text>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  {
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginBottom: 20,
+                  },
+                ]}
+              >
+                <Text style={{ color: "#ff5722", fontSize: 18, fontWeight: "900", marginRight: 6 }}>
+                  $
+                </Text>
                 <TextInput
                   placeholder="0"
                   placeholderTextColor="#555"
@@ -275,22 +391,43 @@ export default function CreateRecipeModal({
 
               {/* Category */}
               <Text style={styles.label}>Categoría (opcional)</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20 }}>
-                <View style={{ flexDirection: "row", gap: 8, paddingRight: 24 }}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={{ marginBottom: 20 }}
+              >
+                <View
+                  style={{
+                    flexDirection: "row",
+                    gap: 8,
+                    paddingRight: 24,
+                  }}
+                >
                   {categories.map((cat) => (
                     <Pressable
                       key={cat.id}
-                      onPress={() => setCategoryId(categoryId === cat.id ? null : cat.id!)}
+                      onPress={() =>
+                        setCategoryId(categoryId === cat.id ? null : cat.id)
+                      }
                       style={{
                         paddingHorizontal: 16,
                         paddingVertical: 8,
                         borderRadius: 20,
-                        backgroundColor: categoryId === cat.id ? "#ff5722" : "#1a1a1a",
+                        backgroundColor:
+                          categoryId === cat.id ? "#ff5722" : "#1a1a1a",
                         borderWidth: 1,
-                        borderColor: categoryId === cat.id ? "#ff5722" : "#2a2a2a",
+                        borderColor:
+                          categoryId === cat.id ? "#ff5722" : "#2a2a2a",
                       }}
                     >
-                      <Text style={{ color: categoryId === cat.id ? "#fff" : "#a3a3a3", fontWeight: "600", fontSize: 13 }}>
+                      <Text
+                        style={{
+                          color:
+                            categoryId === cat.id ? "#fff" : "#a3a3a3",
+                          fontWeight: "600",
+                          fontSize: 13,
+                        }}
+                      >
                         {cat.name}
                       </Text>
                     </Pressable>
@@ -299,7 +436,14 @@ export default function CreateRecipeModal({
               </ScrollView>
 
               {/* Ingredients */}
-              <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <View
+                style={{
+                  flexDirection: "row",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 12,
+                }}
+              >
                 <Text style={styles.label}>Ingredientes</Text>
                 <Pressable
                   onPress={() => setShowIngredientPicker(true)}
@@ -314,63 +458,131 @@ export default function CreateRecipeModal({
                   }}
                 >
                   <Ionicons name="add" size={14} color="#ff5722" />
-                  <Text style={{ color: "#ff5722", fontSize: 12, fontWeight: "700" }}>Agregar</Text>
+                  <Text style={{ color: "#ff5722", fontSize: 12, fontWeight: "700" }}>
+                    Agregar
+                  </Text>
                 </Pressable>
               </View>
 
               {ingredients.length === 0 ? (
-                <View style={{
-                  backgroundColor: "#1a1a1a",
-                  borderRadius: 14,
-                  padding: 20,
-                  alignItems: "center",
-                  marginBottom: 20,
-                  borderWidth: 1,
-                  borderColor: "#2a2a2a",
-                  borderStyle: "dashed",
-                }}>
+                <View
+                  style={{
+                    backgroundColor: "#1a1a1a",
+                    borderRadius: 14,
+                    padding: 20,
+                    alignItems: "center",
+                    marginBottom: 20,
+                    borderWidth: 1,
+                    borderColor: "#2a2a2a",
+                    borderStyle: "dashed",
+                  }}
+                >
                   <Ionicons name="basket-outline" size={28} color="#444" />
-                  <Text style={{ color: "#555", fontSize: 12, marginTop: 8 }}>
+                  <Text
+                    style={{ color: "#555", fontSize: 12, marginTop: 8 }}
+                  >
                     Sin ingredientes. Agrega productos del inventario.
                   </Text>
                 </View>
               ) : (
                 <View style={{ gap: 8, marginBottom: 20 }}>
                   {ingredients.map((ing) => (
-                    <View key={ing.product_id} style={{
-                      flexDirection: "row",
-                      backgroundColor: "#1a1a1a",
-                      borderRadius: 14,
-                      padding: 12,
-                      borderWidth: 1,
-                      borderColor: "#2a2a2a",
-                      alignItems: "center",
-                    }}>
+                    <View
+                      key={ing.product_id}
+                      style={{
+                        flexDirection: "row",
+                        backgroundColor: "#1a1a1a",
+                        borderRadius: 14,
+                        padding: 12,
+                        borderWidth: 1,
+                        borderColor: "#2a2a2a",
+                        alignItems: "center",
+                      }}
+                    >
                       <Image
-                        source={ing.product_image ? { uri: ing.product_image } : require("@/assets/images/default-food.png")}
-                        style={{ width: 42, height: 42, borderRadius: 8, marginRight: 10 }}
+                        source={
+                          ing.product_image
+                            ? { uri: ing.product_image }
+                            : require("@/assets/images/default-food.png")
+                        }
+                        style={{
+                          width: 42,
+                          height: 42,
+                          borderRadius: 8,
+                          marginRight: 10,
+                        }}
                         resizeMode="cover"
                       />
-                      <Text style={{ color: "#fff", fontSize: 13, fontWeight: "600", flex: 1 }} numberOfLines={1}>
+                      <Text
+                        style={{
+                          color: "#fff",
+                          fontSize: 13,
+                          fontWeight: "600",
+                          flex: 1,
+                        }}
+                        numberOfLines={1}
+                      >
                         {ing.product_name}
                       </Text>
                       {/* Qty controls */}
-                      <View style={{ flexDirection: "row", alignItems: "center", backgroundColor: "#0f0f0f", borderRadius: 10, padding: 4, gap: 8, marginRight: 8 }}>
-                        <Pressable onPress={() => handleChangeQty(ing.product_id, -1)} style={{ padding: 2 }}>
-                          <Ionicons name="remove-circle-outline" size={20} color="#fff" />
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          backgroundColor: "#0f0f0f",
+                          borderRadius: 10,
+                          padding: 4,
+                          gap: 8,
+                          marginRight: 8,
+                        }}
+                      >
+                        <Pressable
+                          onPress={() =>
+                            handleChangeQty(ing.product_id, -1)
+                          }
+                          style={{ padding: 2 }}
+                        >
+                          <Ionicons
+                            name="remove-circle-outline"
+                            size={20}
+                            color="#fff"
+                          />
                         </Pressable>
-                        <Text style={{ color: "#fff", fontWeight: "800", fontSize: 13, minWidth: 16, textAlign: "center" }}>
+                        <Text
+                          style={{
+                            color: "#fff",
+                            fontWeight: "800",
+                            fontSize: 13,
+                            minWidth: 16,
+                            textAlign: "center",
+                          }}
+                        >
                           {ing.quantity}
                         </Text>
-                        <Pressable onPress={() => handleChangeQty(ing.product_id, 1)} style={{ padding: 2 }}>
-                          <Ionicons name="add-circle-outline" size={20} color="#fff" />
+                        <Pressable
+                          onPress={() => handleChangeQty(ing.product_id, 1)}
+                          style={{ padding: 2 }}
+                        >
+                          <Ionicons
+                            name="add-circle-outline"
+                            size={20}
+                            color="#fff"
+                          />
                         </Pressable>
                       </View>
                       <Pressable
-                        onPress={() => setIngredients((p) => p.filter((i) => i.product_id !== ing.product_id))}
+                        onPress={() =>
+                          setIngredients((p) =>
+                            p.filter((i) => i.product_id !== ing.product_id)
+                          )
+                        }
                         style={{ padding: 4 }}
                       >
-                        <Ionicons name="trash-outline" size={16} color="#ef4444" />
+                        <Ionicons
+                          name="trash-outline"
+                          size={16}
+                          color="#ef4444"
+                        />
                       </Pressable>
                     </View>
                   ))}
@@ -380,17 +592,17 @@ export default function CreateRecipeModal({
               {/* Save button */}
               <Pressable
                 onPress={handleSave}
-                disabled={isSaving}
+                disabled={isSaving || isUploadingImage}
                 style={{
                   backgroundColor: "#ff5722",
                   paddingVertical: 16,
                   borderRadius: 16,
                   alignItems: "center",
-                  opacity: isSaving ? 0.7 : 1,
+                  opacity: isSaving || isUploadingImage ? 0.7 : 1,
                   marginBottom: 16,
                 }}
               >
-                {isSaving ? (
+                {isSaving || isUploadingImage ? (
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <Text style={{ color: "#fff", fontSize: 17, fontWeight: "800" }}>
@@ -402,18 +614,48 @@ export default function CreateRecipeModal({
 
             {/* Ingredient picker modal */}
             <Modal visible={showIngredientPicker} transparent animationType="slide">
-              <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.7)", justifyContent: "flex-end" }}>
-                <View style={{
-                  backgroundColor: "#1a1a1a",
-                  borderTopLeftRadius: 28,
-                  borderTopRightRadius: 28,
-                  padding: 20,
-                  maxHeight: "60%",
-                  paddingBottom: 40,
-                }}>
-                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                    <Text style={{ color: "#fff", fontSize: 18, fontWeight: "800" }}>Seleccionar Ingrediente</Text>
-                    <Pressable onPress={() => setShowIngredientPicker(false)} style={{ backgroundColor: "#2a2a2a", borderRadius: 20, padding: 8 }}>
+              <View
+                style={{
+                  flex: 1,
+                  backgroundColor: "rgba(0,0,0,0.7)",
+                  justifyContent: "flex-end",
+                }}
+              >
+                <View
+                  style={{
+                    backgroundColor: "#1a1a1a",
+                    borderTopLeftRadius: 28,
+                    borderTopRightRadius: 28,
+                    padding: 20,
+                    maxHeight: "60%",
+                    paddingBottom: 40,
+                  }}
+                >
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: 16,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: "#fff",
+                        fontSize: 18,
+                        fontWeight: "800",
+                      }}
+                    >
+                      Seleccionar Ingrediente
+                    </Text>
+                    <Pressable
+                      onPress={() => setShowIngredientPicker(false)}
+                      style={{
+                        backgroundColor: "#2a2a2a",
+                        borderRadius: 20,
+                        padding: 8,
+                      }}
+                    >
                       <Ionicons name="close" size={18} color="#fff" />
                     </Pressable>
                   </View>
@@ -430,23 +672,55 @@ export default function CreateRecipeModal({
                             borderRadius: 12,
                             padding: 12,
                             borderWidth: 1,
-                            borderColor: ingredients.some((i) => i.product_id === prod.id) ? "#ff5722" : "#2a2a2a",
+                            borderColor: ingredients.some(
+                              (i) => i.product_id === prod.id
+                            )
+                              ? "#ff5722"
+                              : "#2a2a2a",
                             gap: 12,
                           }}
                         >
                           <Image
-                            source={prod.image_url ? { uri: prod.image_url } : require("@/assets/images/default-food.png")}
-                            style={{ width: 44, height: 44, borderRadius: 8 }}
+                            source={
+                              prod.image_url
+                                ? { uri: prod.image_url }
+                                : require("@/assets/images/default-food.png")
+                            }
+                            style={{
+                              width: 44,
+                              height: 44,
+                              borderRadius: 8,
+                            }}
                             resizeMode="cover"
                           />
                           <View style={{ flex: 1 }}>
-                            <Text style={{ color: "#fff", fontWeight: "600", fontSize: 14 }}>{prod.name}</Text>
-                            <Text style={{ color: "#737373", fontSize: 11, marginTop: 2 }}>
+                            <Text
+                              style={{
+                                color: "#fff",
+                                fontWeight: "600",
+                                fontSize: 14,
+                              }}
+                            >
+                              {prod.name}
+                            </Text>
+                            <Text
+                              style={{
+                                color: "#737373",
+                                fontSize: 11,
+                                marginTop: 2,
+                              }}
+                            >
                               Stock: {prod.stock} · {priceFormat(prod.price)}
                             </Text>
                           </View>
-                          {ingredients.some((i) => i.product_id === prod.id) && (
-                            <Ionicons name="checkmark-circle" size={22} color="#ff5722" />
+                          {ingredients.some(
+                            (i) => i.product_id === prod.id
+                          ) && (
+                            <Ionicons
+                              name="checkmark-circle"
+                              size={22}
+                              color="#ff5722"
+                            />
                           )}
                         </Pressable>
                       ))}

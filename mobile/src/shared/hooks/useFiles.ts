@@ -1,6 +1,6 @@
 import * as ImagePicker from "expo-image-picker";
 import { documentDirectory, copyAsync } from 'expo-file-system/legacy';
-import { Alert, ActionSheetIOS, Platform } from "react-native";
+import { Alert } from "react-native";
 
 export const useFiles = () => {
   /**
@@ -54,7 +54,7 @@ export const useFiles = () => {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.6,

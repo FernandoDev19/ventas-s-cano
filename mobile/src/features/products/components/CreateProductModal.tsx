@@ -16,6 +16,8 @@ import { ProductsService } from "../services/products.service";
 import { Ionicons } from "@expo/vector-icons";
 import { useFiles } from "@/src/shared/hooks/useFiles";
 import CategoriesModal from "../../categories/components/CategoriesModal";
+import { SupabaseStorageService } from "@/src/shared/services/supabase-storage.service";
+import { v4 as uuidv4 } from "uuid";
 
 type CreateProductModalProps = {
   visible: boolean;
@@ -38,6 +40,7 @@ export default function CreateProductModal({
   const [isSaving, setIsSaving] = useState(false);
   const [isPickingImage, setIsPickingImage] = useState(false);
   const [isCategoriesModalOpen, setIsCategoriesModalOpen] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const { elegirImagenProducto } = useFiles();
 
@@ -80,21 +83,48 @@ export default function CreateProductModal({
     }
 
     setIsSaving(true);
+    let imageUrl = "";
+
     try {
+      // 1. Si hay imagen, subirla a Supabase
+      if (imageUri) {
+        setIsUploadingImage(true);
+        const fileName = `product_${uuidv4()}.jpg`;
+        const uploadedUrl = await SupabaseStorageService.uploadProductImage(
+          imageUri,
+          fileName,
+        );
+
+        if (!uploadedUrl) {
+          Alert.alert(
+            "Aviso",
+            "El producto se guardó pero la imagen no se pudo subir. Intenta nuevamente desde edición.",
+          );
+          imageUrl = "";
+        } else {
+          imageUrl = uploadedUrl;
+        }
+        setIsUploadingImage(false);
+      }
+
+      // 2. Guardar el producto con la URL de la imagen
       await ProductsService.createProduct({
         name: name.trim(),
         price: parsedPrice,
         stock: parseInt(stock) || 0,
         category_id: categoryId,
-        image_url: imageUri || "",
+        image_url: imageUrl,
       });
+
       reset();
       onCreated();
+      Alert.alert("Éxito", "Producto creado correctamente.");
     } catch (err) {
       Alert.alert("Error", "No se pudo guardar el producto.");
       console.error(err);
     } finally {
       setIsSaving(false);
+      setIsUploadingImage(false);
     }
   };
 
@@ -153,7 +183,7 @@ export default function CreateProductModal({
             <View style={{ alignItems: "center", marginBottom: 20 }}>
               <Pressable
                 onPress={handlePickImage}
-                disabled={isPickingImage}
+                disabled={isPickingImage || isUploadingImage}
                 style={{
                   width: 90,
                   height: 90,
@@ -167,7 +197,7 @@ export default function CreateProductModal({
                   overflow: "hidden",
                 }}
               >
-                {isPickingImage ? (
+                {isPickingImage || isUploadingImage ? (
                   <ActivityIndicator color="#ff5722" />
                 ) : imageUri ? (
                   <Image
@@ -181,7 +211,7 @@ export default function CreateProductModal({
                   </View>
                 )}
               </Pressable>
-              {imageUri && (
+              {imageUri && !isUploadingImage && (
                 <Pressable
                   onPress={() => setImageUri(null)}
                   style={{ marginTop: 6 }}
@@ -190,6 +220,11 @@ export default function CreateProductModal({
                     Quitar imagen
                   </Text>
                 </Pressable>
+              )}
+              {isUploadingImage && (
+                <Text style={{ color: "#ff5722", fontSize: 11, marginTop: 6 }}>
+                  Subiendo imagen...
+                </Text>
               )}
             </View>
 
@@ -363,16 +398,16 @@ export default function CreateProductModal({
             {/* Botón guardar */}
             <Pressable
               onPress={handleSave}
-              disabled={isSaving}
+              disabled={isSaving || isUploadingImage}
               style={{
                 backgroundColor: "#ff5722",
                 paddingVertical: 16,
                 borderRadius: 16,
                 alignItems: "center",
-                opacity: isSaving ? 0.7 : 1,
+                opacity: isSaving || isUploadingImage ? 0.7 : 1,
               }}
             >
-              {isSaving ? (
+              {isSaving || isUploadingImage ? (
                 <ActivityIndicator color="#fff" />
               ) : (
                 <Text

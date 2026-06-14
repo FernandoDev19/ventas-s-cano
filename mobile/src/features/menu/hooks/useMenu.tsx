@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { CategoryType } from "../../categories/types/category.type";
 import { CategoriesService } from "../../categories/services/categories.service";
 import { Alert } from "react-native";
+import { useFocusEffect } from "expo-router";
 
 export const useMenu = () => {
   const [filter, setFilter] = useState("");
@@ -23,9 +24,11 @@ export const useMenu = () => {
     }
   }, []);
 
-  useEffect(() => {
-    loadCategories();
-  }, [loadCategories]);
+  useFocusEffect(
+    useCallback(() => {
+      loadCategories();
+    }, [loadCategories])
+  )
 
   return {
     filter,

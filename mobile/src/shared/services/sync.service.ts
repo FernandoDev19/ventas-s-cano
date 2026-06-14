@@ -74,9 +74,19 @@ export const SyncService = {
 
       // FÍSICO LOCAL: Una vez borrado de la nube, ya podemos destruirlo con seguridad del teléfono
       const formattedIds = idsToDelete.map((id) => `'${id}'`).join(",");
-      DATABASE.db.execSync(
-        `DELETE FROM ${tableName} WHERE id IN (${formattedIds})`,
-      );
+
+      try {
+        // 1. Apagamos temporalmente la verificación de llaves foráneas en el celular
+        DATABASE.db.execSync("PRAGMA foreign_keys = OFF;");
+
+        // 2. Ejecutamos el borrado físico sin bloqueos
+        DATABASE.db.execSync(
+          `DELETE FROM ${tableName} WHERE id IN (${formattedIds})`,
+        );
+      } finally {
+        // 3. ¡Importante! Volvemos a encender la seguridad pase lo que pase
+        DATABASE.db.execSync("PRAGMA foreign_keys = ON;");
+      }
     }
 
     if (recordsToUpsert.length > 0) {

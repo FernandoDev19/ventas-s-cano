@@ -2,6 +2,7 @@ import DATABASE from "@/src/core/config/db";
 import { RecipeIngredientType, RecipeType } from "../types/recipe.type";
 import { v4 as uuidv4 } from 'uuid';
 import { SyncService } from "@/src/shared/services/sync.service";
+import { SupabaseStorageService } from "@/src/shared/services/supabase-storage.service";
 
 export const RecipesService = {
   getAll: async (): Promise<RecipeType[]> => {
@@ -76,21 +77,39 @@ export const RecipesService = {
     return { ...recipe, id: recipeId };
   },
 
-  update: async (
+update: async (
     id: string,
     recipe: Partial<RecipeType>,
     ingredients?: { product_id: string; quantity: number }[]
   ): Promise<void> => {
+    // Si está actualizando la imagen y es una URI local, eliminar la anterior de Supabase
+    if (recipe.image_url && !recipe.image_url.startsWith("http")) {
+      const oldRecipe: any = await DATABASE.db.getFirstAsync(
+        "SELECT image_url FROM recipes WHERE id = ?",
+        [id]
+      );
+      if (oldRecipe?.image_url && oldRecipe.image_url !== recipe.image_url) {
+        const oldFileName = SupabaseStorageService.extractFileNameFromUrl(
+          oldRecipe.image_url
+        );
+        if (oldFileName) {
+          await SupabaseStorageService.deleteProductImage(oldFileName).catch(err =>
+            console.error("Error eliminando imagen anterior:", err)
+          );
+        }
+      }
+    }
+ 
     await DATABASE.db.withTransactionAsync(async () => {
       const fields: string[] = [];
       const values: any[] = [];
-
+ 
       if (recipe.name !== undefined) { fields.push("name = ?"); values.push(recipe.name); }
       if (recipe.description !== undefined) { fields.push("description = ?"); values.push(recipe.description); }
       if (recipe.image_url !== undefined) { fields.push("image_url = ?"); values.push(recipe.image_url); }
       if (recipe.selling_price !== undefined) { fields.push("selling_price = ?"); values.push(recipe.selling_price); }
       if (recipe.category_id !== undefined) { fields.push("category_id = ?"); values.push(recipe.category_id); }
-
+ 
       if (fields.length > 0) {
         values.push(new Date().toISOString());
         values.push(id);
@@ -99,7 +118,7 @@ export const RecipesService = {
           values
         );
       }
-
+ 
       if (ingredients) {
         await DATABASE.db.runAsync(
           "DELETE FROM recipe_ingredients WHERE recipe_id = ?",
@@ -114,13 +133,30 @@ export const RecipesService = {
         }
       }
     });
-
+ 
     SyncService.run().catch(err => console.error("Error sincronizando al actualizar receta:", err));
   },
-
+  
   delete: async (id: string): Promise<void> => {
     const now = new Date().toISOString();
-
+ 
+    // Obtener la receta para eliminar su imagen de Supabase
+    const recipe: any = await DATABASE.db.getFirstAsync(
+      "SELECT image_url FROM recipes WHERE id = ?",
+      [id]
+    );
+ 
+    if (recipe?.image_url) {
+      const fileName = SupabaseStorageService.extractFileNameFromUrl(
+        recipe.image_url
+      );
+      if (fileName) {
+        await SupabaseStorageService.deleteProductImage(fileName).catch(err =>
+          console.error("Error eliminando imagen de Supabase:", err)
+        );
+      }
+    }
+ 
     await DATABASE.db.withTransactionAsync(async () => {
       await DATABASE.db.runAsync(
         "UPDATE recipe_ingredients SET sincronizado = 0, updated_at = ?, deleted_at = ? WHERE recipe_id = ?",
@@ -131,7 +167,7 @@ export const RecipesService = {
         [now, now, id],
       );
     });
-
+ 
     SyncService.run().catch(err => console.error("Error sincronizando al borrar receta:", err));
   },
 

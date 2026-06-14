@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+@theme {
+  /* La identidad de Sabor Espress */
+  --color-primary: #ff5722;
+  --color-crimson: #8B1A1A;
+  --color-crimson-dark: #5C0E0E;
+  --color-gold: #C9A84C;
+  --color-gold-light: #E8C97A;
+  --color-cream: #FDF6EC;
+  --color-charcoal: #1A1A1A;
+  --color-text-main: #2C2C2C;
+  --color-muted: #7A6A55;
+  --color-surface: #FFFFFF;
+  --color-background: #0f0f0f;
+  
+  /* Fuentes elegantes del index.html */
+  --font-playfair: 'Playfair Display', serif;
+  --font-inter: 'Inter', sans-serif;
+
+  --breakpoint-desktop: 1440px;
+  --breakpoint-tablet: 768px;
+  --breakpoint-mobile: 425px;
+}
+
+/* Importamos las fuentes directamente de Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Inter:wght@400;500;600&display=swap');
+
+body {
+  font-family: var(--font-inter);
+  background-color: var(--color-cream);
+  color: var(--color-text-main);
+  margin: 0;
+}
+
+h1, h2, h3, .font-elegant {
+  font-family: var(--font-playfair);
+}
