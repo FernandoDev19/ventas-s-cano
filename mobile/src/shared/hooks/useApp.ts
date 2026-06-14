@@ -8,9 +8,11 @@ import NetInfo from "@react-native-community/netinfo";
 import { supabase } from "@/src/core/config/supabase";
 import { Audio } from "expo-av";
 import { useRouter } from "expo-router";
+import { useNotifications } from "./useNotifications";
 
 export const useApp = () => {
   const [isInitialized, setIsInitialized] = useState(false);
+  const { notificationsConfigurate } = useNotifications();
   const router = useRouter();
 
   async function reproducirSonidAlerta() {
@@ -55,12 +57,10 @@ export const useApp = () => {
               {
                 text: "Ver pedido",
                 onPress: () =>
-                  router.push(
-                    {
-                      pathname: "/(tabs)/(sales)/sales",
-                      params: { tab: "Ordenes" }
-                    }
-                  ),
+                  router.push({
+                    pathname: "/(tabs)/(sales)/sales",
+                    params: { tab: "Ordenes" },
+                  }),
               },
             ],
           );
@@ -74,6 +74,10 @@ export const useApp = () => {
       supabase.removeChannel(channel);
     };
   }, [router]);
+
+  useEffect(() => {
+    notificationsConfigurate();
+  }, [notificationsConfigurate]);
 
   useEffect(() => {
     let unsubscribeNetInfo: (() => void) | undefined;
