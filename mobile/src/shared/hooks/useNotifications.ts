@@ -1,7 +1,19 @@
 import { useCallback } from "react";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
+import { router } from "expo-router"; // Asegúrate de importar el router de Expo
 import { supabase } from "@/src/core/config/supabase";
+
+// Configuración obligatoria fuera del hook para que la app sepa qué hacer con la app abierta
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
 
 export const useNotifications = () => {
   const saveTokenInSupabase = async (token: string) => {
@@ -18,6 +30,7 @@ export const useNotifications = () => {
     }
   };
 
+  // Tu función original melá, usando tu projectId real
   const notificationsConfigurate = useCallback(async () => {
     try {
       if (__DEV__) {
@@ -42,6 +55,7 @@ export const useNotifications = () => {
         return;
       }
 
+      // Dejamos tu projectId intacto para cuando tires el build nativo
       const tokenData = await Notifications.getExpoPushTokenAsync({
         projectId: "b8ba3324-6576-458a-8010-7aa73314f49d",
       });
@@ -52,7 +66,7 @@ export const useNotifications = () => {
       await saveTokenInSupabase(token);
 
       if (Platform.OS === "android") {
-        Notifications.setNotificationChannelAsync("default", {
+        await Notifications.setNotificationChannelAsync("default", {
           name: "default",
           importance: Notifications.AndroidImportance.MAX,
           vibrationPattern: [0, 250, 250, 250],
@@ -64,7 +78,32 @@ export const useNotifications = () => {
     }
   }, []);
 
+  // 🚀 LA TRAÍDA DEL MÁS ALLÁ: Escuchar cuando el dueño toca la notificación
+  const listenToNotifications = useCallback(() => {
+    const subscription = Notifications.addNotificationResponseReceivedListener(
+      (response) => {
+        // Extraemos el ID de la orden que viaja en el objeto 'data' desde la Edge Function
+        const orderId = response.notification.request.content.data?.orderId;
+
+        if (orderId) {
+          console.log(`🚀 Abriendo la orden desde la notificación: ${orderId}`);
+          // Lo mandas directo a la vista de órdenes
+          router.push({
+            pathname: "/(tabs)/(sales)/sales",
+            params: { tab: "Ordenes" },
+          });
+        }
+      },
+    );
+
+    // Retornamos la función para poder limpiar el invento en el layout
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
   return {
     notificationsConfigurate,
+    listenToNotifications, // Lo exportas aquí para amarrarlo en el _layout.tsx
   };
 };

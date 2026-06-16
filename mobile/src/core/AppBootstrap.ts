@@ -1,18 +1,18 @@
-import { SalesService } from "@/src/features/sales/services/sales.service";
 import { Alert } from "react-native";
-import { SyncService } from "../services/sync.service";
-import { seeders } from "@/src/core/config/seeders";
-import DATABASE from "@/src/core/config/db";
+import { SalesService } from "../features/sales/services/sales.service";
+import { SyncService } from "../shared/services/sync.service";
+import DATABASE from "./config/db";
+import { seeders } from "./config/seeders";
 import { useCallback, useEffect, useState } from "react";
-import NetInfo from "@react-native-community/netinfo";
-import { supabase } from "@/src/core/config/supabase";
-import { Audio } from "expo-av";
+import { supabase } from "./config/supabase";
 import { useRouter } from "expo-router";
-import { useNotifications } from "./useNotifications";
+import { useNotifications } from "../shared/hooks/useNotifications";
+import { Audio } from "expo-av";
+import NetInfo from "@react-native-community/netinfo";
 
-export const useApp = () => {
+export const AppBootstrap = () => {
   const [isInitialized, setIsInitialized] = useState(false);
-  const { notificationsConfigurate } = useNotifications();
+  const { notificationsConfigurate, listenToNotifications } = useNotifications();
   const router = useRouter();
 
   async function reproducirSonidAlerta() {
@@ -77,11 +77,18 @@ export const useApp = () => {
 
   useEffect(() => {
     notificationsConfigurate();
-  }, [notificationsConfigurate]);
+
+    const unsubscribeClicks = listenToNotifications();
+
+    // Limpieza obligatoria al desmontar el componente
+    return () => {
+      if (unsubscribeClicks) unsubscribeClicks();
+    };
+  }, [notificationsConfigurate, listenToNotifications]);
 
   useEffect(() => {
     let unsubscribeNetInfo: (() => void) | undefined;
-    let unsubscribeRealtime: (() => void) | undefined; // 2. Guardamos la limpieza de realtime
+    let unsubscribeRealtime: (() => void) | undefined;
 
     async function inicializarTodo() {
       try {
@@ -89,7 +96,9 @@ export const useApp = () => {
         await DATABASE.initDb();
 
         // 2. Ejecutar los seeders de desarrollo
-        await seeders.run();
+        if(__DEV__) {
+          await seeders.run();
+        }
 
         // 3. Forzar una sincronización inicial por si quedaron ventas reales con '0' antes de cerrar la app
         await SyncService.run();
@@ -124,7 +133,6 @@ export const useApp = () => {
           );
         }
 
-        // 6. CORRECCIÓN AQUÍ: Capturamos la función de limpieza que retorna ordersRealtime
         unsubscribeRealtime = ordersRealtime();
       } catch (error) {
         console.error("Error crítico al arrancar la aplicación:", error);

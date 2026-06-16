@@ -1,20 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   RefreshControl,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
-import { SalesService } from "../services/sales.service";
-import { SaleType } from "../types/sale.type";
 import SaleCard from "./SaleCard";
-import SalesSummaryBar, { FilterId } from "./SalesSummaryBar";
 import SaleDetailModal from "./SaleDetailModal";
-import { useFocusEffect } from "expo-router";
+import { useSales } from "../hooks/useSales";
+import HeaderTabs from "@/src/shared/components/HeaderTabs";
+import SalesHeader from "./SalesHeader";
 
 interface SalesScreenProps {
   onChangeTab: (tab: "Ventas" | "Ordenes") => void;
@@ -25,78 +21,20 @@ export default function SalesScreen({
   onChangeTab,
   activeTab,
 }: SalesScreenProps) {
-  const [sales, setSales] = useState<SaleType[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [filter, setFilter] = useState<FilterId>("all");
-  const [payingId, setPayingId] = useState<string | null>(null);
-  const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
-
-  const loadSales = useCallback(async (silent = false) => {
-    if (!silent) setIsLoading(true);
-    try {
-      const data = await SalesService.getSales();
-      setSales(data);
-    } catch (err) {
-      console.error("Error loading sales:", err);
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadSales();
-  }, [loadSales]);
-
-  useFocusEffect(
-    useCallback(() => {
-      loadSales();
-    }, [loadSales]),
-  );
-
-  const onRefresh = useCallback(() => {
-    setIsRefreshing(true);
-    loadSales(true);
-  }, [loadSales]);
-
-  const filteredSales = useMemo(() => {
-    if (filter === "paid") return sales.filter((s) => !s.is_debt);
-    if (filter === "debt") return sales.filter((s) => s.is_debt);
-    return sales;
-  }, [sales, filter]);
-
-  const handleMarkAsPaid = useCallback(async (saleId: string) => {
-    Alert.alert(
-      "Cobrar venta",
-      "¿Seguro que quieres marcar esta venta como pagada?",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Cobrar",
-          style: "default",
-          onPress: async () => {
-            setPayingId(saleId);
-            try {
-              await SalesService.markSaleAsPaid(saleId);
-              // Update locally without re-fetching
-              setSales((prev) =>
-                prev.map((s) =>
-                  s.id === saleId
-                    ? { ...s, is_debt: false, debt_amount: 0 }
-                    : s,
-                ),
-              );
-            } catch (err) {
-              Alert.alert("Error", "No se pudo actualizar la venta.");
-            } finally {
-              setPayingId(null);
-            }
-          },
-        },
-      ],
-    );
-  }, []);
+  const {
+    sales,
+    isLoading,
+    filteredSales,
+    filter,
+    setFilter,
+    handleMarkAsPaid,
+    payingId,
+    selectedSaleId,
+    setSelectedSaleId,
+    onRefresh,
+    isRefreshing,
+    loadSales,
+  } = useSales();
 
   if (isLoading) {
     return (
@@ -114,25 +52,12 @@ export default function SalesScreen({
 
   return (
     <View className="flex-1" style={{ backgroundColor: "#0f0f0f" }}>
-      <View className="flex-row bg-background border-b border-neutral-800">
-        {(["Ventas", "Ordenes"] as ("Ventas" | "Ordenes")[]).map((tab) => (
-          <TouchableOpacity
-            key={tab}
-            className={`flex-1 py-4 items-center border-b-2 ${
-              activeTab === tab ? "border-orange-500" : "border-transparent"
-            }`}
-            onPress={() => onChangeTab(tab)}
-          >
-            <Text
-              className={`font-bold text-xs uppercase tracking-wider ${
-                activeTab === tab ? "text-orange-600" : "text-neutral-400"
-              }`}
-            >
-              {tab}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      <HeaderTabs
+        tabs={["Ventas", "Ordenes"]}
+        activeTab={activeTab}
+        onChangeTab={onChangeTab}
+      />
+
       <FlatList
         data={filteredSales}
         keyExtractor={(item) => String(item.id)}
@@ -144,48 +69,7 @@ export default function SalesScreen({
           />
         }
         ListHeaderComponent={
-          <View className="pt-4">
-            {/* Title */}
-            <View className="px-4 mb-4 flex-row justify-between items-center">
-              <View>
-                <Text className="text-2xl font-extrabold text-white">
-                  Ventas
-                </Text>
-                <Text className="text-neutral-500 text-sm">
-                  {sales.length} venta{sales.length !== 1 ? "s" : ""} registrada
-                  {sales.length !== 1 ? "s" : ""}
-                </Text>
-              </View>
-              <View className="flex-row items-center gap-2">
-                <Ionicons name="analytics-outline" size={20} color="#ff5722" />
-              </View>
-            </View>
-
-            <SalesSummaryBar
-              filter={filter}
-              setFilter={setFilter}
-              sales={sales}
-            />
-
-            {/* Section label */}
-            <View className="px-4 mb-2 flex-row items-center gap-2">
-              <View
-                className="h-px flex-1"
-                style={{ backgroundColor: "#2a2a2a" }}
-              />
-              <Text className="text-neutral-600 text-xs uppercase tracking-widest px-2">
-                {filter === "all"
-                  ? "Todas las ventas"
-                  : filter === "paid"
-                    ? "Ventas pagadas"
-                    : "Ventas fiadas"}
-              </Text>
-              <View
-                className="h-px flex-1"
-                style={{ backgroundColor: "#2a2a2a" }}
-              />
-            </View>
-          </View>
+          <SalesHeader sales={sales} filter={filter} setFilter={setFilter} />
         }
         renderItem={({ item }) => (
           <SaleCard

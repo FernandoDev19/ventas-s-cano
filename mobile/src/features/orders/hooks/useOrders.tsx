@@ -1,30 +1,16 @@
-import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
-  Linking,
-} from "react-native";
+import { useEffect, useState } from "react";
 import { OrderItemDetail, OrderPro } from "../types/order.type";
+import { OrderStatusTabType } from "../types/status-tab.type";
 import { OrdersService } from "../services/orders.service";
+import { Alert, Linking, Text, TouchableOpacity, View } from "react-native";
 import { SalesService } from "../../sales/services/sales.service";
 
-type StatusTab = "pending" | "accepted" | "completed";
-
-interface Props {
-  onChangeTab: (tab: "Ventas" | "Ordenes") => void;
-  activeGTab: "Ventas" | "Ordenes";
-}
-
-export default function OrdersScreen({ onChangeTab, activeGTab }: Props) {
+export const useOrders = () => {
   const [orders, setOrders] = useState<OrderPro[]>([]);
-  const [activeTab, setActiveTab] = useState<StatusTab>("pending");
+  const [activeTab, setActiveTab] = useState<OrderStatusTabType>("pending");
   const [loading, setLoading] = useState(false);
 
-  const cargarOrdenes = async (status: StatusTab) => {
+  const cargarOrdenes = async (status: OrderStatusTabType) => {
     setLoading(true);
     const data = await OrdersService.getOrdersByStatus(status);
     setOrders(data);
@@ -235,68 +221,11 @@ export default function OrdersScreen({ onChangeTab, activeGTab }: Props) {
     </View>
   );
 
-  return (
-    <View className="flex-1 bg-background">
-      <View className="flex-row bg-background border-b border-neutral-800">
-        {(["Ventas", "Ordenes"] as ("Ventas" | "Ordenes")[]).map((tab) => (
-          <TouchableOpacity
-            key={tab}
-            className={`flex-1 py-4 items-center border-b-2 ${
-              activeGTab === tab ? "border-orange-500" : "border-transparent"
-            }`}
-            onPress={() => onChangeTab(tab)}
-          >
-            <Text
-              className={`font-bold text-xs uppercase tracking-wider ${
-                activeGTab === tab ? "text-orange-600" : "text-neutral-400"
-              }`}
-            >
-              {tab}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-      {/* Tabs Superiores */}
-      <View className="flex-row bg-background border-b border-neutral-800">
-        {(["pending", "accepted", "completed"] as StatusTab[]).map((tab) => (
-          <TouchableOpacity
-            key={tab}
-            className={`flex-1 py-4 items-center border-b-2 ${
-              activeTab === tab ? "border-orange-500" : "border-transparent"
-            }`}
-            onPress={() => setActiveTab(tab)}
-          >
-            <Text
-              className={`font-bold text-xs uppercase tracking-wider ${
-                activeTab === tab ? "text-orange-600" : "text-neutral-400"
-              }`}
-            >
-              {tab === "pending"
-                ? "Pendientes"
-                : tab === "accepted"
-                  ? "En cocina"
-                  : "Entregados"}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* Lista Principal */}
-      {loading ? (
-        <ActivityIndicator size="large" color="#ff5722" className="mt-8" />
-      ) : (
-        <FlatList
-          data={orders}
-          keyExtractor={(item) => item.id}
-          renderItem={renderOrderItem}
-          contentContainerStyle={{ padding: 16 }}
-          ListEmptyComponent={
-            <Text className="text-center text-neutral-400 mt-12 text-sm">
-              No hay pedidos en esta sección por ahora. 🍕
-            </Text>
-          }
-        />
-      )}
-    </View>
-  );
-}
+  return {
+    orders,
+    loading,
+    renderOrderItem,
+    setActiveTab,
+    activeTab,
+  };
+};

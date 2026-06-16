@@ -7,12 +7,12 @@ import { ClientsService } from "../../clients/services/clients.service";
 import { useEffect, useState } from "react";
 import { PaymentMethodsType } from "@/src/shared/types/payment-methods.type";
 import { ClientType } from "../../clients/types/client.type";
-import { useOrder } from "@/src/shared/hooks/useOrder";
+import { useContextOrder } from "@/src/shared/hooks/useContextOrder";
 import { ProductsService } from "../../inventory/services/products.service";
 
 export const useCartModal = (onSaleCreated: () => void) => {
   const { order, addToOrder, addRecipeToOrder, removeFromOrder, clearOrder } =
-    useOrder();
+    useContextOrder();
 
   const totalItems = order.reduce((sum, item) => sum + item.quantity, 0);
   const totalPrecio = order.reduce((sum, item) => {
@@ -25,7 +25,6 @@ export const useCartModal = (onSaleCreated: () => void) => {
 
   const [clients, setClients] = useState<ClientType[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
-  const [showClientPicker, setShowClientPicker] = useState(false);
 
   const [isDebt, setIsDebt] = useState(false);
   const [note, setNote] = useState("");
@@ -179,7 +178,6 @@ export const useCartModal = (onSaleCreated: () => void) => {
     getItemPrice,
     handleIncrement,
     handleDecrement,
-    setShowClientPicker,
     setModalVisible,
     setDebtDate,
     setSelectedClientId,
@@ -187,7 +185,6 @@ export const useCartModal = (onSaleCreated: () => void) => {
     setAmountDebt,
     setNote,
     clients,
-    showClientPicker,
     totalPrecio,
     totalItems,
     showDatePicker,

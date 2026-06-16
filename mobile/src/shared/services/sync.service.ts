@@ -4,7 +4,7 @@ import NetInfo from "@react-native-community/netinfo";
 
 export const SyncService = {
   /**
-   * Ejecuta la sincronización completa de todas las tablas hacia la nube
+   * Ejecuta la sincronización bidireccional completa (Pull -> Push)
    */
   run: async () => {
     try {
@@ -15,9 +15,28 @@ export const SyncService = {
         return;
       }
 
-      console.log("Iniciando sincronización con Supabase...");
+      console.log("🔄 Iniciando sincronización bidireccional con Supabase...");
 
-      // 2. Sincronizar en orden de dependencias (Primero tablas padres, luego hijos)
+      // ==========================================
+      // FASE 1: PULL (Bajar datos de la nube al móvil)
+      // Tablas maestras e inventario indispensables
+      // ==========================================
+      const tablasParaBajar = [
+        "categories",
+        "products",
+        "recipes",
+        "recipe_ingredients",
+        "clients"
+      ];
+
+      for (const table of tablasParaBajar) {
+        await SyncService.pullTable(table);
+      }
+
+      // ==========================================
+      // FASE 2: PUSH (Subir cambios locales a la nube)
+      // Conservamos tu orden original de dependencias
+      // ==========================================
       await SyncService.syncTable("categories");
       await SyncService.syncTable("products");
       await SyncService.syncTable("clients");
@@ -28,17 +47,65 @@ export const SyncService = {
       await SyncService.syncTable("recipe_ingredients");
       await SyncService.syncTable("expenses");
 
-      console.log("¡Sincronización completada exitosamente!");
+      console.log("¡Sincronización bidireccional completada exitosamente!");
     } catch (error) {
       console.error("Error global durante la sincronización:", error);
     }
   },
 
   /**
-   * Sincroniza una tabla específica filtrando los registros locales no guardados
+   * FASE PULL: Se trae los datos de la nube y los clava en el SQLite
+   */
+  pullTable: async (tableName: string) => {
+    try {
+      console.log(`📥 Descargando actualizaciones de la tabla [${tableName}]...`);
+
+      // 1. Traer todo de Supabase
+      const { data: cloudRecords, error } = await supabase
+        .from(tableName)
+        .select("*");
+
+      if (error) {
+        console.error(`Error al descargar [${tableName}]:`, error.message);
+        return false;
+      }
+
+      if (!cloudRecords || cloudRecords.length === 0) return true;
+
+      // 2. Insertar o Reemplazar en lote en SQLite local
+      // Desactivamos llaves foráneas un momento por seguridad en el lote
+      DATABASE.db.execSync("PRAGMA foreign_keys = OFF;");
+      
+      DATABASE.db.withTransactionSync(() => {
+        for (const record of cloudRecords) {
+          // Extraemos las columnas dinámicamente de la data de la nube
+          const keys = Object.keys(record);
+          const columns = [...keys, "sincronizado"].join(", ");
+          
+          // Mapeamos los valores y forzamos que sincronizado sea 1 (ya viene de la nube)
+          const placeholders = [...keys.map(() => "?"), "1"].join(", ");
+          const values = [...keys.map(k => record[k])];
+
+          const query = `INSERT OR REPLACE INTO ${tableName} (${columns}) VALUES (${placeholders})`;
+          DATABASE.db.runSync(query, values);
+        }
+      });
+
+      console.log(`✅ Tabla [${tableName}] actualizada localmente con ${cloudRecords.length} registros.`);
+      return true;
+    } catch (err) {
+      console.error(`Chicharrón haciendo Pull de [${tableName}]:`, err);
+      return false;
+    } finally {
+      DATABASE.db.execSync("PRAGMA foreign_keys = ON;");
+    }
+  },
+
+  /**
+   * FASE PUSH: Sincroniza una tabla filtrando los registros locales no guardados
    */
   syncTable: async (tableName: string) => {
-    // Obtener los datos pendientes (sincronizado = 0) desde SQLite
+    // Tu código original impecable que filtra deleted_at, hace el upsert y el update local...
     const pendingRecords = DATABASE.db.getAllSync(
       `SELECT * FROM ${tableName} WHERE sincronizado = 0`,
     ) as any[];
@@ -49,69 +116,38 @@ export const SyncService = {
       `Subiendo ${pendingRecords.length} registros pendientes de la tabla [${tableName}]...`,
     );
 
-    const recordsToDelete = pendingRecords.filter(
-      (record) => record.deleted_at !== null,
-    );
-    const recordsToUpsert = pendingRecords.filter(
-      (record) => record.deleted_at === null,
-    );
+    const recordsToDelete = pendingRecords.filter((record) => record.deleted_at !== null);
+    const recordsToUpsert = pendingRecords.filter((record) => record.deleted_at === null);
 
     if (recordsToDelete.length > 0) {
       const idsToDelete = recordsToDelete.map((r) => r.id);
-
-      const { error: deleteError } = await supabase
-        .from(tableName)
-        .delete()
-        .in("id", idsToDelete); // Borra en lote todos los IDs en la nube
+      const { error: deleteError } = await supabase.from(tableName).delete().in("id", idsToDelete);
 
       if (deleteError) {
-        console.error(
-          `Error al borrar en Supabase [${tableName}]:`,
-          deleteError.message,
-        );
+        console.error(`Error al borrar en Supabase [${tableName}]:`, deleteError.message);
         return false;
       }
 
-      // FÍSICO LOCAL: Una vez borrado de la nube, ya podemos destruirlo con seguridad del teléfono
       const formattedIds = idsToDelete.map((id) => `'${id}'`).join(",");
-
       try {
-        // 1. Apagamos temporalmente la verificación de llaves foráneas en el celular
         DATABASE.db.execSync("PRAGMA foreign_keys = OFF;");
-
-        // 2. Ejecutamos el borrado físico sin bloqueos
-        DATABASE.db.execSync(
-          `DELETE FROM ${tableName} WHERE id IN (${formattedIds})`,
-        );
+        DATABASE.db.execSync(`DELETE FROM ${tableName} WHERE id IN (${formattedIds})`);
       } finally {
-        // 3. ¡Importante! Volvemos a encender la seguridad pase lo que pase
         DATABASE.db.execSync("PRAGMA foreign_keys = ON;");
       }
     }
 
     if (recordsToUpsert.length > 0) {
-      // Quitar las columnas locales antes de enviar a la nube
-      const cleanRecords = recordsToUpsert.map(
-        ({ sincronizado, deleted_at, ...rest }) => rest,
-      );
-
-      const { error: upsertError } = await supabase
-        .from(tableName)
-        .upsert(cleanRecords);
+      const cleanRecords = recordsToUpsert.map(({ sincronizado, deleted_at, ...rest }) => rest);
+      const { error: upsertError } = await supabase.from(tableName).upsert(cleanRecords);
 
       if (upsertError) {
-        console.error(
-          `Error al subir a Supabase [${tableName}]:`,
-          upsertError.message,
-        );
+        console.error(`Error al subir a Supabase [${tableName}]:`, upsertError.message);
         return false;
       }
 
-      // Marcar como sincronizados en el SQLite local
       const formattedIds = recordsToUpsert.map((r) => `'${r.id}'`).join(",");
-      DATABASE.db.execSync(
-        `UPDATE ${tableName} SET sincronizado = 1 WHERE id IN (${formattedIds})`,
-      );
+      DATABASE.db.execSync(`UPDATE ${tableName} SET sincronizado = 1 WHERE id IN (${formattedIds})`);
     }
 
     return true;

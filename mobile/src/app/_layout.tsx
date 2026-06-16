@@ -5,11 +5,11 @@ import { DarkTheme, ThemeProvider } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { OrderProvider } from "../core/context/OrderContext";
-import { useApp } from "../shared/hooks/useApp";
 import { ActivityIndicator, View } from "react-native";
+import { AppBootstrap } from '../core/AppBootstrap';
 
 export default function RootLayout() {
-  const { isInitialized } = useApp();
+  const { isInitialized } = AppBootstrap();
 
   if (!isInitialized) {
     return (
@@ -30,7 +30,6 @@ export default function RootLayout() {
     <ThemeProvider value={DarkTheme}>
       <OrderProvider>
         <Stack>
-          {/* Tabs */}
           <Stack.Screen name="(tabs)" options={{ header: () => <Header /> }} />
         </Stack>
         <StatusBar style="auto" />

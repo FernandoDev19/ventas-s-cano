@@ -1,4 +1,4 @@
-import SalesOrdersScreen from "@/src/features/sales/components/SalesOrdersScreen";
+import SalesOrdersScreen from "@/src/features/sales/SalesOrdersScreen";
 import { useLocalSearchParams } from "expo-router";
 
 export default function SalesTab() {

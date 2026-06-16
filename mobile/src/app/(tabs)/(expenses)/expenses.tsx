@@ -1,4 +1,4 @@
-import ExpensesScreen from "@/src/features/expenses/components/ExpensesScreen"
+import ExpensesScreen from "@/src/features/expenses/ExpensesScreen"
 
 const ExpensesTab = () => {
     return (

@@ -1,5 +1,5 @@
 import { priceFormat } from "@/src/shared/helpers/price-format.helper";
-import { useOrder } from "@/src/shared/hooks/useOrder";
+import { useContextOrder } from "@/src/shared/hooks/useContextOrder";
 import { Ionicons } from "@expo/vector-icons";
 import { Image, Pressable, Text, View } from "react-native";
 import { RecipeType } from "../../recipes/types/recipe.type";
@@ -9,10 +9,10 @@ type Props = {
 };
 
 const MenuRecipeCard = ({ recipe }: Props) => {
-  const { addRecipeToOrder, removeFromOrder, order } = useOrder();
+  const { addRecipeToOrder, removeFromOrder, order } = useContextOrder();
 
   const orderItem = order.find(
-    (item) => item.type === "recipe" && item.recipe.id === recipe.id
+    (item) => item.type === "recipe" && item.recipe.id === recipe.id,
   );
   const qty = orderItem?.quantity ?? 0;
   const canOrder = recipe.canPrepare !== false;
@@ -42,44 +42,73 @@ const MenuRecipeCard = ({ recipe }: Props) => {
           resizeMode="cover"
         />
         {/* Recipe badge */}
-        <View style={{
-          position: "absolute",
-          top: 8,
-          left: 8,
-          backgroundColor: "#ff5722",
-          borderRadius: 6,
-          paddingHorizontal: 7,
-          paddingVertical: 3,
-        }}>
-          <Text style={{ color: "#fff", fontSize: 9, fontWeight: "800", letterSpacing: 0.5 }}>
+        <View
+          style={{
+            position: "absolute",
+            top: 8,
+            left: 8,
+            backgroundColor: "#ff5722",
+            borderRadius: 6,
+            paddingHorizontal: 7,
+            paddingVertical: 3,
+          }}
+        >
+          <Text
+            style={{
+              color: "#fff",
+              fontSize: 9,
+              fontWeight: "800",
+              letterSpacing: 0.5,
+            }}
+          >
             RECETA
           </Text>
         </View>
         {!canOrder && (
-          <View style={{
-            position: "absolute",
-            top: 0, left: 0, right: 0, bottom: 0,
-            alignItems: "center",
-            justifyContent: "center",
-            backgroundColor: "rgba(0,0,0,0.45)",
-          }}>
-            <Text style={{ color: "#ef4444", fontWeight: "800", fontSize: 13 }}>Sin ingredientes</Text>
+          <View
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              alignItems: "center",
+              justifyContent: "center",
+              backgroundColor: "rgba(0,0,0,0.45)",
+            }}
+          >
+            <Text style={{ color: "#ef4444", fontWeight: "800", fontSize: 13 }}>
+              Sin ingredientes
+            </Text>
           </View>
         )}
       </View>
 
       {/* Info */}
       <View style={{ padding: 12 }}>
-        <Text style={{ color: "#fff", fontSize: 13, fontWeight: "700" }} numberOfLines={1}>
+        <Text
+          style={{ color: "#fff", fontSize: 13, fontWeight: "700" }}
+          numberOfLines={1}
+        >
           {recipe.name}
         </Text>
         {recipe.description ? (
-          <Text style={{ color: "#737373", fontSize: 10, marginTop: 2 }} numberOfLines={1}>
+          <Text
+            style={{ color: "#737373", fontSize: 10, marginTop: 2 }}
+            numberOfLines={1}
+          >
             {recipe.description}
           </Text>
         ) : null}
 
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 8 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginTop: 8,
+          }}
+        >
           <Text style={{ color: "#ff5722", fontSize: 16, fontWeight: "800" }}>
             {priceFormat(recipe.selling_price)}
           </Text>
@@ -100,7 +129,9 @@ const MenuRecipeCard = ({ recipe }: Props) => {
             }}
           >
             {qty > 0 ? (
-              <Text style={{ color: "#fff", fontWeight: "900", fontSize: 12 }}>{qty}</Text>
+              <Text style={{ color: "#fff", fontWeight: "900", fontSize: 12 }}>
+                {qty}
+              </Text>
             ) : (
               <Ionicons name="add" size={16} color="#ff5722" />
             )}

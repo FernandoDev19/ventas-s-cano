@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { useState } from "react";
+import { getIcon } from "../helpers/getIcon";
 
 type ExpenseDetailModalProps = {
   visible: boolean;
@@ -20,18 +21,6 @@ type ExpenseDetailModalProps = {
   onClose: () => void;
   onDeleted: () => void;
 };
-
-const EXPENSE_ICONS: Record<string, any> = {
-  "Pollos": "fast-food-outline",
-  "Cerdo & Picadas": "nutrition-outline",
-  "Embutidos (Buti/Chorizo)": "restaurant-outline",
-  "Bebidas": "water-outline",
-  "Cervezas / Alcohol": "beer-outline",
-};
-
-function getIcon(categoryName: string): any {
-  return EXPENSE_ICONS[categoryName] ?? "pricetag-outline";
-}
 
 export default function ExpenseDetailModal({
   visible,

@@ -1,6 +1,6 @@
 import Button from "@/src/shared/components/ui/Button";
 import { priceFormat } from "@/src/shared/helpers/price-format.helper";
-import { useOrder } from "@/src/shared/hooks/useOrder";
+import { useContextOrder } from "@/src/shared/hooks/useContextOrder";
 import { Ionicons } from "@expo/vector-icons";
 import { Image, Pressable, Text, View } from "react-native";
 import { ProductType } from "../../inventory/types/product.type";
@@ -10,7 +10,7 @@ type Props = {
 };
 
 const MenuProductCard = ({ product }: Props) => {
-  const { addToOrder, order } = useOrder();
+  const { addToOrder, order } = useContextOrder();
 
   const orderItem = order.find(
     (item) => item.type === "product" && item.product.id === product.id,

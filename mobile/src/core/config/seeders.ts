@@ -363,8 +363,6 @@ export const seeders = {
       await recipesTable();
       await salesTable();
       await expensesTable();
-    } else {
-      await categoriesTable();
     }
   },
 

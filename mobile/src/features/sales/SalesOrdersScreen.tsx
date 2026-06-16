@@ -1,14 +1,16 @@
 import React, { useState } from "react";
-import SalesScreen from "./SalesScreen";
-import OrdersScreen from "../../orders/components/OrdersScreen";
+import SalesScreen from "./components/SalesScreen";
+import OrdersScreen from "./../orders/OrdersScreen";
 
 interface SalesOrdersScreenProps {
   initialTab?: "Ventas" | "Ordenes";
 }
 
-export default function SalesOrdersScreen({ initialTab }: SalesOrdersScreenProps) {
+export default function SalesOrdersScreen({
+  initialTab,
+}: SalesOrdersScreenProps) {
   const [activeTab, setActiveTab] = useState<"Ventas" | "Ordenes">(
-    initialTab || "Ventas"
+    initialTab || "Ventas",
   );
 
   if (activeTab === "Ventas") {

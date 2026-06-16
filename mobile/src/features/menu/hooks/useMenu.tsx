@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { CategoryType } from "../../categories/types/category.type";
 import { CategoriesService } from "../../categories/services/categories.service";
 import { Alert } from "react-native";
@@ -7,7 +7,6 @@ import { useFocusEffect } from "expo-router";
 export const useMenu = () => {
   const [filter, setFilter] = useState("");
   const [categories, setCategories] = useState<Partial<CategoryType>[]>([]);
-   const [showQRModal, setShowQRModal] = useState(false);
 
   const loadCategories = useCallback(async () => {
     try {
@@ -33,8 +32,6 @@ export const useMenu = () => {
   return {
     filter,
     categories,
-    setFilter,
-    showQRModal,
-    setShowQRModal,
+    setFilter
   };
 };

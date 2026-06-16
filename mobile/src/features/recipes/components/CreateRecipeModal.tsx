@@ -21,6 +21,7 @@ import { priceFormat } from "@/src/shared/helpers/price-format.helper";
 import { useFiles } from "@/src/shared/hooks/useFiles";
 import { SupabaseStorageService } from "@/src/shared/services/supabase-storage.service";
 import { v4 as uuidv4 } from "uuid";
+import CategoriesModal from "../../categories/components/CategoriesModal";
 
 type Props = {
   visible: boolean;
@@ -59,6 +60,7 @@ export default function CreateRecipeModal({
   const [isSaving, setIsSaving] = useState(false);
   const [isPickingImage, setIsPickingImage] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isCategoriesModalOpen, setIsCategoriesModalOpen] = useState(false);
 
   const { elegirImagenProducto } = useFiles();
 
@@ -403,49 +405,49 @@ export default function CreateRecipeModal({
               </View>
 
               {/* Category */}
-              <Text style={styles.label}>Categoría (opcional)</Text>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                style={{ marginBottom: 20 }}
+              <Text style={styles.label}>Categoría</Text>
+              <Pressable
+                onPress={() => setIsCategoriesModalOpen(true)}
+                className="h-16 bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl px-4 flex-row items-center gap-2 mb-6"
               >
                 <View
                   style={{
                     flexDirection: "row",
+                    alignItems: "center",
                     gap: 8,
-                    paddingRight: 24,
                   }}
                 >
-                  {categories.map((cat) => (
-                    <Pressable
-                      key={cat.id}
-                      onPress={() =>
-                        setCategoryId(categoryId === cat.id ? null : cat.id)
-                      }
-                      style={{
-                        paddingHorizontal: 16,
-                        paddingVertical: 8,
-                        borderRadius: 20,
-                        backgroundColor:
-                          categoryId === cat.id ? "#ff5722" : "#1a1a1a",
-                        borderWidth: 1,
-                        borderColor:
-                          categoryId === cat.id ? "#ff5722" : "#2a2a2a",
-                      }}
-                    >
-                      <Text
-                        style={{
-                          color: categoryId === cat.id ? "#fff" : "#a3a3a3",
-                          fontWeight: "600",
-                          fontSize: 13,
-                        }}
-                      >
-                        {cat.name}
-                      </Text>
-                    </Pressable>
-                  ))}
+                  <Ionicons
+                    name="folder-outline"
+                    size={18}
+                    color={categoryId ? "#ff5722" : "#737373"}
+                  />
+                  <Text
+                    style={{
+                      color: categoryId ? "#fff" : "#737373",
+                      fontSize: 15,
+                    }}
+                  >
+                    {categoryId
+                      ? categories.find((c) => c.id === categoryId)?.name
+                      : "Selecciona una categoría"}
+                  </Text>
                 </View>
-              </ScrollView>
+                <Ionicons name="chevron-down" size={16} color="#555" />
+              </Pressable>
+
+              <CategoriesModal
+                onSelect={(id) => {
+                  setIsCategoriesModalOpen(false);
+                  setCategoryId(id);
+                }}
+                visible={isCategoriesModalOpen}
+                onCreated={(id) => {
+                  setIsCategoriesModalOpen(false);
+                  setCategoryId(id);
+                }}
+                onClose={() => setIsCategoriesModalOpen(false)}
+              />
 
               {/* Ingredients */}
               <View

@@ -1,6 +1,6 @@
 import { useState } from "react";
-import InventoryScreen from "./InventoryScreen";
-import RecipesScreen from "../../recipes/components/RecipesScreen";
+import InventoryScreen from "./components/InventoryScreen";
+import RecipesScreen from "../recipes/RecipesScreen";
 
 export default function InventoryRecipesScreen() {
     const [activeTab, setActiveTab] = useState<"productos" | "recetas">("productos");
