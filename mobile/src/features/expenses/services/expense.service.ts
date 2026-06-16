@@ -68,7 +68,7 @@ const ExpensesService = {
     const id = uuidv4();
     const dateStr = new Date(expense.date).toISOString().split("T")[0];
     await DATABASE.db.runAsync(
-      "INSERT INTO expenses (id, description, category_id, amount, date, notes) VALUES (?, ?, ?, ?, ?, ?)",
+      "INSERT INTO expenses (id, description, category_id, amount, date, notes, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
       [
         id,
         expense.description,
@@ -76,8 +76,12 @@ const ExpensesService = {
         expense.amount,
         dateStr,
         expense.notes || "",
+        0,
+        new Date().toISOString()
       ],
     );
+
+    SyncService.run().catch(err => console.error("Error sincronizando gasto:", err));
     return {
       id,
       ...expense,

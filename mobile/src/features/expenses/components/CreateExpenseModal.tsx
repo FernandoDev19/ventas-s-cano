@@ -59,7 +59,7 @@ export default function CreateExpenseModal({
       Alert.alert("Falta categoría", "Por favor selecciona una categoría.");
       return;
     }
-
+ 
     setIsSaving(true);
     try {
       await ExpensesService.createExpense({
@@ -71,9 +71,15 @@ export default function CreateExpenseModal({
       });
       reset();
       onCreated();
+      Alert.alert("Gasto registrado", "El gasto se registró correctamente.");
     } catch (err) {
-      Alert.alert("Error", "No se pudo guardar el gasto.");
-      console.error(err);
+      console.error("❌ Error creando gasto:", err);
+      const errorMessage = err instanceof Error ? err.message : "Desconocido";
+      Alert.alert(
+        "❌ Error al guardar",
+        `No se pudo registrar el gasto.\n\nDetalles: ${errorMessage}`,
+        [{ text: "Reintentar", onPress: () => setIsSaving(false) }]
+      );
     } finally {
       setIsSaving(false);
     }
