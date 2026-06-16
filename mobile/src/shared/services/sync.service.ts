@@ -2,6 +2,16 @@ import DATABASE from "@/src/core/config/db";
 import { supabase } from "@/src/core/config/supabase";
 import NetInfo from "@react-native-community/netinfo";
 
+interface SyncConflict {
+  table: string;
+  recordId: string;
+  localVersion: any;
+  cloudVersion: any;
+  resolution: "local" | "cloud";
+}
+
+const SYNC_LOG: SyncConflict[] = [];
+
 export const SyncService = {
   /**
    * Ejecuta la sincronización bidireccional completa (Pull -> Push)
@@ -15,141 +25,295 @@ export const SyncService = {
         return;
       }
 
+      SYNC_LOG.length = 0;
+
       console.log("🔄 Iniciando sincronización bidireccional con Supabase...");
 
-      // ==========================================
-      // FASE 1: PULL (Bajar datos de la nube al móvil)
-      // Tablas maestras e inventario indispensables
-      // ==========================================
       const tablasParaBajar = [
         "categories",
         "products",
         "recipes",
         "recipe_ingredients",
-        "clients"
+        "clients",
       ];
 
       for (const table of tablasParaBajar) {
-        await SyncService.pullTable(table);
+        await SyncService.mergePullTable(table);
       }
 
-      // ==========================================
-      // FASE 2: PUSH (Subir cambios locales a la nube)
-      // Conservamos tu orden original de dependencias
-      // ==========================================
-      await SyncService.syncTable("categories");
-      await SyncService.syncTable("products");
-      await SyncService.syncTable("clients");
-      await SyncService.syncTable("recipes");
-      await SyncService.syncTable("sales");
-      await SyncService.syncTable("sale_products");
-      await SyncService.syncTable("sale_recipes");
-      await SyncService.syncTable("recipe_ingredients");
-      await SyncService.syncTable("expenses");
+      await SyncService.pushTable("categories");
+      await SyncService.pushTable("products");
+      await SyncService.pushTable("clients");
+      await SyncService.pushTable("recipes");
+      await SyncService.pushTable("sales");
+      await SyncService.pushTable("sale_products");
+      await SyncService.pushTable("sale_recipes");
+      await SyncService.pushTable("recipe_ingredients");
+      await SyncService.pushTable("expenses");
 
-      console.log("¡Sincronización bidireccional completada exitosamente!");
+      console.log("✅ Sincronización completada exitosamente!");
+      if (SYNC_LOG.length > 0) {
+        console.warn(`⚠️  Se resolvieron ${SYNC_LOG.length} conflictos`);
+        console.table(SYNC_LOG);
+      }
     } catch (error) {
-      console.error("Error global durante la sincronización:", error);
+      console.error("❌ Error crítico en sincronización:", error);
     }
   },
 
-  /**
-   * FASE PULL: Se trae los datos de la nube y los clava en el SQLite
-   */
-  pullTable: async (tableName: string) => {
+  mergePullTable: async (tableName: string): Promise<boolean> => {
     try {
-      console.log(`📥 Descargando actualizaciones de la tabla [${tableName}]...`);
+      console.log(`📥 Descargando [${tableName}]...`);
 
-      // 1. Traer todo de Supabase
+      // 1. Traer todos los datos de Supabase
       const { data: cloudRecords, error } = await supabase
         .from(tableName)
         .select("*");
 
       if (error) {
-        console.error(`Error al descargar [${tableName}]:`, error.message);
+        console.error(`❌ Error descargando [${tableName}]:`, error.message);
         return false;
       }
 
-      if (!cloudRecords || cloudRecords.length === 0) return true;
+      if (!cloudRecords || cloudRecords.length === 0) {
+        return true;
+      }
 
-      // 2. Insertar o Reemplazar en lote en SQLite local
-      // Desactivamos llaves foráneas un momento por seguridad en el lote
+      // 2. Para cada registro, comparar timestamps
       DATABASE.db.execSync("PRAGMA foreign_keys = OFF;");
-      
-      DATABASE.db.withTransactionSync(() => {
-        for (const record of cloudRecords) {
-          // Extraemos las columnas dinámicamente de la data de la nube
-          const keys = Object.keys(record);
-          const columns = [...keys, "sincronizado"].join(", ");
-          
-          // Mapeamos los valores y forzamos que sincronizado sea 1 (ya viene de la nube)
-          const placeholders = [...keys.map(() => "?"), "1"].join(", ");
-          const values = [...keys.map(k => record[k])];
 
-          const query = `INSERT OR REPLACE INTO ${tableName} (${columns}) VALUES (${placeholders})`;
-          DATABASE.db.runSync(query, values);
+      DATABASE.db.withTransactionSync(() => {
+        for (const cloudRecord of cloudRecords) {
+          // Obtener versión local
+          const localRecord: any = DATABASE.db.getFirstSync(
+            `SELECT * FROM ${tableName} WHERE id = ?`,
+            [cloudRecord.id],
+          );
+
+          if (!localRecord) {
+            // Nuevo registro de la nube → Insertar
+            SyncService._insertRecord(tableName, cloudRecord);
+          } else {
+            // Ambos existen → Comparar timestamps
+            const localUpdated = new Date(localRecord.updated_at || 0);
+            const cloudUpdated = new Date(cloudRecord.updated_at || 0);
+
+            if (cloudUpdated > localUpdated) {
+              // Cloud es más reciente → Traer cloud (REEMPLAZAR)
+              SyncService._insertRecord(tableName, cloudRecord);
+              SYNC_LOG.push({
+                table: tableName,
+                recordId: cloudRecord.id,
+                localVersion: localRecord,
+                cloudVersion: cloudRecord,
+                resolution: "cloud",
+              });
+              console.log(
+                `  ⚠️  [${tableName}:${cloudRecord.id}] Cloud es más nuevo (${cloudUpdated.getTime()} vs ${localUpdated.getTime()})`,
+              );
+            } else if (localUpdated > cloudUpdated) {
+              // Local es más reciente → Mantener local (NO TOCAR)
+              SYNC_LOG.push({
+                table: tableName,
+                recordId: cloudRecord.id,
+                localVersion: localRecord,
+                cloudVersion: cloudRecord,
+                resolution: "local",
+              });
+              console.log(
+                `  ✓ [${tableName}:${cloudRecord.id}] Local es más nuevo, manteniendo cambios`,
+              );
+            } else {
+              // Misma fecha → "Last-Write-Wins" por content hash o cloud wins
+              if (JSON.stringify(localRecord) !== JSON.stringify(cloudRecord)) {
+                SyncService._insertRecord(tableName, cloudRecord);
+                SYNC_LOG.push({
+                  table: tableName,
+                  recordId: cloudRecord.id,
+                  localVersion: localRecord,
+                  cloudVersion: cloudRecord,
+                  resolution: "cloud",
+                });
+                console.log(
+                  `  🔀 [${tableName}:${cloudRecord.id}] Timestamps iguales pero contenido diferente → Usando Cloud`,
+                );
+              }
+            }
+          }
         }
       });
 
-      console.log(`✅ Tabla [${tableName}] actualizada localmente con ${cloudRecords.length} registros.`);
+      DATABASE.db.execSync("PRAGMA foreign_keys = ON;");
       return true;
     } catch (err) {
-      console.error(`Chicharrón haciendo Pull de [${tableName}]:`, err);
+      console.error(`❌ Error en mergePullTable [${tableName}]:`, err);
       return false;
-    } finally {
-      DATABASE.db.execSync("PRAGMA foreign_keys = ON;");
     }
   },
 
-  /**
-   * FASE PUSH: Sincroniza una tabla filtrando los registros locales no guardados
-   */
-  syncTable: async (tableName: string) => {
-    // Tu código original impecable que filtra deleted_at, hace el upsert y el update local...
-    const pendingRecords = DATABASE.db.getAllSync(
+  _insertRecord: (tableName: string, record: any) => {
+    const keys = Object.keys(record);
+    const columns = [...keys, "sincronizado"].join(", ");
+    const placeholders = [...keys.map(() => "?"), "1"].join(", ");
+    const values = [...keys.map((k) => record[k])];
+
+    const query = `INSERT OR REPLACE INTO ${tableName} (${columns}) VALUES (${placeholders})`;
+    DATABASE.db.runSync(query, values);
+  },
+
+  pushTable: async (tableName: string): Promise<boolean> => {
+    const pendingRecords: any[] = DATABASE.db.getAllSync(
       `SELECT * FROM ${tableName} WHERE sincronizado = 0`,
-    ) as any[];
-
-    if (pendingRecords.length === 0) return false;
-
-    console.log(
-      `Subiendo ${pendingRecords.length} registros pendientes de la tabla [${tableName}]...`,
     );
 
-    const recordsToDelete = pendingRecords.filter((record) => record.deleted_at !== null);
-    const recordsToUpsert = pendingRecords.filter((record) => record.deleted_at === null);
+    if (pendingRecords.length === 0) {
+      return true; // Nada que pushear
+    }
 
-    if (recordsToDelete.length > 0) {
-      const idsToDelete = recordsToDelete.map((r) => r.id);
-      const { error: deleteError } = await supabase.from(tableName).delete().in("id", idsToDelete);
+    console.log(
+      `📤 Pusheando ${pendingRecords.length} cambios de [${tableName}]...`,
+    );
 
-      if (deleteError) {
-        console.error(`Error al borrar en Supabase [${tableName}]:`, deleteError.message);
-        return false;
-      }
+    try {
+      // 1. Separar registros a eliminar vs actualizar
+      const recordsToDelete = pendingRecords.filter(
+        (r) => r.deleted_at !== null,
+      );
+      const recordsToUpsert = pendingRecords.filter(
+        (r) => r.deleted_at === null,
+      );
 
-      const formattedIds = idsToDelete.map((id) => `'${id}'`).join(",");
-      try {
+      // 2. Eliminar registros marcados como deleted
+      if (recordsToDelete.length > 0) {
+        const idsToDelete = recordsToDelete.map((r) => r.id);
+
+        // VALIDACIÓN: Verificar que en la nube existen y no han sido modificados
+        const { data: cloudVersions, error: fetchError } = await supabase
+          .from(tableName)
+          .select("id, updated_at")
+          .in("id", idsToDelete);
+
+        if (fetchError) {
+          console.error(
+            `❌ Error validando eliminaciones en [${tableName}]:`,
+            fetchError.message,
+          );
+          return false;
+        }
+
+        // Verificar que no han sido modificados DESPUÉS de nuestro deleted_at
+        for (const cloudRec of cloudVersions || []) {
+          const localRec = recordsToDelete.find((r) => r.id === cloudRec.id);
+          if (localRec) {
+            const cloudUpdated = new Date(cloudRec.updated_at || 0);
+            const localDeleted = new Date(localRec.deleted_at || 0);
+
+            if (cloudUpdated > localDeleted) {
+              console.warn(
+                `⚠️  [${tableName}:${cloudRec.id}] Conflicto: Cloud modificado DESPUÉS de nuestro delete. Ignorando.`,
+              );
+              // NO borrar si la nube lo modificó después
+              continue;
+            }
+          }
+        }
+
+        // Ejecutar eliminación
+        const { error: deleteError } = await supabase
+          .from(tableName)
+          .delete()
+          .in("id", idsToDelete);
+
+        if (deleteError) {
+          console.error(
+            `❌ Error eliminando en [${tableName}]:`,
+            deleteError.message,
+          );
+          return false;
+        }
+
+        // Actualizar local como sincronizado
+        const formattedIds = idsToDelete.map((id) => `'${id}'`).join(",");
         DATABASE.db.execSync("PRAGMA foreign_keys = OFF;");
-        DATABASE.db.execSync(`DELETE FROM ${tableName} WHERE id IN (${formattedIds})`);
-      } finally {
+        DATABASE.db.execSync(
+          `DELETE FROM ${tableName} WHERE id IN (${formattedIds})`,
+        );
         DATABASE.db.execSync("PRAGMA foreign_keys = ON;");
       }
-    }
 
-    if (recordsToUpsert.length > 0) {
-      const cleanRecords = recordsToUpsert.map(({ sincronizado, deleted_at, ...rest }) => rest);
-      const { error: upsertError } = await supabase.from(tableName).upsert(cleanRecords);
+      // 3. Upsert registros (crear o actualizar)
+      if (recordsToUpsert.length > 0) {
+        const cleanRecords = recordsToUpsert.map(
+          ({ sincronizado, deleted_at, ...rest }) => rest,
+        );
 
-      if (upsertError) {
-        console.error(`Error al subir a Supabase [${tableName}]:`, upsertError.message);
-        return false;
+        // VALIDACIÓN PRE-UPSERT: Revisar conflictos
+        const recordIds = recordsToUpsert.map((r) => r.id);
+        const { data: cloudVersions, error: fetchError } = await supabase
+          .from(tableName)
+          .select("id, updated_at, *")
+          .in("id", recordIds);
+
+        if (fetchError) {
+          console.error(
+            `❌ Error validando upserts en [${tableName}]:`,
+            fetchError.message,
+          );
+          return false;
+        }
+
+        // Detectar conflictos: cloud más nuevo que local
+        const conflictingIds: string[] = [];
+        for (const cloudRec of cloudVersions || []) {
+          const localRec = recordsToUpsert.find((r) => r.id === cloudRec.id);
+          if (localRec) {
+            const cloudUpdated = new Date(cloudRec.updated_at || 0);
+            const localUpdated = new Date(localRec.updated_at || 0);
+
+            if (cloudUpdated > localUpdated) {
+              console.warn(
+                `⚠️  [${tableName}:${cloudRec.id}] No subiendo: Cloud es más nuevo`,
+              );
+              conflictingIds.push(cloudRec.id);
+            }
+          }
+        }
+
+        // Filtrar registros conflictivos
+        const validRecords = cleanRecords.filter(
+          (r: any) => !conflictingIds.includes(r.id),
+        );
+
+        // Ejecutar upsert
+        if (validRecords.length > 0) {
+          const { error: upsertError } = await supabase
+            .from(tableName)
+            .upsert(validRecords);
+
+          if (upsertError) {
+            console.error(
+              `❌ Error en upsert [${tableName}]:`,
+              upsertError.message,
+            );
+            // ROLLBACK: NO marcar como sincronizado
+            return false;
+          }
+
+          // Marcar solo los que se subieron exitosamente
+          const formattedIds = validRecords
+            .map((r: any) => `'${r.id}'`)
+            .join(",");
+          DATABASE.db.execSync(
+            `UPDATE ${tableName} SET sincronizado = 1 WHERE id IN (${formattedIds})`,
+          );
+        }
       }
 
-      const formattedIds = recordsToUpsert.map((r) => `'${r.id}'`).join(",");
-      DATABASE.db.execSync(`UPDATE ${tableName} SET sincronizado = 1 WHERE id IN (${formattedIds})`);
+      console.log(`✅ [${tableName}] Push completado`);
+      return true;
+    } catch (err) {
+      console.error(`❌ Error en pushTable [${tableName}]:`, err);
+      return false;
     }
-
-    return true;
   },
 };

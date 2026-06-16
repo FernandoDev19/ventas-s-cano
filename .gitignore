@@ -16,3 +16,4 @@ frontend/.env
 backend/node_modules
 frontend_old
 docs
+mobile/supabase
