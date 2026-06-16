@@ -87,7 +87,7 @@ export default function CartFooter({
             <View className="flex-col items-center justify-center gap-1 w-full">
               {method === PaymentMethods.NEQUI ? (
                 <Image
-                  source={require("../../../../assets/icons/nequi.png")}
+                  source={require("@/assets/icons/nequi.png")}
                   style={{ width: 22, height: 22 }}
                 />
               ) : (
