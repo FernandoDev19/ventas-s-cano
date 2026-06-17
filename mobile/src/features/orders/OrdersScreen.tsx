@@ -21,6 +21,11 @@ export default function OrdersScreen({ onChangeTab, activeGTab }: Props) {
     <View className="flex-1 bg-background">
       {/* Tabs Superiores */}
       <HeaderTabs
+        tabs={["Ventas", "Ordenes"]}
+        activeTab={activeGTab}
+        onChangeTab={(tab) => onChangeTab(tab as "Ventas" | "Ordenes")}
+      />
+      <HeaderTabs
         tabs={Object.values(ORDER_STATUS_TAB)}
         activeTab={activeTab}
         onChangeTab={(tab) => setActiveTab(tab as OrderStatusTabType)}
