@@ -4,6 +4,7 @@ import { OrderStatusTabType } from "../types/status-tab.type";
 import { OrdersService } from "../services/orders.service";
 import { Alert, Linking, Text, TouchableOpacity, View } from "react-native";
 import { SalesService } from "../../sales/services/sales.service";
+import { PrinterService } from "@/src/shared/services/printer.service";
 
 export const useOrders = () => {
   const [orders, setOrders] = useState<OrderPro[]>([]);
@@ -104,6 +105,55 @@ export const useOrders = () => {
       setLoading(true);
       await SalesService.crearVentaDesdeOrdenWeb(orden, tipoPago);
       await OrdersService.updateOrderStatus(orden.id, "accepted");
+
+      // Imprimir ticket de caja y cocina
+      try {
+        const cajaConfig = await PrinterService.getConfig("caja");
+        if (cajaConfig.enabled) {
+          const displayItems = orden.order_items.map((item) => ({
+            quantity: item.quantity,
+            name: item.products?.name || item.recipes?.name || "Producto",
+            price: item.price_at_time,
+          }));
+
+          const printerSaleObj = {
+            id: orden.id,
+            total: orden.total_price,
+            is_debt: tipoPago === "deuda",
+            debt_amount: tipoPago === "deuda" ? orden.total_price : 0,
+            payment_method: tipoPago,
+            client_name: orden.customer_name,
+            note: orden.comments,
+            created_at: new Date(),
+          };
+
+          const ticketCmds = PrinterService.generateCajaTicket(printerSaleObj, displayItems);
+          await PrinterService.print("caja", ticketCmds);
+        }
+
+        const cocinaConfig = await PrinterService.getConfig("cocina");
+        if (cocinaConfig.enabled) {
+          const comandaItems = orden.order_items.map((item) => ({
+            quantity: item.quantity,
+            name: item.products?.name || item.recipes?.name || "Producto",
+          }));
+
+          const comandaObj = {
+            id: orden.id,
+            delivery_type: orden.delivery_type,
+            customer_name: orden.customer_name,
+            customer_phone: orden.customer_phone,
+            delivery_address: orden.delivery_address,
+            comments: orden.comments,
+          };
+
+          const kitchenCmds = PrinterService.generateCocinaComanda(comandaObj, comandaItems);
+          await PrinterService.print("cocina", kitchenCmds);
+        }
+      } catch (printErr) {
+        console.error("Error al imprimir orden aceptada:", printErr);
+      }
+
       Alert.alert(
         "¡Pedido Aceptado!",
         "Pasó a la cocina e ingresó a las finanzas locales.",

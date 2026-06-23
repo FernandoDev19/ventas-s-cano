@@ -9,6 +9,7 @@ import { PaymentMethodsType } from "@/src/shared/types/payment-methods.type";
 import { ClientType } from "../../clients/types/client.type";
 import { useContextOrder } from "@/src/shared/hooks/useContextOrder";
 import { ProductsService } from "../../inventory/services/products.service";
+import { PrinterService } from "@/src/shared/services/printer.service";
 
 export const useCartModal = (onSaleCreated: () => void) => {
   const { order, addToOrder, addRecipeToOrder, removeFromOrder, clearOrder } =
@@ -86,7 +87,61 @@ export const useCartModal = (onSaleCreated: () => void) => {
         .filter(Boolean);
 
       // Crear la venta y pasar ambas listas
-      await SalesService.createSale(sale, productsToSave, recipesToSave);
+      const createdSale = await SalesService.createSale(sale, productsToSave, recipesToSave);
+
+      // Imprimir ticket de caja y cocina
+      try {
+        const cajaConfig = await PrinterService.getConfig("caja");
+        if (cajaConfig.enabled) {
+          const displayItems = order.map((item) => ({
+            quantity: item.quantity,
+            name: item.type === "product" ? item.product.name : item.recipe.name,
+            price: item.type === "product" ? item.product.price : item.recipe.selling_price,
+          }));
+
+          let clientName = "";
+          if (sale.is_debt && sale.client_id) {
+            const clientObj = clients.find((c) => c.id === sale.client_id);
+            if (clientObj) clientName = clientObj.name;
+          }
+
+          const printerSaleObj = {
+            ...createdSale,
+            client_name: clientName,
+            payment_method: sale.payment_method,
+            note: sale.note,
+          };
+
+          const ticketCmds = PrinterService.generateCajaTicket(printerSaleObj, displayItems);
+          await PrinterService.print("caja", ticketCmds);
+        }
+
+        const cocinaConfig = await PrinterService.getConfig("cocina");
+        if (cocinaConfig.enabled) {
+          const comandaItems = order.map((item) => ({
+            quantity: item.quantity,
+            name: item.type === "product" ? item.product.name : item.recipe.name,
+          }));
+
+          let clientName = "";
+          if (sale.is_debt && sale.client_id) {
+            const clientObj = clients.find((c) => c.id === sale.client_id);
+            if (clientObj) clientName = clientObj.name;
+          }
+
+          const comandaObj = {
+            id: createdSale.id,
+            delivery_type: "local",
+            customer_name: clientName || "Caja Local",
+            note: sale.note,
+          };
+
+          const kitchenCmds = PrinterService.generateCocinaComanda(comandaObj, comandaItems);
+          await PrinterService.print("cocina", kitchenCmds);
+        }
+      } catch (printErr) {
+        console.error("Error al mandar a imprimir desde checkout:", printErr);
+      }
 
       // Deducir stock de ingredientes de las recetas
       for (const item of recipeItems) {

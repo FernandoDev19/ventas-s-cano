@@ -12,8 +12,12 @@ import CreateExpenseModal from "./components/CreateExpenseModal";
 import { useExpenses } from "./hooks/useExpenses";
 import ExpensesHeader from "./components/ExpensesHeader";
 import ExpenseItem from "./components/ExpenseItem";
+import HeaderTabs from "@/src/shared/components/HeaderTabs";
+import { useState } from "react";
+import CashierArchiveScreen from "../cashier/CashierArchiveScreen";
 
 export default function ExpensesScreen() {
+  const [activeTab, setActiveTab] = useState<"gastos" | "arqueo">("gastos");
   const {
     isLoading,
     expenses,
@@ -49,81 +53,94 @@ export default function ExpensesScreen() {
 
   return (
     <View className="flex-1 bg-background">
-      <FlatList
-        data={filteredExpenses}
-        keyExtractor={(item) => String(item.id)}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={onRefresh}
-            tintColor="#ff5722"
+      <HeaderTabs
+        tabs={["gastos", "arqueo"]}
+        activeTab={activeTab}
+        onChangeTab={(tab) => setActiveTab(tab as "gastos" | "arqueo")}
+      />
+
+      {activeTab === "gastos" ? (
+        <View className="flex-1">
+          <FlatList
+            data={filteredExpenses}
+            keyExtractor={(item) => String(item.id)}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={onRefresh}
+                tintColor="#ff5722"
+              />
+            }
+            ListHeaderComponent={
+              <ExpensesHeader
+                categories={categories}
+                expenses={expenses}
+                totalMonth={totalMonth}
+                byCategory={byCategory}
+                selectedCategory={selectedCategory}
+                setSelectedCategory={setSelectedCategory}
+              />
+            }
+            renderItem={({ item }) => {
+              const cat = categories.find((c) => c.id === item.category_id);
+              return (
+                <ExpenseItem
+                  item={item}
+                  cat={cat}
+                  setSelectedExpense={setSelectedExpense}
+                  handleDelete={handleDelete}
+                />
+              );
+            }}
+            ListEmptyComponent={
+              <View className="items-center justify-center py-20 px-8">
+                <View
+                  className="w-20 h-20 rounded-full items-center justify-center mb-4"
+                  style={{ backgroundColor: "#1a1a1a" }}
+                >
+                  <Ionicons name="wallet-outline" size={36} color="#444" />
+                </View>
+                <Text className="text-white font-bold text-lg text-center mb-1">
+                  Sin gastos
+                </Text>
+                <Text className="text-neutral-500 text-sm text-center">
+                  No hay gastos registrados
+                  {selectedCategory !== null ? " en esta categoría" : ""}
+                </Text>
+              </View>
+            }
+            contentContainerStyle={{ paddingBottom: 100 }}
+            showsVerticalScrollIndicator={false}
           />
-        }
-        ListHeaderComponent={
-          <ExpensesHeader
+
+          <Button onPress={() => setShowCreate(true)} circle>
+            <Ionicons name="add" size={28} color="#fff" />
+          </Button>
+
+          <CreateExpenseModal
+            visible={showCreate}
             categories={categories}
-            expenses={expenses}
-            totalMonth={totalMonth}
-            byCategory={byCategory}
-            selectedCategory={selectedCategory}
-            setSelectedCategory={setSelectedCategory}
+            onClose={() => setShowCreate(false)}
+            onCreated={() => {
+              setShowCreate(false);
+              loadData(true);
+            }}
           />
-        }
-        renderItem={({ item }) => {
-          const cat = categories.find((c) => c.id === item.category_id);
-          return (
-            <ExpenseItem
-              item={item}
-              cat={cat}
-              setSelectedExpense={setSelectedExpense}
-              handleDelete={handleDelete}
-            />
-          );
-        }}
-        ListEmptyComponent={
-          <View className="items-center justify-center py-20 px-8">
-            <View
-              className="w-20 h-20 rounded-full items-center justify-center mb-4"
-              style={{ backgroundColor: "#1a1a1a" }}
-            >
-              <Ionicons name="wallet-outline" size={36} color="#444" />
-            </View>
-            <Text className="text-white font-bold text-lg text-center mb-1">
-              Sin gastos
-            </Text>
-            <Text className="text-neutral-500 text-sm text-center">
-              No hay gastos registrados
-              {selectedCategory !== null ? " en esta categoría" : ""}
-            </Text>
-          </View>
-        }
-        contentContainerStyle={{ paddingBottom: 100 }}
-        showsVerticalScrollIndicator={false}
-      />
 
-      <Button onPress={() => setShowCreate(true)} circle>
-        <Ionicons name="add" size={28} color="#fff" />
-      </Button>
-
-      <CreateExpenseModal
-        visible={showCreate}
-        categories={categories}
-        onClose={() => setShowCreate(false)}
-        onCreated={() => {
-          setShowCreate(false);
-          loadData(true);
-        }}
-      />
-
-      <ExpenseDetailModal
-        visible={selectedExpense !== null}
-        expense={selectedExpense}
-        category={
-          categories.find((c) => c.id === selectedExpense?.category_id) ?? null
-        }
-        onClose={() => setSelectedExpense(null)}
-        onDeleted={() => loadData(true)}
-      />
+          <ExpenseDetailModal
+            visible={selectedExpense !== null}
+            expense={selectedExpense}
+            category={
+              categories.find((c) => c.id === selectedExpense?.category_id) ??
+              null
+            }
+            onClose={() => setSelectedExpense(null)}
+            onDeleted={() => loadData(true)}
+          />
+        </View>
+      ) : (
+        <CashierArchiveScreen />
+      )}
     </View>
   );
 }

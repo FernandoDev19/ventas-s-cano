@@ -7,6 +7,7 @@ import { StatusBar } from "expo-status-bar";
 import { OrderProvider } from "../core/context/OrderContext";
 import { ActivityIndicator, View } from "react-native";
 import { AppBootstrap } from '../core/AppBootstrap';
+import VirtualPrinterModal from '@/src/shared/components/printer/VirtualPrinterModal';
 
 export default function RootLayout() {
   const { isInitialized } = AppBootstrap();
@@ -32,6 +33,7 @@ export default function RootLayout() {
         <Stack>
           <Stack.Screen name="(tabs)" options={{ header: () => <Header /> }} />
         </Stack>
+        <VirtualPrinterModal />
         <StatusBar style="auto" />
       </OrderProvider>
     </ThemeProvider>

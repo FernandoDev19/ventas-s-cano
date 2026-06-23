@@ -24,6 +24,7 @@ import { ClientType } from "@/src/features/clients/types/client.type";
 import ReasonDialog from "./ReasonDialog";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as Clipboard from "expo-clipboard";
+import { PrinterService } from "@/src/shared/services/printer.service";
 
 type SaleDetailModalProps = {
   visible: boolean;
@@ -135,7 +136,7 @@ export default function SaleDetailModal({
               onUpdated();
               onClose();
             } catch (err) {
-              Alert.alert("Error", "No se pudo actualizar la venta.");
+              Alert.alert("Error", "No se pudo actualizar la venta.\n" + err);
             } finally {
               setIsPaying(false);
             }
@@ -324,6 +325,45 @@ export default function SaleDetailModal({
   const copyToClipboard = async (text: string) => {
     await Clipboard.setStringAsync(text);
     Alert.alert("¡Copiado!", "El texto se ha guardado en el portapapeles");
+  };
+
+  const handleReprintTicket = async () => {
+    if (!sale) return;
+    try {
+      const displayItems = [
+        ...sale.products.map((p) => ({
+          quantity: p.quantity,
+          name: p.product_name,
+          price: p.price,
+        })),
+        ...sale.recipes.map((r) => ({
+          quantity: r.quantity,
+          name: r.recipe_name,
+          price: r.price,
+        })),
+      ];
+
+      const printerSaleObj = {
+        id: sale.id,
+        total: sale.total,
+        is_debt: sale.is_debt,
+        debt_amount: sale.debt_amount,
+        debt_date: sale.debt_date ? new Date(sale.debt_date).toISOString().split("T")[0] : null,
+        payment_method: sale.payment_method,
+        client_name: sale.client?.name || "",
+        note: sale.note,
+        created_at: sale.created_at,
+      };
+
+      const ticketCmds = PrinterService.generateCajaTicket(printerSaleObj, displayItems);
+      const ok = await PrinterService.print("caja", ticketCmds);
+      if (ok) {
+        Alert.alert("¡Enviado!", "Comandos de impresión enviados a la caja.");
+      }
+    } catch (err) {
+      console.error(err);
+      Alert.alert("Error", "No se pudo generar o enviar el ticket.");
+    }
   };
 
   if (!visible) return null;
@@ -1523,6 +1563,40 @@ export default function SaleDetailModal({
                           </Text>
                         </>
                       )}
+                    </Pressable>
+                  )}
+
+                  {/* Botón Reimprimir Ticket */}
+                  {sale.status !== "cancelled" && (
+                    <Pressable
+                      onPress={handleReprintTicket}
+                      style={{
+                        backgroundColor: "#1a1a1a",
+                        paddingVertical: 16,
+                        borderRadius: 16,
+                        alignItems: "center",
+                        flexDirection: "row",
+                        justifyContent: "center",
+                        gap: 8,
+                        marginTop: 12,
+                        borderWidth: 1.5,
+                        borderColor: "#ff5722",
+                      }}
+                    >
+                      <Ionicons
+                        name="print-outline"
+                        size={20}
+                        color="#ff5722"
+                      />
+                      <Text
+                        style={{
+                          color: "#ff5722",
+                          fontSize: 16,
+                          fontWeight: "800",
+                        }}
+                      >
+                        Reimprimir Ticket de Venta
+                      </Text>
                     </Pressable>
                   )}
                 </>
