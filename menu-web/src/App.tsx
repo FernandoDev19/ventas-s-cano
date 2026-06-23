@@ -1,91 +1,36 @@
-import { useEffect, useState, useCallback } from "react";
-import { MenuService, type MenuExtendedItem } from "./services/menu.service";
 import Cart from "./components/cart/Cart";
 import CardContainer from "./components/card-container/CardContainer";
 import CartConfirmation from "./components/cart/cart-confirmation/CartConfirmation";
 import Header from "./components/Header";
-import { useCartStore } from "./store/cart.store";
 import CheckoutModal from "./components/checkout-modal/CheckoutModal";
+import { useMenu } from "./hooks/useMenu";
 
 export default function App() {
-  const [categories, setCategories] = useState<{ id: string; name: string }[]>(
-    [],
-  );
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [menuItems, setMenuItems] = useState<MenuExtendedItem[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  // Estado para el buscador
-  const [searchQuery, setSearchQuery] = useState<string>("");
-
-  // Estado para saber si el local está abierto internamente
-  const [isOpenNow, setIsOpenNow] = useState(true);
-
-  // 2. Extraemos de Zustand de forma reactiva y consistente
   const {
+    isOpenNow,
+    tableId,
+    searchQuery,
+    setSearchQuery,
+    selectedCategory,
+    setSelectedCategory,
+    categories,
+    loading,
+    filteredItems,
+    totalItems,
     isCartOpen,
-    openCart,
     isConfirmationOpen,
-    items,
     isCheckoutOpen,
-  } = useCartStore();
-
-  const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
-  const totalPrice = items.reduce(
-    (acc, item) => acc + item.price * item.quantity,
-    0,
-  );
-
-  useEffect(() => {
-    const checkOpenStatus = () => {
-      const now = new Date();
-      const hour = now.getHours();
-      // Abierto desde las 15:00 (3 PM) hasta las 23:59 (Cierra a las 12 AM)
-      setIsOpenNow(hour >= 15 && hour < 24);
-    };
-
-    checkOpenStatus();
-    const interval = setInterval(checkOpenStatus, 60000); // Revisa cada minuto
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    MenuService.getCategories().then((res) => {
-      setCategories(res);
-    });
-  }, []);
-
-  const fetchMenu = useCallback(() => {
-    return selectedCategory === "all"
-      ? MenuService.getMenu()
-      : MenuService.getMenuByCategory(selectedCategory);
-  }, [selectedCategory]);
-
-  useEffect(() => {
-    if (!selectedCategory) return;
-    setLoading(true);
-
-    fetchMenu()
-      .then((items) => {
-        setMenuItems(items);
-      })
-      .catch((err) => console.error(err))
-      .finally(() => setLoading(false));
-  }, [selectedCategory, fetchMenu]);
-
-  const filteredItems = menuItems.filter(
-    (item) =>
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (item.description &&
-        item.description.toLowerCase().includes(searchQuery.toLowerCase())),
-  );
+    openCart,
+    totalPrice,
+    fetchMenu,
+  } = useMenu();
 
   return (
     <main className="min-h-screen bg-background text-charcoal max-w-7xl mx-auto p-4 md:p-8 pb-24 md:pb-8">
       <Header />
 
       <div className="bg-[#181818] border border-gold/30 rounded-b-xl p-3 mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs shadow-xs">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <span
             className={`px-2 py-0.5 rounded-full font-bold text-[10px] uppercase tracking-wider ${
               isOpenNow
@@ -95,10 +40,18 @@ export default function App() {
           >
             {isOpenNow ? "● Abierto" : "○ Cerrado"}
           </span>
+
+          {tableId !== "caja" && (
+            <span className="bg-gold text-charcoal font-black px-2.5 py-0.5 rounded-md uppercase tracking-wider text-[11px]">
+              Mesa # {tableId}
+            </span>
+          )}
+
           <span className="text-gold font-medium">
             3:00 p. m. - 12:00 a. m.
           </span>
         </div>
+
         <div className="text-gold sm:text-right font-medium flex items-center gap-1">
           📍{" "}
           <a
@@ -217,9 +170,9 @@ export default function App() {
         </div>
       )}
 
-      {isCartOpen && <Cart /> }
+      {isCartOpen && <Cart />}
       {isConfirmationOpen && <CartConfirmation onNewOrder={fetchMenu} />}
-      {isCheckoutOpen && <CheckoutModal />}
+      {isCheckoutOpen && <CheckoutModal tableId={tableId} />}
 
       <a href="https://api.whatsapp.com/send/?phone=573013878360&text=Hola%21+Me+gustar%C3%ADa+realizar+un+pedido&type=phone_number&app_absent=0">
         <button className="fixed bottom-20 md:bottom-6 right-4 md:right-6 bg-green-500 text-white p-4 rounded-full shadow-xl border border-green-500/30 active:scale-98 transition-transform cursor-pointer">

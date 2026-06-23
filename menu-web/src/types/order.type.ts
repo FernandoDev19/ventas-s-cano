@@ -1,7 +1,7 @@
 export interface OrderCheckoutType {
   nombre: string;
   celular: string;
-  tipoEntrega: "domicilio" | "local";
+  tipoEntrega: "comer_aqui" | "para_llevar" | "domicilio" | "local" | "mesa";
   direccion?: string;
   comentarios?: string;
   items: Array<{

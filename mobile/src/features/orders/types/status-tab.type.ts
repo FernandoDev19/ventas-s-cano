@@ -1,7 +1,9 @@
 export const ORDER_STATUS_TAB = [
   "pending",
   "accepted",
-  "completed",
+  "ready",
+  "delivered",
+  "cancelled",
 ] as const;
 
 export type OrderStatusTabType = (typeof ORDER_STATUS_TAB)[number];

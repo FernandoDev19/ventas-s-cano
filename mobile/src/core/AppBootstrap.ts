@@ -1,8 +1,8 @@
-import { Alert } from "react-native";
+import { Alert, DeviceEventEmitter } from "react-native";
 import { SalesService } from "../features/sales/services/sales.service";
 import { SyncService } from "../shared/services/sync.service";
 import DATABASE from "./config/db";
-import { seeders } from "./config/seeders";
+// import { seeders } from "./config/seeders";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "./config/supabase";
 import { useRouter } from "expo-router";
@@ -12,7 +12,8 @@ import NetInfo from "@react-native-community/netinfo";
 
 export const AppBootstrap = () => {
   const [isInitialized, setIsInitialized] = useState(false);
-  const { notificationsConfigurate, listenToNotifications } = useNotifications();
+  const { notificationsConfigurate, listenToNotifications } =
+    useNotifications();
   const router = useRouter();
 
   async function reproducirSonidAlerta() {
@@ -48,11 +49,24 @@ export const AppBootstrap = () => {
         async (payload) => {
           console.log("📢 PEDIDO NUEVO RECIBIDO EN TIEMPO REAL");
 
+          DeviceEventEmitter.emit("NUEVO_PEDIDO_DESDE_WEB");
+
           await reproducirSonidAlerta();
+
+          const deliveryTypeMap: Record<string, string> = {
+            comer_aqui: "pedido para Comer Aquí 🍽️",
+            para_llevar: "pedido Para Llevar 🛍️",
+            domicilio: "Domicilio 🛵",
+            local: "pedido para Recoger en Local 🏪",
+          };
+
+          const textType =
+            deliveryTypeMap[payload.new.delivery_type] ||
+            `pedido (${payload.new.delivery_type})`;
 
           Alert.alert(
             "¡PEDIDO NUEVO!",
-            `El cliente ${payload.new.customer_name} solicitó un ${payload.new.delivery_type}. Total: $${Number(payload.new.total_price).toLocaleString("es-CO")}`,
+            `El cliente ${payload.new.customer_name} solicitó un ${textType}. \nTotal: $${Number(payload.new.total_price).toLocaleString("es-CO")}`,
             [
               {
                 text: "Ver pedido",
@@ -96,9 +110,9 @@ export const AppBootstrap = () => {
         await DATABASE.initDb();
 
         // 2. Ejecutar los seeders de desarrollo
-        if(__DEV__) {
-          await seeders.run();
-        }
+        // if(__DEV__) {
+        //   await seeders.run();
+        // }
 
         // 3. Forzar una sincronización inicial por si quedaron ventas reales con '0' antes de cerrar la app
         await SyncService.run();

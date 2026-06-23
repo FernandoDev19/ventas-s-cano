@@ -3,10 +3,19 @@ import { OrderPro } from "../types/order.type";
 
 export const OrdersService = {
 getOrdersByStatus: async (status: string): Promise<OrderPro[]> => {
-    const { data, error } = await supabase
+const { data, error } = await supabase
       .from("orders")
       .select(`
-        *,
+        id,
+        customer_name,
+        customer_phone,
+        delivery_type,
+        delivery_address,
+        comments,
+        total_price,
+        status,
+        client_id,
+        table_id,
         order_items (
           id,
           product_id,
@@ -19,7 +28,6 @@ getOrdersByStatus: async (status: string): Promise<OrderPro[]> => {
       `)
       .eq("status", status)
       .order("created_at", { ascending: false });
-
     if (error) {
       console.error("Error jalando órdenes de Supabase:", error.message);
       return [];

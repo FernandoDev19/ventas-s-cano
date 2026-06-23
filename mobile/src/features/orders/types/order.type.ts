@@ -13,11 +13,13 @@ export interface OrderPro {
   client_id: string | null;
   customer_name: string;
   customer_phone: string;
-  delivery_type: "domicilio" | "local";
+  delivery_type: "domicilio" | "local" | "mesa";
   delivery_address: string | null;
   comments: string | null;
   total_price: number;
-  status: "pending" | "accepted" | "rejected" | "completed";
+  status: "pending" | "accepted" | "ready" | "delivered" | "cancelled";
   created_at: string;
+  table_id: number | null;
+  origin: "caja" | "qr_cliente";
   order_items: OrderItemDetail[];
 }

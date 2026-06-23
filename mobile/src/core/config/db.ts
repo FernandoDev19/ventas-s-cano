@@ -166,6 +166,8 @@ const DATABASE = {
         "recipes",
         "recipe_ingredients",
         "sale_recipes",
+        "cashier_shifts",
+        "cash_movements"
       ];
       for (const tableName of tables) {
         try {

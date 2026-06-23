@@ -2,7 +2,7 @@ import { supabase } from "../lib/supabase";
 import type { OrderCheckoutType } from "../types/order.type";
 
 export const CheckoutService = {
-  createOrder: async (data: OrderCheckoutType) => {
+  createOrder: async (data: OrderCheckoutType, tableId?: string) => {
     try {
       const totalPedido = data.items.reduce(
         (acc, item) => acc + item.price * item.quantity,
@@ -39,20 +39,23 @@ export const CheckoutService = {
         clientId = newClient.id;
       }
 
+      const isQR = tableId !== "caja";
+
       // 2. CREAR LA ORDEN PRINCIPAL
       const { data: order, error: orderError } = await supabase
         .from("orders")
         .insert([
-          {
+{
             client_id: clientId,
             customer_name: data.nombre,
             customer_phone: data.celular,
-            delivery_type: data.tipoEntrega,
-            delivery_address:
-              data.tipoEntrega === "domicilio" ? data.direccion : null,
+            delivery_type: isQR ? "mesa" : data.tipoEntrega,
+            delivery_address: data.tipoEntrega === "domicilio" && !isQR ? data.direccion : null,
             comments: data.comentarios,
             total_price: totalPedido,
             status: "pending",
+            table_id: isQR ? Number(tableId) : null,
+            origin: isQR ? "qr_cliente" : "caja",
           },
         ])
         .select("id")
