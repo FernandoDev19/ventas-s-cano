@@ -3,13 +3,13 @@ import { Alert } from "react-native";
 import { RecipesService } from "../../recipes/services/recipes.service";
 import { SalesService } from "../../sales/services/sales.service";
 import { SaleType } from "../../sales/types/sale.type";
-import { ClientsService } from "../../clients/services/clients.service";
 import { useEffect, useState } from "react";
 import { PaymentMethodsType } from "@/src/shared/types/payment-methods.type";
-import { ClientType } from "../../clients/types/client.type";
+import { ContactType } from "../../contacts/types/contact.type";
 import { useContextOrder } from "@/src/shared/hooks/useContextOrder";
 import { ProductsService } from "../../inventory/services/products.service";
 import { PrinterService } from "@/src/shared/services/printer.service";
+import { ContactsService } from "../../contacts/services/contact.service";
 
 export const useCartModal = (onSaleCreated: () => void) => {
   const { order, addToOrder, addRecipeToOrder, removeFromOrder, clearOrder } =
@@ -24,7 +24,7 @@ export const useCartModal = (onSaleCreated: () => void) => {
     return sum;
   }, 0);
 
-  const [clients, setClients] = useState<ClientType[]>([]);
+  const [clients, setClients] = useState<ContactType[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
 
   const [isDebt, setIsDebt] = useState(false);
@@ -42,7 +42,7 @@ export const useCartModal = (onSaleCreated: () => void) => {
 
   useEffect(() => {
     if (modalVisible) {
-      ClientsService.getAll().then(setClients);
+      ContactsService.getClients().then(setClients);
       setAmountDebt(totalPrecio);
     }
   }, [modalVisible, totalPrecio]);
@@ -87,7 +87,11 @@ export const useCartModal = (onSaleCreated: () => void) => {
         .filter(Boolean);
 
       // Crear la venta y pasar ambas listas
-      const createdSale = await SalesService.createSale(sale, productsToSave, recipesToSave);
+      const createdSale = await SalesService.createSale(
+        sale,
+        productsToSave,
+        recipesToSave,
+      );
 
       // Imprimir ticket de caja y cocina
       try {
@@ -95,8 +99,12 @@ export const useCartModal = (onSaleCreated: () => void) => {
         if (cajaConfig.enabled) {
           const displayItems = order.map((item) => ({
             quantity: item.quantity,
-            name: item.type === "product" ? item.product.name : item.recipe.name,
-            price: item.type === "product" ? item.product.price : item.recipe.selling_price,
+            name:
+              item.type === "product" ? item.product.name : item.recipe.name,
+            price:
+              item.type === "product"
+                ? item.product.price
+                : item.recipe.selling_price,
           }));
 
           let clientName = "";
@@ -112,7 +120,10 @@ export const useCartModal = (onSaleCreated: () => void) => {
             note: sale.note,
           };
 
-          const ticketCmds = PrinterService.generateCajaTicket(printerSaleObj, displayItems);
+          const ticketCmds = PrinterService.generateCajaTicket(
+            printerSaleObj,
+            displayItems,
+          );
           await PrinterService.print("caja", ticketCmds);
         }
 
@@ -120,7 +131,8 @@ export const useCartModal = (onSaleCreated: () => void) => {
         if (cocinaConfig.enabled) {
           const comandaItems = order.map((item) => ({
             quantity: item.quantity,
-            name: item.type === "product" ? item.product.name : item.recipe.name,
+            name:
+              item.type === "product" ? item.product.name : item.recipe.name,
           }));
 
           let clientName = "";
@@ -136,7 +148,10 @@ export const useCartModal = (onSaleCreated: () => void) => {
             note: sale.note,
           };
 
-          const kitchenCmds = PrinterService.generateCocinaComanda(comandaObj, comandaItems);
+          const kitchenCmds = PrinterService.generateCocinaComanda(
+            comandaObj,
+            comandaItems,
+          );
           await PrinterService.print("cocina", kitchenCmds);
         }
       } catch (printErr) {

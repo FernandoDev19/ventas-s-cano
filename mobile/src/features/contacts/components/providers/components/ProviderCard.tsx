@@ -1,13 +1,13 @@
-import { priceFormat } from "@/src/shared/helpers/price-format.helper";
 import { Pressable, Text, View } from "react-native";
+import { ContactType } from "../../../types/contact.type";
 
 type Props = {
-  item: any;
-  openEdit: (client: any) => void;
-  handleDelete: (client: any) => void;
+  item: ContactType;
+  openEdit: (provider: ContactType) => void;
+  handleDelete: (provider: ContactType) => void;
 };
 
-export default function ClientCard({ item, openEdit, handleDelete }: Props) {
+export default function ProviderCard({ item, openEdit, handleDelete }: Props) {
   return (
     <Pressable
       onPress={() => openEdit(item)}
@@ -19,7 +19,7 @@ export default function ClientCard({ item, openEdit, handleDelete }: Props) {
         backgroundColor: "#1a1a1a",
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: item.totalDebt > 0 ? "#f59e0b33" : "#2a2a2a",
+        borderColor: "#2a2a2a",
         flexDirection: "row",
         alignItems: "center",
         gap: 12,
@@ -31,14 +31,14 @@ export default function ClientCard({ item, openEdit, handleDelete }: Props) {
           width: 44,
           height: 44,
           borderRadius: 22,
-          backgroundColor: item.totalDebt > 0 ? "#f59e0b22" : "#ff572222",
+          backgroundColor: "#ff572222",
           alignItems: "center",
           justifyContent: "center",
         }}
       >
         <Text
           style={{
-            color: item.totalDebt > 0 ? "#f59e0b" : "#ff5722",
+            color: "#ff5722",
             fontWeight: "900",
             fontSize: 18,
           }}
@@ -55,25 +55,13 @@ export default function ClientCard({ item, openEdit, handleDelete }: Props) {
         {item.phone ? (
           <Text style={{ color: "#737373", fontSize: 12 }}>{item.phone}</Text>
         ) : null}
-        {item.salesCount > 0 && (
-          <Text style={{ color: "#555", fontSize: 11, marginTop: 2 }}>
-            {item.salesCount} venta{item.salesCount !== 1 ? "s" : ""} fiada
-            {item.salesCount !== 1 ? "s" : ""}
-          </Text>
+        {item.email ? (
+          <Text style={{ color: "#737373", fontSize: 12 }}>{item.email}</Text>
+        ) : null}
+        {item.notes && (
+          <Text style={{ color: "#737373", fontSize: 12 }}>{item.notes}</Text>
         )}
       </View>
-
-      {/* Deuda */}
-      {item.totalDebt > 0 && (
-        <View style={{ alignItems: "flex-end" }}>
-          <Text style={{ color: "#f59e0b", fontWeight: "800", fontSize: 16 }}>
-            {priceFormat(item.totalDebt)}
-          </Text>
-          <Text style={{ color: "#f59e0b", fontSize: 10, opacity: 0.7 }}>
-            por cobrar
-          </Text>
-        </View>
-      )}
     </Pressable>
   );
 }

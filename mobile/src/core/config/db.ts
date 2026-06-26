@@ -30,14 +30,17 @@ const DATABASE = {
           FOREIGN KEY (category_id) REFERENCES categories (id)
         );
 
-        CREATE TABLE IF NOT EXISTS clients (
+        CREATE TABLE IF NOT EXISTS contacts (
           id TEXT PRIMARY KEY,
           name TEXT NOT NULL,
           phone TEXT,
+          email TEXT,
+          type TEXT NOT NULL,
           notes TEXT,
           sincronizado INTEGER DEFAULT 0,
           updated_at TEXT NOT NULL,
           deleted_at TEXT
+          created_at TEXT NOT NULL,
         );
 
         CREATE TABLE IF NOT EXISTS sales (
@@ -159,7 +162,7 @@ const DATABASE = {
       const tables = [
         "categories",
         "products",
-        "clients",
+        "contacts",
         "sales",
         "sale_products",
         "expenses",

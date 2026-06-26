@@ -1,4 +1,4 @@
-import { ClientType } from "@/src/features/clients/types/client.type";
+import { ClientType } from "@/src/features/contacts/types/contact.type";
 import Button from "@/src/shared/components/ui/Button";
 import Input from "@/src/shared/components/ui/Input";
 import { priceFormat } from "@/src/shared/helpers/price-format.helper";
@@ -11,7 +11,7 @@ import { Image, Platform, Pressable, Text, View } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { OrderItem } from "@/src/core/context/OrderContext";
 import { SaleType } from "@/src/features/sales/types/sale.type";
-import ClientPicker from "@/src/features/clients/components/ClientPicker";
+import ClientPicker from "@/src/features/contacts/components/clients/components/ClientPicker";
 
 type Props = {
   setAmountDebt: (v: number) => void;

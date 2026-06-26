@@ -1,36 +1,42 @@
 import { ActivityIndicator, View } from "react-native";
-import { useClients } from "./hooks/useClients";
-import { useClientsForm } from "./hooks/useClientsForm";
-import ClientCreateEditModal from "./components/ClientCreateEditModal";
-import ClientsList from "./components/ClientsList";
+import HeaderTabs from "@/src/shared/components/HeaderTabs";
+import { useProviders } from "./hooks/useProviders";
+import ProvidersList from "./components/ProvidersList";
+import ProviderCreateEditModal from "./components/ProviderCreateEditModal";
+import { useProvidersForm } from "./hooks/useProvidersForm";
 
-export default function ClientsScreen() {
+type Props = {
+  onChangeTab: (tab: "clientes" | "proveedores") => void;
+  activeGTab: "clientes" | "proveedores";
+};
+
+export default function ProvidersScreen({ onChangeTab, activeGTab }: Props) {
   const {
-    clients,
+    providers,
     isLoading,
     isRefreshing,
     loadData,
     setIsRefreshing,
-    totalDebt,
-    debtors,
-  } = useClients();
+  } = useProviders();
   const {
     handleDelete,
     openEdit,
     resetForm,
     setShowCreate,
-    setEditingClient,
+    setEditingProvider,
     showCreate,
-    editingClient,
+    editingProvider,
     name,
     setName,
     phone,
     setPhone,
+    email,
+    setEmail,
     notes,
     setNotes,
     isSaving,
     handleSave,
-  } = useClientsForm(loadData);
+  } = useProvidersForm(loadData);
 
   if (isLoading)
     return (
@@ -48,10 +54,14 @@ export default function ClientsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: "#0f0f0f" }}>
-      <ClientsList
-        clients={clients}
-        debtors={debtors}
-        totalDebt={totalDebt}
+      <HeaderTabs
+        tabs={["clientes", "proveedores"]}
+        activeTab={activeGTab}
+        onChangeTab={onChangeTab}
+      />
+      
+      <ProvidersList
+        providers={providers}
         isRefreshing={isRefreshing}
         setIsRefreshing={setIsRefreshing}
         loadData={loadData}
@@ -59,15 +69,17 @@ export default function ClientsScreen() {
         handleDelete={handleDelete}
       />
 
-      <ClientCreateEditModal
+      <ProviderCreateEditModal
         showCreate={showCreate}
         setShowCreate={setShowCreate}
-        editingClient={editingClient}
-        setEditingClient={setEditingClient}
+        editingProvider={editingProvider}
+        setEditingProvider={setEditingProvider}
         name={name}
         setName={setName}
         phone={phone}
         setPhone={setPhone}
+        email={email}
+        setEmail={setEmail}
         notes={notes}
         setNotes={setNotes}
         isSaving={isSaving}

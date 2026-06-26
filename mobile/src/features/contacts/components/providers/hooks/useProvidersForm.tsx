@@ -1,23 +1,25 @@
 import { Alert } from "react-native";
-import { ClientType } from "../types/client.type";
-import { ClientsService } from "../services/clients.service";
+import { ContactType } from "../../../types/contact.type";
 import { useState } from "react";
+import { ContactsService } from "../../../services/contact.service";
 
-export const useClientsForm = (
+export const useProvidersForm = (
   loadData: (silent?: boolean) => Promise<void>,
 ) => {
   const [showCreate, setShowCreate] = useState(false);
-  const [editingClient, setEditingClient] = useState<ClientType | null>(null);
+  const [editingProvider, setEditingProvider] = useState<ContactType | null>(null);
 
   // Form state
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [notes, setNotes] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   const resetForm = () => {
     setName("");
     setPhone("");
+    setEmail("");
     setNotes("");
   };
 
@@ -28,57 +30,62 @@ export const useClientsForm = (
     }
     setIsSaving(true);
     try {
-      if (editingClient) {
-        await ClientsService.update(editingClient.id, {
+      if (editingProvider) {
+        await ContactsService.update(editingProvider.id, {
           name: name.trim(),
+          email: email.trim(),
+          type: "proveedor",
           phone,
           notes,
         });
       } else {
-        await ClientsService.create({ name: name.trim(), phone, notes });
+        await ContactsService.create({ name: name.trim(), phone, email: email.trim(), type: "proveedor", notes});
       }
       resetForm();
       setShowCreate(false);
-      setEditingClient(null);
+      setEditingProvider(null);
       loadData(true);
     } catch {
-      Alert.alert("Error", "No se pudo guardar el cliente.");
+      Alert.alert("Error", "No se pudo guardar el proveedor.");
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleDelete = (client: ClientType) => {
+  const handleDelete = (client: ContactType) => {
     Alert.alert("Eliminar cliente", `¿Eliminar a "${client.name}"?`, [
       { text: "Cancelar", style: "cancel" },
       {
         text: "Eliminar",
         style: "destructive",
         onPress: async () => {
-          await ClientsService.delete(client.id);
+          await ContactsService.delete(client.id);
           loadData(true);
         },
       },
     ]);
   };
 
-  const openEdit = (client: ClientType) => {
-    setName(client.name);
-    setPhone(client.phone || "");
-    setNotes(client.notes || "");
-    setEditingClient(client);
+  const openEdit = (provider: ContactType) => {
+    setName(provider.name);
+    setPhone(provider.phone || "");
+    setEmail(provider.email || "");
+    setNotes(provider.notes || "");
+    setEditingProvider(provider);
     setShowCreate(true);
   };
 
   return {
     showCreate,
     setShowCreate,
-    editingClient,
-    setEditingClient,
+    editingProvider,
+    setEditingProvider,
     name,
     setName,
     phone,
     setPhone,
+    email,
+    setEmail,
     notes,
     setNotes,
     isSaving,

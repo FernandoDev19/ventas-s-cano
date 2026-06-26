@@ -1,12 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import { FlatList, Modal, Pressable, Text, View } from "react-native";
-import { ClientType } from "../types/client.type";
 import { useState } from "react";
+import { ContactType } from "../../../types/contact.type";
 
 type Props = {
   setSelectedClientId: (id: string) => void;
   selectedClientId: string | null;
-  clients: ClientType[];
+  clients: ContactType[];
 };
 
 export default function ClientPicker({
@@ -140,6 +140,11 @@ export default function ClientPicker({
                     {item.phone && (
                       <Text style={{ color: "#737373", fontSize: 12 }}>
                         {item.phone}
+                      </Text>
+                    )}
+                    {item.email && (
+                      <Text style={{ color: "#737373", fontSize: 12 }}>
+                        {item.email}
                       </Text>
                     )}
                   </View>

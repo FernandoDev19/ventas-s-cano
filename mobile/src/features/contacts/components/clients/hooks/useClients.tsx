@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { ClientsService } from "../services/clients.service";
 import { useFocusEffect } from "expo-router";
+import { ContactsService } from "../../../services/contact.service";
 
 export const useClients = () => {
   const [clients, setClients] = useState<any[]>([]);
@@ -10,9 +10,9 @@ export const useClients = () => {
   const loadData = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);
     try {
-      const debtors = await ClientsService.getDebtors();
+      const debtors = await ContactsService.getDebtors();
       // También traer clientes sin deuda
-      const all = await ClientsService.getAll();
+      const all = await ContactsService.getClients();
       // Merge: deudores con info de deuda, el resto sin
       const debtorIds = new Set(debtors.map((d) => d.id));
       const nonDebtors = all

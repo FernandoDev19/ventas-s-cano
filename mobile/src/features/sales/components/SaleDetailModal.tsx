@@ -19,12 +19,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { priceFormat } from "@/src/shared/helpers/price-format.helper";
 import { ProductsService } from "@/src/features/inventory/services/products.service";
 import { ProductType } from "@/src/features/inventory/types/product.type";
-import { ClientsService } from "@/src/features/clients/services/clients.service";
-import { ClientType } from "@/src/features/clients/types/client.type";
+import { ContactType } from "@/src/features/contacts/types/contact.type";
 import ReasonDialog from "./ReasonDialog";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as Clipboard from "expo-clipboard";
 import { PrinterService } from "@/src/shared/services/printer.service";
+import { ContactsService } from "../../contacts/services/contact.service";
 
 type SaleDetailModalProps = {
   visible: boolean;
@@ -76,7 +76,7 @@ export default function SaleDetailModal({
   const [searchQuery, setSearchQuery] = useState("");
 
   // Client Selector States
-  const [clients, setClients] = useState<ClientType[]>([]);
+  const [clients, setClients] = useState<ContactType[]>([]);
   const [editedClientId, setEditedClientId] = useState<string | null>(null);
   const [showClientPicker, setShowClientPicker] = useState(false);
 
@@ -180,7 +180,7 @@ export default function SaleDetailModal({
     }
 
     try {
-      const clientList = await ClientsService.getAll();
+      const clientList = await ContactsService.getClients();
       setClients(clientList);
     } catch (err) {
       console.error("Error loading clients for editor:", err);
@@ -348,14 +348,19 @@ export default function SaleDetailModal({
         total: sale.total,
         is_debt: sale.is_debt,
         debt_amount: sale.debt_amount,
-        debt_date: sale.debt_date ? new Date(sale.debt_date).toISOString().split("T")[0] : null,
+        debt_date: sale.debt_date
+          ? new Date(sale.debt_date).toISOString().split("T")[0]
+          : null,
         payment_method: sale.payment_method,
         client_name: sale.client?.name || "",
         note: sale.note,
         created_at: sale.created_at,
       };
 
-      const ticketCmds = PrinterService.generateCajaTicket(printerSaleObj, displayItems);
+      const ticketCmds = PrinterService.generateCajaTicket(
+        printerSaleObj,
+        displayItems,
+      );
       const ok = await PrinterService.print("caja", ticketCmds);
       if (ok) {
         Alert.alert("¡Enviado!", "Comandos de impresión enviados a la caja.");

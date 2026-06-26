@@ -11,12 +11,14 @@ import {
 type Props = {
   showCreate: boolean;
   setShowCreate: (show: boolean) => void;
-  editingClient: any;
-  setEditingClient: (client: any) => void;
+  editingProvider: any;
+  setEditingProvider: (provider: any) => void;
   name: string;
   setName: (name: string) => void;
   phone: string;
   setPhone: (phone: string) => void;
+  email: string;
+  setEmail: (email: string) => void;
   notes: string;
   setNotes: (notes: string) => void;
   isSaving: boolean;
@@ -24,15 +26,17 @@ type Props = {
   resetForm: () => void;
 };
 
-export default function ClientCreateEditModal({
+export default function ProviderCreateEditModal({
   showCreate,
   setShowCreate,
-  editingClient,
-  setEditingClient,
+  editingProvider,
+  setEditingProvider,
   name,
   setName,
   phone,
   setPhone,
+  email,
+  setEmail,
   notes,
   setNotes,
   isSaving,
@@ -44,7 +48,7 @@ export default function ClientCreateEditModal({
       <Pressable
         onPress={() => {
           resetForm();
-          setEditingClient(null);
+          setEditingProvider(null);
           setShowCreate(true);
         }}
         style={{
@@ -94,7 +98,7 @@ export default function ClientCreateEditModal({
               }}
             >
               <Text style={{ color: "#fff", fontSize: 20, fontWeight: "800" }}>
-                {editingClient ? "Editar Cliente" : "Nuevo Cliente"}
+                {editingProvider ? "Editar Provedor" : "Nuevo Provedor"}
               </Text>
               <Pressable
                 onPress={() => setShowCreate(false)}
@@ -122,6 +126,13 @@ export default function ClientCreateEditModal({
                 setter: setPhone,
                 placeholder: "Ej. 3001234567",
                 keyboard: "phone-pad",
+              },
+              {
+                label: "Email (opcional)",
+                value: email,
+                setter: setEmail,
+                placeholder: "Ej. [EMAIL_ADDRESS]",
+                keyboard: "email-address",
               },
               {
                 label: "Notas (opcional)",

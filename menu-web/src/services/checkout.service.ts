@@ -12,7 +12,7 @@ export const CheckoutService = {
 
       // 1. BUSCAR O CREAR AL CLIENTE EN SUPABASE
       const { data: existingClient, error: clientError } = await supabase
-        .from("clients")
+        .from("contacts")
         .select("id")
         .eq("phone", data.celular)
         .maybeSingle();
@@ -23,7 +23,7 @@ export const CheckoutService = {
         clientId = existingClient.id;
       } else {
         const { data: newClient, error: createError } = await supabase
-          .from("clients")
+          .from("contacts")
           .insert([
             {
               id: window.crypto.randomUUID(),
