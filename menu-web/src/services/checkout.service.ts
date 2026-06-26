@@ -39,23 +39,32 @@ export const CheckoutService = {
         clientId = newClient.id;
       }
 
-      const isQR = tableId !== "caja";
+      // ─── LÓGICA PARA MESAS ───────────────────────────
+      // Si viene tableId, es una orden desde QR (mesero/cliente en mesa)
+      const isQR = tableId && tableId !== "caja";
+      const isMesa = !isNaN(Number(tableId));
+      const mesaNumber = isMesa ? Number(tableId) : null;
 
       // 2. CREAR LA ORDEN PRINCIPAL
       const { data: order, error: orderError } = await supabase
         .from("orders")
         .insert([
-{
+          {
             client_id: clientId,
             customer_name: data.nombre,
             customer_phone: data.celular,
+            // Si es QR de mesa: delivery_type = "mesa" y guardamos table_id
+            // Si es caja: delivery_type normal (domicilio, local, etc)
             delivery_type: isQR ? "mesa" : data.tipoEntrega,
-            delivery_address: data.tipoEntrega === "domicilio" && !isQR ? data.direccion : null,
+            delivery_address: 
+              data.tipoEntrega === "domicilio" && !isQR 
+                ? data.direccion 
+                : null,
             comments: data.comentarios,
             total_price: totalPedido,
             status: "pending",
-            table_id: isQR ? Number(tableId) : null,
-            origin: isQR ? "qr_cliente" : "caja",
+            table_id: mesaNumber, // ← AQUÍ va el número de mesa
+            origin: isQR ? "qr_cliente" : "caja", // Distinguir origen
           },
         ])
         .select("id")
@@ -78,9 +87,17 @@ export const CheckoutService = {
 
       if (itemsError) throw itemsError;
 
+      if (isQR) {
+        // Marcar mesa como ocupada en Supabase
+        await supabase
+          .from("tables")
+          .update({ status: "ocupada" })
+          .eq("id", mesaNumber);
+      }
+
       return { success: true, orderId: order.id };
     } catch (error) {
-      console.error("Chicharrón procesando el pedido en la web:", error);
+      console.error("Error procesando el pedido en la web:", error);
       return { success: false, error };
     }
   },
