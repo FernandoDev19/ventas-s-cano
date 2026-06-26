@@ -1,3 +1,4 @@
+import { SaleType } from "@/src/features/sales/types/sale.type";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export interface PrintCommand {
@@ -36,7 +37,10 @@ const DEFAULT_CONFIGS: Record<"caja" | "cocina", PrinterConfig> = {
   },
 };
 
-type PrintListener = (target: "caja" | "cocina", commands: PrintCommand[]) => void;
+type PrintListener = (
+  target: "caja" | "cocina",
+  commands: PrintCommand[],
+) => void;
 const printListeners = new Set<PrintListener>();
 
 export const PrinterService = {
@@ -53,7 +57,10 @@ export const PrinterService = {
     return DEFAULT_CONFIGS[target];
   },
 
-  async saveConfig(target: "caja" | "cocina", config: PrinterConfig): Promise<void> {
+  async saveConfig(
+    target: "caja" | "cocina",
+    config: PrinterConfig,
+  ): Promise<void> {
     try {
       await AsyncStorage.setItem(STORAGE_KEYS[target], JSON.stringify(config));
     } catch (e) {
@@ -74,7 +81,10 @@ export const PrinterService = {
   },
 
   // ─── PRINT EXECUTION ───────────────────────────────────
-  async print(target: "caja" | "cocina", commands: PrintCommand[]): Promise<boolean> {
+  async print(
+    target: "caja" | "cocina",
+    commands: PrintCommand[],
+  ): Promise<boolean> {
     const config = await this.getConfig(target);
     if (!config.enabled) {
       console.log(`[Printer] Impresora ${target} desactivada.`);
@@ -90,7 +100,9 @@ export const PrinterService = {
 
     if (config.type === "wifi") {
       // Simular intento de socket
-      console.log(`[Printer] Enviando comandos a red: ${config.address}:${config.port}`);
+      console.log(
+        `[Printer] Enviando comandos a red: ${config.address}:${config.port}`,
+      );
       // En una compilación real con react-native-tcp-socket se usaría:
       // const socket = TcpSocket.createConnection({ port: config.port, host: config.address });
       // socket.write(this.buildRawEscPos(commands));
@@ -99,13 +111,20 @@ export const PrinterService = {
     }
 
     // Bluetooth / USB se simulan o delegan en consola y modal para testing
-    console.log(`[Printer] Impresión física no configurada para ${config.type}. Redirigiendo a virtual.`);
+    console.log(
+      `[Printer] Impresión física no configurada para ${config.type}. Redirigiendo a virtual.`,
+    );
     this.notifyVirtualPrint(target, commands);
     return true;
   },
 
   // ─── COMMAND CONSTRUCTORS ──────────────────────────────
-  text(text: string, align: "left" | "center" | "right" = "left", bold = false, size: "normal" | "large" | "title" = "normal"): PrintCommand {
+  text(
+    text: string,
+    align: "left" | "center" | "right" = "left",
+    bold = false,
+    size: "normal" | "large" | "title" = "normal",
+  ): PrintCommand {
     return { type: "text", text, align, bold, size };
   },
 
@@ -122,59 +141,127 @@ export const PrinterService = {
   },
 
   // ─── TICKET GENERATORS ─────────────────────────────────
-  generateCajaTicket(sale: any, items: any[]): PrintCommand[] {
+  generateCajaTicket(
+    sale: Partial<SaleType> & { client_name: string | null },
+    items: any[],
+  ): PrintCommand[] {
     const cmds: PrintCommand[] = [];
-    
-    // Header
+
+    const paymentLabel =
+      {
+        efectivo: "EFECTIVO",
+        transferencia: "TRANSFERENCIA",
+        deuda: "FIADO",
+      }[sale.payment_method!] || sale.payment_method;
+
+    const dateStr = sale.created_at
+      ? new Date(sale.created_at).toLocaleString("es-CO")
+      : new Date().toLocaleString("es-CO");
+
+    // ===== HEADER =====
     cmds.push(this.text("SABOR EXPRESS", "center", true, "title"));
-    cmds.push(this.text("Comida Rápida y Deliciosa", "center", false, "normal"));
-    cmds.push(this.text("Nit: 123456789-0", "center", false, "normal"));
-    cmds.push(this.text("Calle Falsa 123, Localidad", "center", false, "normal"));
+    cmds.push(this.text("Comida Rápida", "center"));
+    // cmds.push(this.text("NIT: 123456789-0", "center"));
+    cmds.push(this.text("Barranquilla - Colombia", "center"));
+
     cmds.push(this.line());
 
-    // Info de la Venta
-    const dateStr = sale.created_at ? new Date(sale.created_at).toLocaleString("es-CO") : new Date().toLocaleString("es-CO");
-    cmds.push(this.text(`Ticket: #${String(sale.id || "NUEVO").padStart(6, "0")}`));
+    cmds.push(this.text("PEDIDO WEB", "center", true));
+
+    cmds.push(this.text(`Ticket: #${String(sale.id).padStart(6, "0")}`));
     cmds.push(this.text(`Fecha: ${dateStr}`));
-    if (sale.client_name || sale.client_id) {
-      cmds.push(this.text(`Cliente: ${sale.client_name || "Cliente Registrado"}`));
-    }
-    cmds.push(this.text(`Pago: ${sale.payment_method === "cash" ? "Efectivo 💵" : sale.payment_method === "transfer" ? "Transferencia 📱" : "Fiado (Deuda) 📝"}`));
+
     cmds.push(this.line());
 
-    // Detalle de Items
-    cmds.push(this.text("CANT  PRODUCTO             TOTAL", "left", true));
+    // ===== CLIENTE =====
+    if (sale.client_name) {
+      cmds.push(this.text("CLIENTE", "left", true));
+      cmds.push(this.text(sale.client_name));
+      cmds.push(this.line());
+    }
+
+    // ===== MÉTODO DE PAGO =====
+    cmds.push(this.text(`Pago: ${paymentLabel}`, "left", true));
+
     cmds.push(this.line());
+
+    // ===== ITEMS =====
+    cmds.push(this.text("Cant Producto            Total", "left", true));
+    cmds.push(this.line());
+
+    let subtotal = 0;
 
     items.forEach((item) => {
-      const qtyStr = String(item.quantity).padEnd(5, " ");
-      const nameStr = (item.name || item.product?.name || item.recipe?.name || "Producto").substring(0, 19).padEnd(20, " ");
-      const totalItem = Number(item.price || (item.product?.price || item.recipe?.selling_price || 0) * item.quantity);
-      const totalStr = `$${totalItem.toLocaleString("es-CO")}`.padStart(7, " ");
-      cmds.push(this.text(`${qtyStr}${nameStr}${totalStr}`));
+      const qty = String(item.quantity).padEnd(4);
+
+      const name = (
+        item.name ||
+        item.product?.name ||
+        item.recipe?.name ||
+        "Producto"
+      )
+        .substring(0, 16)
+        .padEnd(16);
+
+      const total =
+        Number(item.price) ||
+        Number(item.product?.price || item.recipe?.selling_price || 0) *
+          item.quantity;
+
+      subtotal += total;
+
+      cmds.push(
+        this.text(`${qty}${name}$${total.toLocaleString("es-CO").padStart(8)}`),
+      );
     });
 
     cmds.push(this.line());
 
-    // Totales
-    cmds.push(this.text(`TOTAL: $${Number(sale.total).toLocaleString("es-CO")}`, "right", true, "large"));
+    // ===== TOTALES =====
+    cmds.push(
+      this.text(`Subtotal: $${subtotal.toLocaleString("es-CO")}`, "right"),
+    );
+
+    cmds.push(
+      this.text(
+        `TOTAL: $${Number(sale.total).toLocaleString("es-CO")}`,
+        "right",
+        true,
+        "large",
+      ),
+    );
 
     if (sale.is_debt) {
-      cmds.push(this.text(`Deuda pendiente: $${Number(sale.debt_amount || sale.total).toLocaleString("es-CO")}`, "right", true));
+      cmds.push(this.line());
+
+      cmds.push(this.text("*** PEDIDO FIADO ***", "center", true));
+
+      cmds.push(
+        this.text(
+          `Saldo pendiente: $${Number(
+            sale.debt_amount || sale.total,
+          ).toLocaleString("es-CO")}`,
+          "center",
+          true,
+        ),
+      );
+
       if (sale.debt_date) {
-        cmds.push(this.text(`Fecha límite: ${sale.debt_date}`, "right"));
+        cmds.push(this.text(`Vence: ${sale.debt_date}`, "center"));
       }
     }
-    
+
     if (sale.note) {
       cmds.push(this.line());
-      cmds.push(this.text("Nota:", "left", true));
+      cmds.push(this.text("OBSERVACIONES", "left", true));
       cmds.push(this.text(sale.note));
     }
 
     cmds.push(this.line());
+
     cmds.push(this.text("¡Gracias por tu compra!", "center", true));
-    cmds.push(this.text("Vuelve pronto 🍕🍔", "center"));
+    cmds.push(this.text("Vuelve pronto", "center"));
+
     cmds.push(this.feed(3));
     cmds.push(this.cut());
 
@@ -185,14 +272,26 @@ export const PrinterService = {
     const cmds: PrintCommand[] = [];
 
     // Header de cocina
-    cmds.push(this.text("=== COMANDA KITCHEN ===", "center", true, "large"));
-    
-    const idStr = order.id ? `#${String(order.id).substring(0, 6)}` : "MESA / LOCAL";
-    cmds.push(this.text(`Pedido: ${idStr}`, "center", true, "large"));
-    cmds.push(this.text(`Tipo: ${order.delivery_type === "domicilio" ? "DOMICILIO 🛵" : "MESA / LOCAL 🍽"}`, "center", true, "large"));
-    
+    cmds.push(this.text("COMANDA", "center", true, "title"));
+    cmds.push(this.text("PEDIDO WEB", "center", true));
     cmds.push(this.line());
-    const dateStr = new Date().toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" });
+
+    cmds.push(this.text(`Pedido #${order.id}`, "center", true, "title"));
+
+    cmds.push(
+      this.text(
+        order.delivery_type === "domicilio" ? "DOMICILIO" : "MESA / LOCAL",
+        "center",
+        true,
+        "large",
+      ),
+    );
+
+    cmds.push(this.line());
+    const dateStr = new Date().toLocaleTimeString("es-CO", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
     cmds.push(this.text(`Hora: ${dateStr}`, "left", true));
     cmds.push(this.text(`Cliente: ${order.customer_name || "Mesa"}`));
     if (order.customer_phone) {
@@ -209,14 +308,22 @@ export const PrinterService = {
 
     items.forEach((item) => {
       const qtyStr = `${item.quantity}x`.padEnd(6, " ");
-      const name = item.name || item.products?.name || item.recipes?.name || item.product?.name || item.recipe?.name || "Producto";
+      const name =
+        item.name ||
+        item.products?.name ||
+        item.recipes?.name ||
+        item.product?.name ||
+        item.recipe?.name ||
+        "Producto";
       cmds.push(this.text(`${qtyStr}${name}`, "left", true, "large"));
     });
 
     if (order.comments || order.note) {
       cmds.push(this.line());
       cmds.push(this.text("OBSERVACIONES:", "left", true));
-      cmds.push(this.text(order.comments || order.note || "", "left", false, "normal"));
+      cmds.push(
+        this.text(order.comments || order.note || "", "left", false, "normal"),
+      );
     }
 
     cmds.push(this.line());
@@ -229,10 +336,10 @@ export const PrinterService = {
   // ─── CONVERT COMMAND TO RAW ESC/POS BYTES ──────────────
   buildRawEscPos(commands: PrintCommand[]): Uint8Array {
     const buffer: number[] = [];
-    
+
     // ESC/POS Commands
-    const ESC = 0x1B;
-    const GS = 0x1D;
+    const ESC = 0x1b;
+    const GS = 0x1d;
 
     // Initialize: ESC @
     buffer.push(ESC, 0x40);
@@ -242,7 +349,8 @@ export const PrinterService = {
         case "text": {
           if (!cmd.text) break;
           // Align: ESC a n (0=left, 1=center, 2=right)
-          const alignVal = cmd.align === "center" ? 1 : cmd.align === "right" ? 2 : 0;
+          const alignVal =
+            cmd.align === "center" ? 1 : cmd.align === "right" ? 2 : 0;
           buffer.push(ESC, 0x61, alignVal);
 
           // Bold: ESC E n (1=bold, 0=normal)
@@ -263,11 +371,20 @@ export const PrinterService = {
               // Reemplazar tildes comunes
               const char = cmd.text[i];
               const map: Record<string, number> = {
-                á: 0xA0, é: 0x82, í: 0xA1, ó: 0xA2, ú: 0xA3,
-                Á: 0x41, É: 0x45, Í: 0x49, Ó: 0x4F, Ú: 0x55,
-                ñ: 0xA4, Ñ: 0xA5,
+                á: 0xa0,
+                é: 0x82,
+                í: 0xa1,
+                ó: 0xa2,
+                ú: 0xa3,
+                Á: 0x41,
+                É: 0x45,
+                Í: 0x49,
+                Ó: 0x4f,
+                Ú: 0x55,
+                ñ: 0xa4,
+                Ñ: 0xa5,
               };
-              buffer.push(map[char] || 0x3F); // 0x3F = '?'
+              buffer.push(map[char] || 0x3f); // 0x3F = '?'
             } else {
               buffer.push(code);
             }
