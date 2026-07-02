@@ -1,5 +1,16 @@
 import { Text, TouchableOpacity, View } from "react-native";
 
+const TAB_TRANSLATIONS: Record<string, string> = {
+  pending: "Pendientes",
+  accepted: "Aceptados",
+  preparing: "Preparando",
+  ready: "Listos",
+  delivered: "Entregados",
+  cancelled: "Cancelados",
+  menu: "Menú",
+  tables: "Mesas",
+};
+
 type Props<T> = {
   tabs: T[];
   activeTab: T;
@@ -22,7 +33,7 @@ export default function HeaderTabs<T>({ tabs, activeTab, onChangeTab }: Props<T>
               activeTab === tab ? "text-orange-600" : "text-neutral-400"
             }`}
           >
-            {String(tab)}
+            {TAB_TRANSLATIONS[String(tab)] || String(tab)}
           </Text>
         </TouchableOpacity>
       ))}

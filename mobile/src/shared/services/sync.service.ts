@@ -35,6 +35,7 @@ export const SyncService = {
         "recipes",
         "recipe_ingredients",
         "clients",
+        "tables"
       ];
 
       for (const table of tablasParaBajar) {
@@ -50,6 +51,7 @@ export const SyncService = {
       await SyncService.pushTable("sale_recipes");
       await SyncService.pushTable("recipe_ingredients");
       await SyncService.pushTable("expenses");
+      await SyncService.pushTable("tables");
 
       console.log("✅ Sincronización completada exitosamente!");
       if (SYNC_LOG.length > 0) {

@@ -17,7 +17,7 @@ export interface OrderPro {
   delivery_address: string | null;
   comments: string | null;
   total_price: number;
-  status: "pending" | "accepted" | "ready" | "delivered" | "cancelled";
+  status: "pending" | "accepted" | "preparing" | "ready" | "delivered" | "cancelled";
   created_at: string;
   table_id: number | null;
   origin: "caja" | "qr_cliente";

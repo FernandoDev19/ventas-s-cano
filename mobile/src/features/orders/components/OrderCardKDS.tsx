@@ -2,14 +2,25 @@ import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, Alert } from "react-native";
 import { OrderPro } from "../types/order.type";
 import { Audio } from "expo-av";
+import { useUserRole } from "@/src/shared/hooks/useUserRole";
 
 interface CardProps {
   item: OrderPro;
   onAccionEstado: (
-    estado: "pending" | "accepted" | "ready" | "delivered" | "cancelled",
+    estado: "pending" | "accepted" | "preparing" | "ready" | "delivered" | "cancelled",
   ) => void;
   onChatCliente: () => void;
 }
+
+const parseUTCDate = (dateStr: string) => {
+  if (!dateStr) return new Date();
+  let formatted = dateStr.replace(" ", "T");
+  if (!formatted.includes("Z") && !/[+-]\d{2}:?\d{2}$/.test(formatted)) {
+    formatted += "Z";
+  }
+  const parsed = new Date(formatted);
+  return isNaN(parsed.getTime()) ? new Date(dateStr) : parsed;
+};
 
 export const OrderCardKDS = ({
   item,
@@ -17,15 +28,17 @@ export const OrderCardKDS = ({
   onChatCliente,
 }: CardProps) => {
   const [minutosEnEspera, setMinutosEnEspera] = useState<number>(0);
+  const { role } = useUserRole();
+  const userRole = role || "cashier";
 
   useEffect(() => {
     const calcularTiempo = async () => {
-      const creacion = new Date(item.created_at).getTime();
+      const creacion = parseUTCDate(item.created_at).getTime();
       const ahora = new Date().getTime();
-      const diferenciaMinutos = Math.floor((ahora - creacion) / 60000);
+      const diferenciaMinutos = Math.max(0, Math.floor((ahora - creacion) / 60000));
       setMinutosEnEspera(diferenciaMinutos);
 
-      if (diferenciaMinutos >= 20 && item.status === "accepted") {
+      if (diferenciaMinutos >= 20 && (item.status === "accepted" || item.status === "preparing")) {
         try {
           const { sound } = await Audio.Sound.createAsync(
             require("@/assets/sounds/alerta-cocina.mp3"),
@@ -33,7 +46,7 @@ export const OrderCardKDS = ({
           await sound.playAsync();
           Alert.alert(
             "Alerta",
-            "Han pasado mas de 20 minutos desde que se acepto el pedido",
+            "Han pasado mas de 20 minutos con el pedido sin finalizar",
           );
         } catch (e) {
           console.log("Error al pitar en cocina");
@@ -106,9 +119,12 @@ export const OrderCardKDS = ({
           <Text className="text-[10px] text-neutral-400 uppercase font-bold">
             Total (⏱️ {Number(minutosEnEspera || 0)} min)
           </Text>
-          <Text className="text-base font-black text-neutral-800">
-            ${Number(item.total_price).toLocaleString("es-CO")}
-          </Text>
+          {/* Si el usuario es admin, mostrar el precio */}
+          {userRole !== "kitchen" && (
+            <Text className="text-base font-black text-neutral-800">
+              ${Number(item.total_price).toLocaleString("es-CO")}
+            </Text>
+          )}
         </View>
 
         {/* Si está pendiente: botones para aceptar o rechazar */}
@@ -129,10 +145,22 @@ export const OrderCardKDS = ({
           </View>
         )}
 
-        {/* Si está en cocina (aceptado): botón para marcar como LISTO */}
+        {/* Si está aceptado: botón para iniciar preparación */}
         {item.status === "accepted" && (
           <TouchableOpacity
             className="bg-orange-500 px-4 py-2 rounded-lg"
+            onPress={() => onAccionEstado("preparing")}
+          >
+            <Text className="text-white font-bold text-xs">
+              Preparar Pedido 🍳
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Si está preparándose: botón para marcar como listo */}
+        {item.status === "preparing" && (
+          <TouchableOpacity
+            className="bg-amber-600 px-4 py-2 rounded-lg"
             onPress={() => onAccionEstado("ready")}
           >
             <Text className="text-white font-bold text-xs">

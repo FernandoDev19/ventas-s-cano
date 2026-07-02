@@ -1,5 +1,5 @@
 import { OrderItem } from "@/src/core/context/OrderContext";
-import { Alert } from "react-native";
+import { Alert, Linking } from "react-native";
 import { RecipesService } from "../../recipes/services/recipes.service";
 import { SalesService } from "../../sales/services/sales.service";
 import { SaleType } from "../../sales/types/sale.type";
@@ -10,6 +10,8 @@ import { ClientType } from "../../clients/types/client.type";
 import { useContextOrder } from "@/src/shared/hooks/useContextOrder";
 import { ProductsService } from "../../inventory/services/products.service";
 import { PrinterService } from "@/src/shared/services/printer.service";
+import { OrdersService } from "../../orders/services/orders.service";
+import { buildInvoiceMessage, sendInvoiceViaWhatsApp } from "@/src/shared/helpers/whatsapp.helper";
 
 export const useCartModal = (onSaleCreated: () => void) => {
   const { order, addToOrder, addRecipeToOrder, removeFromOrder, clearOrder } =
@@ -57,6 +59,7 @@ export const useCartModal = (onSaleCreated: () => void) => {
     client_id: isDebt ? selectedClientId : null,
   });
 
+
   const handleCheckout = async (sale: SaleType, order: OrderItem[]) => {
     try {
       const productItems = order.filter((i) => i.type === "product");
@@ -74,7 +77,7 @@ export const useCartModal = (onSaleCreated: () => void) => {
         })
         .filter(Boolean);
 
-      // RECETAS: Se guardarán en sale_recipes (no en sale_products)
+      // RECETAS: Se guardarán en sale_recipes
       const recipesToSave = recipeItems
         .map((o) => {
           if (o.type !== "recipe") return null as any;
@@ -86,110 +89,236 @@ export const useCartModal = (onSaleCreated: () => void) => {
         })
         .filter(Boolean);
 
-      // Crear la venta y pasar ambas listas
-      const createdSale = await SalesService.createSale(sale, productsToSave, recipesToSave);
+      // 1. Crear la venta local en SQLite (Paso obligatorio inicial)
+      const createdSale = await SalesService.createSale(
+        sale,
+        productsToSave,
+        recipesToSave,
+      );
 
-      // Imprimir ticket de caja y cocina
-      try {
-        const cajaConfig = await PrinterService.getConfig("caja");
-        if (cajaConfig.enabled) {
-          const displayItems = order.map((item) => ({
-            quantity: item.quantity,
-            name: item.type === "product" ? item.product.name : item.recipe.name,
-            price: item.type === "product" ? item.product.price : item.recipe.selling_price,
-          }));
+      // ⚙️ FUNCIÓN CENTRAL: Ejecuta todo el cierre de la venta (Impresión, stock, limpiar UI)
+      const finalizarFlujoVenta = async () => {
+        // 🖨️ TUS IMPRESORAS INTACTAS
+        try {
+          const cajaConfig = await PrinterService.getConfig("caja");
+          if (cajaConfig.enabled) {
+            const displayItems = order.map((item) => ({
+              quantity: item.quantity,
+              name:
+                item.type === "product" ? item.product.name : item.recipe.name,
+              price:
+                item.type === "product"
+                  ? item.product.price
+                  : item.recipe.selling_price,
+            }));
 
-          let clientName = "";
-          if (sale.is_debt && sale.client_id) {
-            const clientObj = clients.find((c) => c.id === sale.client_id);
-            if (clientObj) clientName = clientObj.name;
+            let clientName = "";
+            if (sale.is_debt && sale.client_id) {
+              const clientObj = clients.find((c) => c.id === sale.client_id);
+              if (clientObj) clientName = clientObj.name;
+            }
+
+            const printerSaleObj = {
+              ...createdSale,
+              client_name: clientName,
+              payment_method: sale.payment_method,
+              note: sale.note,
+            };
+
+            const ticketCmds = PrinterService.generateCajaTicket(
+              printerSaleObj,
+              displayItems,
+            );
+            await PrinterService.print("caja", ticketCmds);
           }
 
-          const printerSaleObj = {
-            ...createdSale,
-            client_name: clientName,
-            payment_method: sale.payment_method,
-            note: sale.note,
-          };
+          const cocinaConfig = await PrinterService.getConfig("cocina");
+          if (cocinaConfig.enabled) {
+            const comandaItems = order.map((item) => ({
+              quantity: item.quantity,
+              name:
+                item.type === "product" ? item.product.name : item.recipe.name,
+            }));
 
-          const ticketCmds = PrinterService.generateCajaTicket(printerSaleObj, displayItems);
-          await PrinterService.print("caja", ticketCmds);
+            let clientName = "";
+            if (sale.is_debt && sale.client_id) {
+              const clientObj = clients.find((c) => c.id === sale.client_id);
+              if (clientObj) clientName = clientObj.name;
+            }
+
+            const comandaObj = {
+              id: createdSale.id,
+              delivery_type: "local",
+              customer_name: clientName || "Caja Local",
+              note: sale.note,
+            };
+
+            const kitchenCmds = PrinterService.generateCocinaComanda(
+              comandaObj,
+              comandaItems,
+            );
+            await PrinterService.print("cocina", kitchenCmds);
+          }
+        } catch (printErr) {
+          console.error("Error al mandar a imprimir desde checkout:", printErr);
         }
 
-        const cocinaConfig = await PrinterService.getConfig("cocina");
-        if (cocinaConfig.enabled) {
-          const comandaItems = order.map((item) => ({
-            quantity: item.quantity,
+        // Deducir stock de ingredientes de las recetas
+        for (const item of recipeItems) {
+          if (item.type !== "recipe") continue;
+          await RecipesService.deductStock(item.recipe.id!, item.quantity);
+        }
+
+        onSaleCreated();
+
+        // Verificar stock bajo
+        const lowStockAlerts: string[] = [];
+        for (const item of productItems) {
+          if (item.type !== "product") continue;
+          const prod = await ProductsService.getProductById(item.product.id);
+          if (prod && prod.stock <= 10) {
+            lowStockAlerts.push(`${prod.name} (Quedan: ${prod.stock})`);
+          }
+        }
+
+        for (const item of recipeItems) {
+          if (item.type !== "recipe") continue;
+          const low = await RecipesService.checkLowStock(item.recipe.id!);
+          for (const l of low) {
+            lowStockAlerts.push(`${l.name} (Quedan: ${l.stock})`);
+          }
+        }
+
+        // Limpiar el estado del carrito
+        clearOrder();
+        setIsDebt(false);
+        setAmountDebt(0);
+        setNote("");
+        setModalVisible(false);
+        setSelectedClientId(null);
+        setDebtDate(() => {
+          const d = new Date();
+          d.setDate(d.getDate() + 7);
+          return d;
+        });
+
+        // ─── WhatsApp ───────────────────────────────────────
+        // Obtener el teléfono del cliente si existe
+        let clientPhone = "";
+        let clientName = "";
+        if (sale.client_id) {
+          const clientObj = clients.find((c) => c.id === sale.client_id);
+          if (clientObj) {
+            clientPhone = clientObj.phone || "";
+            clientName = clientObj.name;
+          }
+        }
+
+        if (clientPhone) {
+          const invoiceItems = order.map((item) => ({
             name: item.type === "product" ? item.product.name : item.recipe.name,
+            quantity: item.quantity,
+            price:
+              item.type === "product"
+                ? item.product.price
+                : item.recipe.selling_price,
           }));
 
-          let clientName = "";
-          if (sale.is_debt && sale.client_id) {
+          const msg = buildInvoiceMessage({
+            customerName: clientName,
+            items: invoiceItems,
+            total: totalPrecio,
+            paymentMethod: sale.payment_method,
+            note: sale.note,
+          });
+
+          Alert.alert(
+            "¿Enviar factura por WhatsApp? 📱",
+            `Se enviará la factura a ${clientPhone}`,
+            [
+              { text: "No, gracias", style: "cancel" },
+              {
+                text: "Sí, enviar 📤",
+                onPress: () => sendInvoiceViaWhatsApp(clientPhone, msg),
+              },
+            ]
+          );
+        }
+        // ────────────────────────────────────────────────────
+
+        // Alerta final de éxito o advertencia de inventario
+        if (lowStockAlerts.length > 0) {
+          Alert.alert(
+            "¡Venta Completada!",
+            `⚠️ ¡Alerta de Stock Bajo!\nLos siguientes productos tienen stock bajo:\n\n${lowStockAlerts.map((a) => `• ${a}`).join("\n")}`,
+          );
+        } else {
+          Alert.alert("¡Venta registrada con éxito!");
+        }
+      };
+
+      // 🚀 ENVÍO A SUPABASE (KDS)
+      const enviarAlKDS = async () => {
+        try {
+          let nombreCliente = "Caja Local";
+          if (sale.client_id) {
             const clientObj = clients.find((c) => c.id === sale.client_id);
-            if (clientObj) clientName = clientObj.name;
+            if (clientObj) nombreCliente = clientObj.name;
           }
 
-          const comandaObj = {
-            id: createdSale.id,
+          let telefonoCliente = "";
+          if (sale.client_id) {
+            const clientObj = clients.find((c) => c.id === sale.client_id);
+            if (clientObj && clientObj.phone) telefonoCliente = clientObj.phone;
+          }
+
+          await OrdersService.createOrderFromMobile({
+            customer_name: nombreCliente,
+            customer_phone: telefonoCliente,
+            total_price: totalPrecio,
+            comments: sale.note || "Pedido desde App Móvil",
+            status: "accepted",
             delivery_type: "local",
-            customer_name: clientName || "Caja Local",
-            note: sale.note,
-          };
+            order_items: order.map((item) => ({
+              quantity: item.quantity,
+              price_at_time:
+                item.type === "product"
+                  ? item.product.price
+                  : item.recipe.selling_price,
+              product_id: item.type === "product" ? item.product.id : null,
+              recipe_id: item.type === "recipe" ? item.recipe.id : null,
+            })),
+          });
 
-          const kitchenCmds = PrinterService.generateCocinaComanda(comandaObj, comandaItems);
-          await PrinterService.print("cocina", kitchenCmds);
+          // Cuando Supabase responde melo, cerramos el flujo completo
+          await finalizarFlujoVenta();
+        } catch (orderErr) {
+          console.error("Error enviando la comanda digital al KDS:", orderErr);
+          Alert.alert(
+            "Error KDS",
+            "La venta se guardó local, pero no se pudo avisar a la cocina. ¿Continuar con el cierre?",
+            [{ text: "Forzar Cierre", onPress: () => finalizarFlujoVenta() }],
+          );
         }
-      } catch (printErr) {
-        console.error("Error al mandar a imprimir desde checkout:", printErr);
-      }
+      };
 
-      // Deducir stock de ingredientes de las recetas
-      for (const item of recipeItems) {
-        if (item.type !== "recipe") continue;
-        await RecipesService.deductStock(item.recipe.id!, item.quantity);
-      }
-
-      onSaleCreated();
-
-      // Verificar stock bajo de productos
-      const lowStockAlerts: string[] = [];
-      for (const item of productItems) {
-        if (item.type !== "product") continue;
-        const prod = await ProductsService.getProductById(item.product.id);
-        if (prod && prod.stock <= 10) {
-          lowStockAlerts.push(`${prod.name} (Quedan: ${prod.stock})`);
-        }
-      }
-
-      // Verificar stock bajo de ingredientes de recetas
-      for (const item of recipeItems) {
-        if (item.type !== "recipe") continue;
-        const low = await RecipesService.checkLowStock(item.recipe.id!);
-        for (const l of low) {
-          lowStockAlerts.push(`${l.name} (Quedan: ${l.stock})`);
-        }
-      }
-
-      clearOrder();
-      setIsDebt(false);
-      setAmountDebt(0);
-      setNote("");
-      setModalVisible(false);
-      setSelectedClientId(null);
-      setDebtDate(() => {
-        const d = new Date();
-        d.setDate(d.getDate() + 7);
-        return d;
-      });
-
-      if (lowStockAlerts.length > 0) {
-        Alert.alert(
-          "¡Pedido creado correctamente!",
-          `⚠️ ¡Alerta de Stock Bajo!\nLos siguientes productos tienen stock bajo:\n\n${lowStockAlerts.map((a) => `• ${a}`).join("\n")}`,
-        );
-      } else {
-        Alert.alert("¡Pedido creado correctamente!");
-      }
+      // 🛑 EL DISPARADOR CRONOLÓGICO: Primero la pregunta en pantalla
+      Alert.alert(
+        "¿Enviar a Cocina? 🍳",
+        "¿Este pedido requiere preparación en la cocina o es entrega directa?",
+        [
+          {
+            text: "No, entrega directa ❌",
+            style: "cancel",
+            onPress: () => finalizarFlujoVenta(), // Cierra de una e imprime
+          },
+          {
+            text: "Sí, mandar a cocina 🔥",
+            onPress: () => enviarAlKDS(), // Envía a Supabase y luego cierra
+          },
+        ],
+        { cancelable: false },
+      );
     } catch (error: any) {
       console.error(error);
       Alert.alert(
@@ -198,6 +327,7 @@ export const useCartModal = (onSaleCreated: () => void) => {
       );
     }
   };
+  
   const getItemLabel = (item: OrderItem) => {
     if (item.type === "product") return item.product.name;
     return `🍽 ${item.recipe.name}`;

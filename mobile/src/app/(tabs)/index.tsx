@@ -1,6 +1,5 @@
-import MenuScreen from "@/src/features/menu/MenuScreen";
+import MenuTableScreen from "@/src/features/menu/MenuTableScreen";
 
 export default function MenuTab() {
-
-  return <MenuScreen />;
+  return <MenuTableScreen />;
 }

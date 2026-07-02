@@ -43,15 +43,15 @@ export default function CheckoutModal({ tableId }: Props) {
     };
 
     const paymentText = `[PAGO: ${payMap[paymentMethod] || paymentMethod}]`;
-    const commentsText = comentarios.trim() 
+    const commentsText = comentarios.trim()
       ? `${paymentText} - ${comentarios.trim()}`
       : paymentText;
 
     const orderData: OrderCheckoutType = {
       tipoEntrega: deliveryType,
       nombre: nombre.trim() || (isTable ? `Mesa ${tableId}` : "Cliente Web"),
-      celular: deliveryType === "domicilio" ? celular : "N/A",
-      direccion: deliveryType === "domicilio" ? direccion : "N/A",
+      celular: celular.trim(), // siempre enviamos el celular si lo tiene (nunca forzar 'N/A')
+      direccion: deliveryType === "domicilio" ? direccion : "",
       comentarios: commentsText,
       items: orderItems,
     };
@@ -187,25 +187,29 @@ export default function CheckoutModal({ tableId }: Props) {
               className="w-full p-3 rounded-xl placeholder:text-muted border border-gold/30 focus:border-gold focus:outline-none bg-[#181818] text-white"
             />
           </div>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="celular" className="font-semibold text-white">
+              Celular{" "}
+              {isTable ? (
+                <span className="text-muted text-[10px]">(Opcional)</span>
+              ) : (
+                "*"
+              )}
+            </label>
+            <input
+              id="celular"
+              type="tel"
+              required={!isTable}
+              placeholder="Ej: 3001234567"
+              value={celular}
+              onChange={(e) => setCelular(e.target.value)}
+              className="w-full p-3 rounded-xl placeholder:text-muted border border-gold/30 focus:border-gold focus:outline-none bg-[#181818] text-white"
+            />
+          </div>
 
           {/* DIRECCIÓN Y CELULAR (Condicional si es Domicilio) */}
           {deliveryType === "domicilio" && (
             <>
-              {/* CELULAR */}
-              <div className="flex flex-col gap-1">
-                <label htmlFor="celular" className="font-semibold text-white">
-                  Celular *
-                </label>
-                <input
-                  id="celular"
-                  type="tel"
-                  required
-                  placeholder="Ej: 3001234567"
-                  value={celular}
-                  onChange={(e) => setCelular(e.target.value)}
-                  className="w-full p-3 rounded-xl placeholder:text-muted border border-gold/30 focus:border-gold focus:outline-none bg-[#181818] text-white"
-                />
-              </div>
               <div className="flex flex-col gap-1 animate-in slide-in-from-top-2 duration-200">
                 <label htmlFor="direccion" className="font-semibold text-white">
                   Dirección *

@@ -1,93 +1,16 @@
-import { Alert, DeviceEventEmitter } from "react-native";
+import { Alert } from "react-native";
 import { SalesService } from "../features/sales/services/sales.service";
 import { SyncService } from "../shared/services/sync.service";
 import DATABASE from "./config/db";
 // import { seeders } from "./config/seeders";
-import { useCallback, useEffect, useState } from "react";
-import { supabase } from "./config/supabase";
-import { useRouter } from "expo-router";
+import {useEffect, useState } from "react";
 import { useNotifications } from "../shared/hooks/useNotifications";
-import { Audio } from "expo-av";
 import NetInfo from "@react-native-community/netinfo";
 
 export const AppBootstrap = () => {
   const [isInitialized, setIsInitialized] = useState(false);
   const { notificationsConfigurate, listenToNotifications } =
     useNotifications();
-  const router = useRouter();
-
-  async function reproducirSonidAlerta() {
-    try {
-      const { sound } = await Audio.Sound.createAsync(
-        require("@/assets/sounds/alerta-notificacion.mp3"),
-      );
-
-      await sound.playAsync();
-
-      sound.setOnPlaybackStatusUpdate((status) => {
-        if (status.isLoaded && status.didJustFinish) {
-          sound.unloadAsync();
-        }
-      });
-    } catch (error) {
-      console.error("Error al reproducir el sonido de alerta:", error);
-    }
-  }
-
-  const ordersRealtime = useCallback(() => {
-    console.log("🔌 Conectando canal Realtime para pedidos nuevos...");
-
-    const channel = supabase
-      .channel("pedidos-en-vivo")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "orders",
-        },
-        async (payload) => {
-          console.log("📢 PEDIDO NUEVO RECIBIDO EN TIEMPO REAL");
-
-          DeviceEventEmitter.emit("NUEVO_PEDIDO_DESDE_WEB");
-
-          await reproducirSonidAlerta();
-
-          const deliveryTypeMap: Record<string, string> = {
-            comer_aqui: "pedido para Comer Aquí 🍽️",
-            para_llevar: "pedido Para Llevar 🛍️",
-            domicilio: "Domicilio 🛵",
-            local: "pedido para Recoger en Local 🏪",
-          };
-
-          const textType =
-            deliveryTypeMap[payload.new.delivery_type] ||
-            `pedido (${payload.new.delivery_type})`;
-
-          Alert.alert(
-            "¡PEDIDO NUEVO!",
-            `El cliente ${payload.new.customer_name} solicitó un ${textType}. \nTotal: $${Number(payload.new.total_price).toLocaleString("es-CO")}`,
-            [
-              {
-                text: "Ver pedido",
-                onPress: () =>
-                  router.push({
-                    pathname: "/(tabs)/(sales)/sales",
-                    params: { tab: "Ordenes" },
-                  }),
-              },
-            ],
-          );
-        },
-      )
-      .subscribe();
-
-    // Retorna la función que remueve el canal
-    return () => {
-      console.log("🔌 Desconectando canal Realtime de pedidos...");
-      supabase.removeChannel(channel);
-    };
-  }, [router]);
 
   useEffect(() => {
     notificationsConfigurate();
@@ -102,7 +25,6 @@ export const AppBootstrap = () => {
 
   useEffect(() => {
     let unsubscribeNetInfo: (() => void) | undefined;
-    let unsubscribeRealtime: (() => void) | undefined;
 
     async function inicializarTodo() {
       try {
@@ -146,8 +68,6 @@ export const AppBootstrap = () => {
             [{ text: "Entendido", style: "default" }],
           );
         }
-
-        unsubscribeRealtime = ordersRealtime();
       } catch (error) {
         console.error("Error crítico al arrancar la aplicación:", error);
       } finally {
@@ -162,11 +82,8 @@ export const AppBootstrap = () => {
       if (unsubscribeNetInfo) {
         unsubscribeNetInfo();
       }
-      if (unsubscribeRealtime) {
-        unsubscribeRealtime();
-      }
     };
-  }, [ordersRealtime]);
+  }, []);
 
   return { isInitialized };
 };

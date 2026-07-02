@@ -2,14 +2,24 @@ import { useRouter } from "expo-router";
 import { Alert, Image, Pressable, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import PrinterSettingsModal from "@/src/shared/components/printer/PrinterSettingsModal";
 import "../../global.css";
 import { supabase } from "../config/supabase";
+import { useUserRole } from "@/src/shared/hooks/useUserRole";
 
 export default function Header() {
   const router = useRouter();
   const [settingsVisible, setSettingsVisible] = useState(false);
+  const [configVisible, setConfigVisible] = useState(false);
+  const { role } = useUserRole();
+  const userRole = role || "cashier";
+
+  useEffect(() => {
+    if (userRole === "admin") {
+      setConfigVisible(true);
+    }
+  }, [userRole]);
 
   const handlePress = () => {
     router.push("/");
@@ -46,6 +56,7 @@ export default function Header() {
         </Pressable>
 
         <View className="flex-row items-center gap-4">
+          {configVisible && (
           <Pressable
             onPress={() => setSettingsVisible(true)}
             android_ripple={{
@@ -57,6 +68,7 @@ export default function Header() {
           >
             <Ionicons name="print-outline" size={24} color="#ff5722" />
           </Pressable>
+          )}
           <Pressable onPress={handleLogout}>
             <Ionicons name="log-out-outline" size={22} color="#ff5722" />
           </Pressable>

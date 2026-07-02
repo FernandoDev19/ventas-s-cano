@@ -99,22 +99,17 @@ export const PrinterService = {
     }
 
     if (config.type === "wifi") {
-      // Simular intento de socket
+      // Simular intento de socket (sin disparar modal en el cel)
       console.log(
         `[Printer] Enviando comandos a red: ${config.address}:${config.port}`,
       );
-      // En una compilación real con react-native-tcp-socket se usaría:
-      // const socket = TcpSocket.createConnection({ port: config.port, host: config.address });
-      // socket.write(this.buildRawEscPos(commands));
-      this.notifyVirtualPrint(target, commands);
       return true;
     }
 
-    // Bluetooth / USB se simulan o delegan en consola y modal para testing
+    // Bluetooth / USB se simulan o delegan en consola sin disparar el modal
     console.log(
-      `[Printer] Impresión física no configurada para ${config.type}. Redirigiendo a virtual.`,
+      `[Printer] Impresión física por ${config.type} a ${config.address}.`,
     );
-    this.notifyVirtualPrint(target, commands);
     return true;
   },
 
@@ -142,7 +137,7 @@ export const PrinterService = {
 
   // ─── TICKET GENERATORS ─────────────────────────────────
   generateCajaTicket(
-    sale: Partial<SaleType> & { client_name: string | null },
+    sale: Partial<SaleType> & { client_name: string | null; table_id?: number | null },
     items: any[],
   ): PrintCommand[] {
     const cmds: PrintCommand[] = [];
@@ -173,10 +168,14 @@ export const PrinterService = {
 
     cmds.push(this.line());
 
-    // ===== CLIENTE =====
-    if (sale.client_name) {
-      cmds.push(this.text("CLIENTE", "left", true));
-      cmds.push(this.text(sale.client_name));
+    // ===== CLIENTE / MESA =====
+    if (sale.client_name || sale.table_id) {
+      if (sale.table_id) {
+        cmds.push(this.text(`MESA: ${sale.table_id}`, "left", true));
+      }
+      if (sale.client_name) {
+        cmds.push(this.text(`CLIENTE: ${sale.client_name}`, "left", true));
+      }
       cmds.push(this.line());
     }
 

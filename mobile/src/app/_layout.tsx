@@ -46,7 +46,7 @@ function AuthProtector({ children }: { children: React.ReactNode }) {
       // Con sesión intentando ver login -> pa' dentro
       router.replace('/(tabs)' as any);
     }
-  }, [session, authReady, segments]);
+  }, [session, authReady, segments, router]);
 
   if (!authReady) {
     return (

@@ -153,6 +153,16 @@ const DATABASE = {
           deleted_at TEXT,
           FOREIGN KEY (shift_id) REFERENCES cashier_shifts (id)
         );
+
+        CREATE TABLE IF NOT EXISTS tables (
+          id TEXT PRIMARY KEY,
+          number_mesa INT NOT NULL UNIQUE,
+          status TEXT DEFAULT 'libre',
+          sincronizado INTEGER DEFAULT 0,
+          updated_at TEXT NOT NULL,
+          deleted_at TEXT,
+          created_at TEXT
+        );
       `);
 
       // Migración automática: aseguramos que la columna deleted_at existe en todas las tablas
@@ -167,7 +177,8 @@ const DATABASE = {
         "recipe_ingredients",
         "sale_recipes",
         "cashier_shifts",
-        "cash_movements"
+        "cash_movements",
+        "tables"
       ];
       for (const tableName of tables) {
         try {
