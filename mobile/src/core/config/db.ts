@@ -24,6 +24,7 @@ const DATABASE = {
           price REAL NOT NULL,
           stock INTEGER DEFAULT 0,
           category_id TEXT NOT NULL,
+          is_visible_menu BOOLEAN DEFAULT 1,
           sincronizado INTEGER DEFAULT 0,
           updated_at TEXT NOT NULL,
           deleted_at TEXT,
@@ -75,7 +76,7 @@ const DATABASE = {
         CREATE TABLE IF NOT EXISTS expenses (
           id TEXT PRIMARY KEY,
           description TEXT NOT NULL,
-          category_id TEXT NOT NULL,
+          category_id TEXT,
           amount REAL NOT NULL,
           date DATE NOT NULL,
           notes TEXT,

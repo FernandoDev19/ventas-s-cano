@@ -8,6 +8,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  Switch,
   Text,
   TextInput,
   View,
@@ -39,6 +40,7 @@ export default function CreateProductModal({
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isPickingImage, setIsPickingImage] = useState(false);
+  const [isVisibleMenu, setIsVisibleMenu] = useState(true);
   const [isCategoriesModalOpen, setIsCategoriesModalOpen] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
@@ -50,6 +52,7 @@ export default function CreateProductModal({
     setStock("0");
     setCategoryId(null);
     setImageUri(null);
+    setIsVisibleMenu(true);
   };
 
   const handleClose = () => {
@@ -114,6 +117,7 @@ export default function CreateProductModal({
         stock: parseInt(stock) || 0,
         category_id: categoryId,
         image_url: imageUrl,
+        is_visible_menu: isVisibleMenu ? 1 : 0,
       });
 
       reset();
@@ -338,6 +342,40 @@ export default function CreateProductModal({
                   />
                 </View>
               </View>
+            </View>
+
+            <View className="flex-row gap-3 mb-4">
+              <View style={{ flex: 1 }}>
+                <Text
+                  style={{
+                    color: "#737373",
+                    fontSize: 11,
+                    textTransform: "uppercase",
+                    letterSpacing: 1,
+                    marginBottom: 6,
+                  }}
+                >
+                  ¿Publicar en Menú Web?
+                </Text>
+                <Text
+                  style={{
+                    color: "#737373",
+                    fontSize: 11,
+                    textTransform: "uppercase",
+                    letterSpacing: 1,
+                    marginBottom: 6,
+                  }}
+                >
+                  Si lo apagas, el cliente no lo verá en la web pero podrás
+                  seguir facturándolo en caja.
+                </Text>
+              </View>
+              <Switch
+                value={isVisibleMenu}
+                onValueChange={setIsVisibleMenu}
+                trackColor={{ false: "#2a2a2a", true: "#ff572233" }}
+                thumbColor={isVisibleMenu ? "#ff5722" : "#a3a3a3"}
+              />
             </View>
 
             {/* Categoría */}

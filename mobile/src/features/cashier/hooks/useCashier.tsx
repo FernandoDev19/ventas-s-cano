@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Alert } from "react-native";
 import { CashierService } from "../services/cashier.service";
 import { CashierShiftType, CashMovement } from "../types/shift.type";
+import { useFocusEffect } from "expo-router";
 
 export const useCashier = () => {
   const [currentShift, setCurrentShift] = useState<CashierShiftType | null>(
@@ -42,6 +43,11 @@ export const useCashier = () => {
     loadCurrentShift();
     loadShiftHistory();
   }, [loadCurrentShift, loadShiftHistory]);
+
+  useFocusEffect(useCallback(() => {
+    loadCurrentShift();
+    loadShiftHistory();
+  }, [loadCurrentShift, loadShiftHistory]))
 
   const openShift = useCallback(
     async (balance: number, notes?: string) => {

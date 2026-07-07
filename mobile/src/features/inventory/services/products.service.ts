@@ -15,7 +15,25 @@ export const ProductsService = {
       );
       return products as ProductType[];
     }
-    const products = await DATABASE.db.getAllAsync("SELECT * FROM products WHERE deleted_at IS NULL");
+    const products = await DATABASE.db.getAllAsync(
+      "SELECT * FROM products WHERE deleted_at IS NULL",
+    );
+    return products as ProductType[];
+  },
+
+  getAllMenu: async (options?: {
+    category_id?: string;
+  }): Promise<ProductType[]> => {
+    if (options?.category_id) {
+      const products = await DATABASE.db.getAllAsync(
+        "SELECT * FROM products WHERE category_id = ? AND is_visible_menu = 1 AND deleted_at IS NULL",
+        [options.category_id],
+      );
+      return products as ProductType[];
+    }
+    const products = await DATABASE.db.getAllAsync(
+      "SELECT * FROM products WHERE deleted_at IS NULL",
+    );
     return products as ProductType[];
   },
 
@@ -37,7 +55,9 @@ export const ProductsService = {
   },
 
   getProducts: async (): Promise<ProductType[]> => {
-    const products = await DATABASE.db.getAllAsync("SELECT * FROM products WHERE deleted_at IS NULL");
+    const products = await DATABASE.db.getAllAsync(
+      "SELECT * FROM products WHERE deleted_at IS NULL",
+    );
     return products as ProductType[];
   },
 
@@ -56,7 +76,7 @@ export const ProductsService = {
     const now = new Date().toISOString();
 
     await DATABASE.db.runAsync(
-      "INSERT INTO products (id, image_url, name, price, stock, category_id, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO products (id, image_url, name, price, stock, category_id, is_visible_menu, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [
         id,
         product.image_url || "",
@@ -64,6 +84,7 @@ export const ProductsService = {
         product.price,
         product.stock || 0,
         product.category_id,
+        product.is_visible_menu ?? 1,
         0,
         now,
       ],
@@ -80,7 +101,7 @@ export const ProductsService = {
     };
   },
 
-updateProduct: async (
+  updateProduct: async (
     id: string,
     product: Partial<ProductType>,
   ): Promise<void> => {
@@ -92,19 +113,19 @@ updateProduct: async (
       );
       if (oldProduct?.image_url && oldProduct.image_url !== product.image_url) {
         const oldFileName = SupabaseStorageService.extractFileNameFromUrl(
-          oldProduct.image_url
+          oldProduct.image_url,
         );
         if (oldFileName) {
-          await SupabaseStorageService.deleteProductImage(oldFileName).catch(err =>
-            console.error("Error eliminando imagen anterior:", err)
+          await SupabaseStorageService.deleteProductImage(oldFileName).catch(
+            (err) => console.error("Error eliminando imagen anterior:", err),
           );
         }
       }
     }
- 
+
     const fields: string[] = [];
     const values: any[] = [];
- 
+
     if (product.image_url !== undefined) {
       fields.push("image_url = ?");
       values.push(product.image_url);
@@ -125,9 +146,13 @@ updateProduct: async (
       fields.push("category_id = ?");
       values.push(product.category_id);
     }
- 
+    if (product.is_visible_menu !== undefined) {
+      fields.push("is_visible_menu = ?");
+      values.push(product.is_visible_menu);
+    }
+
     if (fields.length === 0) return;
- 
+
     values.push(new Date().toISOString());
     values.push(id);
     await DATABASE.db.runAsync(
@@ -138,37 +163,39 @@ updateProduct: async (
       console.error("Error sincronizando producto:", err),
     );
   },
- 
+
   deleteProduct: async (id: string) => {
     const now = new Date().toISOString();
- 
+
     // Obtener el producto para eliminar su imagen de Supabase
     const product: any = await DATABASE.db.getFirstAsync(
       "SELECT image_url FROM products WHERE id = ?",
       [id],
     );
- 
+
     if (product?.image_url) {
       const fileName = SupabaseStorageService.extractFileNameFromUrl(
-        product.image_url
+        product.image_url,
       );
       if (fileName) {
-        await SupabaseStorageService.deleteProductImage(fileName).catch(err =>
-          console.error("Error eliminando imagen de Supabase:", err)
+        await SupabaseStorageService.deleteProductImage(fileName).catch((err) =>
+          console.error("Error eliminando imagen de Supabase:", err),
         );
       }
     }
- 
+
     const result = await DATABASE.db.runAsync(
       "UPDATE products SET sincronizado = 0, updated_at = ?, deleted_at = ? WHERE id = ?",
       [now, now, id],
     );
- 
-    SyncService.run().catch(err => console.error("Error sincronizando producto:", err));
- 
+
+    SyncService.run().catch((err) =>
+      console.error("Error sincronizando producto:", err),
+    );
+
     return result.changes > 0;
   },
- 
+
   createMany: async (products: ProductType[]) => {
     const productsCount: { count: number } | null =
       await DATABASE.db.getFirstAsync("SELECT COUNT(*) as count FROM products");

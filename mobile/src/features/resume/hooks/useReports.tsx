@@ -3,6 +3,7 @@ import { SalesService } from "../../sales/services/sales.service";
 import ExpensesService from "../../expenses/services/expense.service";
 import { ExportService } from "@/src/shared/services/export.service";
 import { Alert } from "react-native";
+import { PrinterService } from "@/src/shared/services/printer.service";
 
 export const PRESETS = [
   {
@@ -92,6 +93,44 @@ export const useReports = () => {
 
   const [isExporting, setIsExporting] = useState<"pdf" | "excel" | null>(null);
 
+  const handlePrintReport = async () => {
+  try {
+    if (!report) {
+      Alert.alert("Aviso", "No hay datos para imprimir en este rango.");
+      return;
+    }
+
+    const cajaConfig = await PrinterService.getConfig("caja");
+    if (!cajaConfig.enabled) {
+      Alert.alert("Pilas", "La impresora de caja está apagada.");
+      return;
+    }
+
+    // Armas un objeto masticable para el servicio de impresión
+    const reportPrintData = {
+      title: "REPORTE DE VENTAS / CIERRE",
+      dateRange: `${startDate} al ${endDate}`,
+      totalOrders: report.total_orders || 0,
+      netProfit: netProfit,
+      averageTicket: report.total_orders ? (netProfit / report.total_orders) : 0,
+      methods: {
+        cash: report.total_cash || 0,
+        transfer: report.total_transfer || 0,
+        debt: report.total_debt || 0,
+      },
+      topProducts: report.top_products || [], 
+    };
+
+    // Creas este nuevo método en tu PrinterService para que estructure el texto
+    const ticketCmds = PrinterService.generateReportTicket(reportPrintData);
+    await PrinterService.print("caja", ticketCmds);
+
+    Alert.alert("¡Firme!", "Reporte enviado a la impresora.");
+  } catch (error) {
+    Alert.alert("Error", "No se pudo imprimir el reporte: " + (error as Error).message);
+  }
+};
+
   const handleExport = async (type: "pdf" | "excel") => {
     if (!report) return;
     setIsExporting(type);
@@ -129,5 +168,6 @@ export const useReports = () => {
     setEndDate,
     handleExport,
     isExporting,
+    handlePrintReport
   };
 };

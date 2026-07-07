@@ -45,6 +45,7 @@ export default function EditProductModal({
   const [isPickingImage, setIsPickingImage] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isVisibleMenu, setIsVisibleMenu] = useState(true);
   const [isCategoriesModalOpen, setIsCategoriesModalOpen] = useState(false);
 
   const { elegirImagenProducto } = useFiles();
@@ -57,6 +58,7 @@ export default function EditProductModal({
       setStock(String(product.stock));
       setCategoryId(product.category_id);
       setImageUri(product.image_url || null);
+      setIsVisibleMenu(product.is_visible_menu === 1 ? true : false);
     }
   }, [product]);
 
@@ -139,6 +141,7 @@ export default function EditProductModal({
         stock: parseInt(stock) || 0,
         category_id: categoryId,
         image_url: finalImageUrl || "",
+        is_visible_menu: isVisibleMenu ? 1 : 0
       });
 
       onUpdated();
@@ -466,6 +469,55 @@ export default function EditProductModal({
                     />
                   </View>
                 </View>
+              </View>
+
+              <View className="flex-row gap-3 mb-4">
+                {/* Visible en el menú */}
+                <Pressable
+                  onPress={() => setIsVisibleMenu(true)}
+                  className={`flex-row items-center gap-2 p-3 rounded-2xl ${
+                    isVisibleMenu
+                      ? "bg-orange-500/20 border border-orange-500/30"
+                      : "bg-[#1a1a1a] border border-[#2a2a2a]"
+                  }`}
+                >
+                  <Ionicons
+                    name={isVisibleMenu ? "eye" : "eye-off"}
+                    size={18}
+                    color={isVisibleMenu ? "#ff5722" : "#737373"}
+                  />
+                  <Text
+                    style={{
+                      color: isVisibleMenu ? "#fff" : "#737373",
+                      fontSize: 15,
+                    }}
+                  >
+                    Visible en el menú
+                  </Text>
+                </Pressable>
+                {/* No visible en el menú */}
+                <Pressable
+                  onPress={() => setIsVisibleMenu(false)}
+                  className={`flex-row items-center gap-2 p-3 rounded-2xl ${
+                    !isVisibleMenu
+                      ? "bg-orange-500/20 border border-orange-500/30"
+                      : "bg-[#1a1a1a] border border-[#2a2a2a]"
+                  }`}
+                >
+                  <Ionicons
+                    name={!isVisibleMenu ? "eye-off" : "eye"}
+                    size={18}
+                    color={!isVisibleMenu ? "#ff5722" : "#737373"}
+                  />
+                  <Text
+                    style={{
+                      color: !isVisibleMenu ? "#fff" : "#737373",
+                      fontSize: 15,
+                    }}
+                  >
+                    No visible en el menú
+                  </Text>
+                </Pressable>
               </View>
 
               {/* Categoría */}

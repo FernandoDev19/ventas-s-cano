@@ -28,7 +28,7 @@ export const useProductList = (filter: string) => {
       if (!silent) setIsLoading(true);
       try {
         const [loadedProducts, loadedRecipes] = await Promise.all([
-          ProductsService.getAll({ category_id: filter.toString() }),
+          ProductsService.getAllMenu({ category_id: filter.toString() }),
           RecipesService.getAll(),
         ]);
         setProducts(loadedProducts);

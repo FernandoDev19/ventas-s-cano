@@ -11,6 +11,7 @@ type Props = {
   isExporting: "pdf" | "excel" | null;
   handleExport: (type: "pdf" | "excel") => void;
   netProfit: number;
+  handlePrint: () => void;
 };
 
 export default function Reports({
@@ -21,6 +22,7 @@ export default function Reports({
   isExporting,
   handleExport,
   netProfit,
+  handlePrint,
 }: Props) {
   return (
     <>
@@ -111,6 +113,27 @@ export default function Reports({
                 )}
                 <Text style={{ color: "#22c55e", fontWeight: "700" }}>
                   Excel
+                </Text>
+              </Pressable>
+
+              <Pressable
+                onPress={handlePrint}
+                style={{
+                  flex: 1,
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8,
+                  padding: 14,
+                  borderRadius: 14,
+                  backgroundColor: "#ff572215",
+                  borderWidth: 1,
+                  borderColor: "#ff572233",
+                }}
+              >
+                <Ionicons name="print-outline" size={18} color="#ff5722" />
+                <Text style={{ color: "#ff5722", fontWeight: "700" }}>
+                  Imprimir
                 </Text>
               </Pressable>
             </View>

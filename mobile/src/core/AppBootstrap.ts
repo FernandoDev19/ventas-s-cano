@@ -3,7 +3,7 @@ import { SalesService } from "../features/sales/services/sales.service";
 import { SyncService } from "../shared/services/sync.service";
 import DATABASE from "./config/db";
 // import { seeders } from "./config/seeders";
-import {useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNotifications } from "../shared/hooks/useNotifications";
 import NetInfo from "@react-native-community/netinfo";
 
@@ -11,6 +11,7 @@ export const AppBootstrap = () => {
   const [isInitialized, setIsInitialized] = useState(false);
   const { notificationsConfigurate, listenToNotifications } =
     useNotifications();
+
 
   useEffect(() => {
     notificationsConfigurate();

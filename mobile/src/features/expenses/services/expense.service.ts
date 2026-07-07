@@ -72,7 +72,7 @@ const ExpensesService = {
       [
         id,
         expense.description,
-        expense.category_id,
+        expense.category_id || null,
         expense.amount,
         dateStr,
         expense.notes || "",

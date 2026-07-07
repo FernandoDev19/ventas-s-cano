@@ -1,18 +1,12 @@
-import { priceFormat } from "@/src/shared/helpers/price-format.helper";
-import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import {
-  ActivityIndicator,
-  Pressable,
   ScrollView,
-  Text,
   View,
 } from "react-native";
 import { useReports } from "./hooks/useReports";
 import ReportsHeader from "./components/ReportsHeader";
 import ReportsPresets from "./components/ReportsPresets";
 import ReportsDateSelector from "./components/ReportsDateSelector";
-import { formatDate } from "./helpers/formatDate";
 import Reports from "./components/reports/Reports";
 
 export default function RangeReportScreen() {
@@ -33,6 +27,7 @@ export default function RangeReportScreen() {
     setEndDate,
     handleExport,
     isExporting,
+    handlePrintReport
   } = useReports();
 
   return (
@@ -82,6 +77,7 @@ export default function RangeReportScreen() {
           endDate={endDate}
           startDate={startDate}
           isLoading={isLoading}
+          handlePrint={handlePrintReport}
           report={report}
         />
       </ScrollView>

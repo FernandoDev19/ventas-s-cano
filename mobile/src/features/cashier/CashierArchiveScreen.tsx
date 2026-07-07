@@ -389,7 +389,6 @@ export default function CashierArchiveScreen() {
       {showCloseModal && (
         <View
           style={{
-            ...StyleSheet,
             backgroundColor: "rgba(0,0,0,0.6)",
             justifyContent: "center",
             alignItems: "center",

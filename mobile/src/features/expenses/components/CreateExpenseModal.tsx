@@ -55,10 +55,6 @@ export default function CreateExpenseModal({
       Alert.alert("Monto inválido", "Por favor ingresa un monto mayor a 0.");
       return;
     }
-    if (!categoryId) {
-      Alert.alert("Falta categoría", "Por favor selecciona una categoría.");
-      return;
-    }
  
     setIsSaving(true);
     try {

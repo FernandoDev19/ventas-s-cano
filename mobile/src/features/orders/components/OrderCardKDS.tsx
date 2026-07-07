@@ -3,13 +3,21 @@ import { View, Text, TouchableOpacity, Alert } from "react-native";
 import { OrderPro } from "../types/order.type";
 import { Audio } from "expo-av";
 import { useUserRole } from "@/src/shared/hooks/useUserRole";
+import { OrderStatusTabType } from "../types/status-tab.type";
 
 interface CardProps {
   item: OrderPro;
   onAccionEstado: (
-    estado: "pending" | "accepted" | "preparing" | "ready" | "delivered" | "cancelled",
+    estado:
+      | "pending"
+      | "accepted"
+      | "preparing"
+      | "ready"
+      | "delivered"
+      | "cancelled",
   ) => void;
   onChatCliente: () => void;
+  onPrintBill: () => void;
 }
 
 const parseUTCDate = (dateStr: string) => {
@@ -26,6 +34,7 @@ export const OrderCardKDS = ({
   item,
   onAccionEstado,
   onChatCliente,
+  onPrintBill,
 }: CardProps) => {
   const [minutosEnEspera, setMinutosEnEspera] = useState<number>(0);
   const { role } = useUserRole();
@@ -35,10 +44,16 @@ export const OrderCardKDS = ({
     const calcularTiempo = async () => {
       const creacion = parseUTCDate(item.created_at).getTime();
       const ahora = new Date().getTime();
-      const diferenciaMinutos = Math.max(0, Math.floor((ahora - creacion) / 60000));
+      const diferenciaMinutos = Math.max(
+        0,
+        Math.floor((ahora - creacion) / 60000),
+      );
       setMinutosEnEspera(diferenciaMinutos);
 
-      if (diferenciaMinutos >= 20 && (item.status === "accepted" || item.status === "preparing")) {
+      if (
+        diferenciaMinutos >= 20 &&
+        (item.status === "accepted" || item.status === "preparing")
+      ) {
         try {
           const { sound } = await Audio.Sound.createAsync(
             require("@/assets/sounds/alerta-cocina.mp3"),
@@ -48,7 +63,7 @@ export const OrderCardKDS = ({
             "Alerta",
             "Han pasado mas de 20 minutos con el pedido sin finalizar",
           );
-        } catch (e) {
+        } catch {
           console.log("Error al pitar en cocina");
         }
       }
@@ -63,6 +78,110 @@ export const OrderCardKDS = ({
     if (minutosEnEspera < 10) return "bg-emerald-50 border-emerald-500";
     if (minutosEnEspera <= 20) return "bg-amber-50 border-amber-500";
     return "bg-rose-50 border-rose-500";
+  };
+
+  const renderButtons = (orderStatus: OrderStatusTabType) => {
+    switch (orderStatus) {
+      case "accepted":
+        return (
+          <>
+            {userRole === "kitchen" || userRole === "admin" ? (
+              <>
+                <View className="flex-row gap-3">
+                  {userRole === "admin" && (
+                    <TouchableOpacity
+                      className="bg-red-500 px-3 py-1.5 rounded-lg"
+                      onPress={() => onAccionEstado("cancelled")}
+                    >
+                      <Text className="text-white font-bold text-xs">
+                        Rechazar
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity
+                    className="bg-orange-500 px-4 py-2 rounded-lg"
+                    onPress={() => onAccionEstado("preparing")}
+                  >
+                    <Text className="text-white font-bold text-xs">
+                      Preparar Pedido 🍳
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : (
+              <TouchableOpacity
+                className="bg-red-500 px-3 py-1.5 rounded-lg"
+                onPress={() => onAccionEstado("cancelled")}
+              >
+                <Text className="text-white font-bold text-xs">Rechazar</Text>
+              </TouchableOpacity>
+            )}
+          </>
+        );
+      case "pending":
+        return (
+          <View className="flex-row gap-2">
+            <TouchableOpacity
+              className="bg-red-500 px-3 py-1.5 rounded-lg"
+              onPress={() => onAccionEstado("cancelled")}
+            >
+              <Text className="text-white font-bold text-xs">Rechazar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              className="bg-emerald-600 px-4 py-1.5 rounded-lg"
+              onPress={() => onAccionEstado("accepted")}
+            >
+              <Text className="text-white font-bold text-xs">Aceptar</Text>
+            </TouchableOpacity>
+          </View>
+        );
+      case "preparing":
+        return (
+          <TouchableOpacity
+            className="bg-amber-600 px-4 py-2 rounded-lg"
+            onPress={() => onAccionEstado("ready")}
+          >
+            <Text className="text-white font-bold text-xs">
+              Pedido Listo 🚀
+            </Text>
+          </TouchableOpacity>
+        );
+      case "ready":
+        return (
+          <View className="flex-row gap-2">
+            {/* Solo se le muestra el botón de imprimir a la caja o administrador, no a cocina */}
+            {userRole !== "kitchen" && onPrintBill && (
+              <TouchableOpacity
+                className="bg-neutral-700 px-3 py-2 rounded-lg"
+                onPress={onPrintBill}
+              >
+                <Text className="text-white font-bold text-xs">
+                  Imprimir 🖨️
+                </Text>
+              </TouchableOpacity>
+            )}
+            {item.delivery_type === "mesa" ? (
+              <TouchableOpacity
+                className="bg-purple-600 px-4 py-2 rounded-lg"
+                onPress={() => onAccionEstado("delivered")}
+              >
+                <Text className="text-white font-bold text-xs">
+                  Finalizar Mesa 🍽️
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                className="bg-blue-600 px-4 py-2 rounded-lg"
+                onPress={() => onAccionEstado("delivered")}
+              >
+                <Text className="text-white font-bold text-xs">
+                  Despachar Pedido ✓
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        );
+    }
   };
 
   return (
@@ -127,59 +246,7 @@ export const OrderCardKDS = ({
           )}
         </View>
 
-        {/* Si está pendiente: botones para aceptar o rechazar */}
-        {item.status === "pending" && (
-          <View className="flex-row gap-2">
-            <TouchableOpacity
-              className="bg-red-500 px-3 py-1.5 rounded-lg"
-              onPress={() => onAccionEstado("cancelled")}
-            >
-              <Text className="text-white font-bold text-xs">Rechazar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              className="bg-emerald-600 px-4 py-1.5 rounded-lg"
-              onPress={() => onAccionEstado("accepted")}
-            >
-              <Text className="text-white font-bold text-xs">Aceptar</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Si está aceptado: botón para iniciar preparación */}
-        {item.status === "accepted" && (
-          <TouchableOpacity
-            className="bg-orange-500 px-4 py-2 rounded-lg"
-            onPress={() => onAccionEstado("preparing")}
-          >
-            <Text className="text-white font-bold text-xs">
-              Preparar Pedido 🍳
-            </Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Si está preparándose: botón para marcar como listo */}
-        {item.status === "preparing" && (
-          <TouchableOpacity
-            className="bg-amber-600 px-4 py-2 rounded-lg"
-            onPress={() => onAccionEstado("ready")}
-          >
-            <Text className="text-white font-bold text-xs">
-              Pedido Listo 🚀
-            </Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Si está listo para entregar */}
-        {item.status === "ready" && (
-          <TouchableOpacity
-            className="bg-blue-600 px-4 py-2 rounded-lg"
-            onPress={() => onAccionEstado("delivered")}
-          >
-            <Text className="text-white font-bold text-xs">
-              Entregar Pedido ✓
-            </Text>
-          </TouchableOpacity>
-        )}
+        {renderButtons(item.status)}
       </View>
     </View>
   );

@@ -137,7 +137,10 @@ export const PrinterService = {
 
   // ─── TICKET GENERATORS ─────────────────────────────────
   generateCajaTicket(
-    sale: Partial<SaleType> & { client_name: string | null; table_id?: number | null },
+    sale: Partial<SaleType> & {
+      client_name: string | null;
+      table_id?: number | null;
+    },
     items: any[],
   ): PrintCommand[] {
     const cmds: PrintCommand[] = [];
@@ -332,6 +335,84 @@ export const PrinterService = {
     return cmds;
   },
 
+  generateReportTicket(report: any): PrintCommand[] {
+    const cmds: PrintCommand[] = [];
+
+    // ===== HEADER =====
+    cmds.push(this.text("SABOR EXPRESS", "center", true, "title"));
+    cmds.push(this.text(report.title || "CIERRE DE CAJA", "center", true));
+    cmds.push(this.line());
+
+    // ===== FECHAS =====
+    cmds.push(this.text("PERIODO:", "left", true));
+    cmds.push(this.text(report.dateRange || "Día actual"));
+    cmds.push(this.line());
+
+    // ===== RESUMEN GENERAL =====
+    cmds.push(this.text(`Total de Ordenes: ${report.totalOrders || 0}`));
+    cmds.push(
+      this.text(
+        `Ticket Promedio: $${Number(report.averageTicket || 0).toLocaleString("es-CO")}`,
+      ),
+    );
+    cmds.push(this.line());
+
+    // ===== DESGLOSE DE MÉTODOS DE PAGO =====
+    cmds.push(this.text("DESGLOSE POR PAGO:", "left", true));
+    const cash = Number(report.methods?.cash || 0);
+    const transfer = Number(report.methods?.transfer || 0);
+    const debt = Number(report.methods?.debt || 0);
+
+    // Función interna para alinear el texto a los bordes en 32 columnas
+    const formatRow = (label: string, amount: number) => {
+      const valStr = `$${amount.toLocaleString("es-CO")}`;
+      const spaceCount = Math.max(0, 32 - label.length - valStr.length);
+      return `${label}${" ".repeat(spaceCount)}${valStr}`;
+    };
+
+    cmds.push(this.text(formatRow("Efectivo:", cash)));
+    cmds.push(this.text(formatRow("Transferencia:", transfer)));
+    cmds.push(this.text(formatRow("Fiar (Deudas):", debt)));
+    cmds.push(this.line());
+
+    // ===== TOTAL NETO =====
+    cmds.push(this.text("VENTAS NETAS", "center", true));
+    cmds.push(
+      this.text(
+        `$${Number(report.netProfit || 0).toLocaleString("es-CO")}`,
+        "center",
+        true,
+        "large",
+      ),
+    );
+    cmds.push(this.line());
+
+    // ===== TOP PRODUCTOS (Opcional, si lo mandas en el reporte) =====
+    if (report.topProducts && report.topProducts.length > 0) {
+      cmds.push(this.text("PRODUCTOS MAS VENDIDOS", "center", true));
+
+      // Mostrar solo el top 5 para no hacer el ticket infinito
+      report.topProducts.slice(0, 5).forEach((p: any) => {
+        // Asumiendo que p.quantity o p.total_quantity trae la cantidad vendida
+        const qtyStr = String(p.quantity || p.total_quantity || 1).padEnd(4);
+        const nameStr = (p.name || p.product_name || "Producto").substring(
+          0,
+          28,
+        );
+        cmds.push(this.text(`${qtyStr}${nameStr}`));
+      });
+      cmds.push(this.line());
+    }
+
+    // ===== FOOTER =====
+    const now = new Date().toLocaleString("es-CO");
+    cmds.push(this.text(`Impreso: ${now}`, "center"));
+    cmds.push(this.feed(3));
+    cmds.push(this.cut());
+
+    return cmds;
+  },
+  
   // ─── CONVERT COMMAND TO RAW ESC/POS BYTES ──────────────
   buildRawEscPos(commands: PrintCommand[]): Uint8Array {
     const buffer: number[] = [];

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -20,25 +20,42 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const redirectUserByRole = useCallback(
+    (role?: string) => {
+      if (role === "admin") {
+        router.replace("/(tabs)");
+      } else if (role === "cashier") {
+        router.replace("/(tabs)/(cashier)/cashier");
+      } else if (role === "kitchen") {
+        router.replace("/(tabs)/(orders)/orders");
+      } else {
+        router.replace("/(tabs)");
+      }
+    },
+    [router],
+  );
+
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert("Completa los campos", "Email y contraseña son requeridos para entrar.");
+      Alert.alert(
+        "Completa los campos",
+        "Email y contraseña son requeridos para entrar.",
+      );
       return;
     }
 
     setLoading(true);
 
     try {
-      // 1. Iniciar sesión en Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
-        password,
-      });
+      const { data: authData, error: authError } =
+        await supabase.auth.signInWithPassword({
+          email: email.trim().toLowerCase(),
+          password,
+        });
 
       if (authError) throw authError;
 
       if (authData.user) {
-        // 2. Traer perfil del usuario (rol y nombre)
         const { data: profile, error: profileError } = await supabase
           .from("profiles")
           .select("role, name")
@@ -50,24 +67,15 @@ export default function LoginScreen() {
           throw new Error("No se pudo obtener tu perfil");
         }
 
-        // 3. Enrutamiento según rol
         Alert.alert("¡Bienvenido!", `Hola ${profile?.name || "Usuario"}`);
-
-        // Descartar opciones: solo admin de mesas/ventas
-        if (profile?.role === "admin" || profile?.role === "cashier") {
-          router.replace("/(tabs)");
-        } else if (profile?.role === "kitchen") {
-          router.replace("/(tabs)/(sales)/sales?tab=Ordenes");
-        } else {
-          // Por defecto: menú
-          router.replace("/(tabs)");
-        }
+        redirectUserByRole(profile?.role);
       }
     } catch (error: any) {
       console.error("Login error:", error);
       Alert.alert(
         "Error al ingresar",
-        error.message || "Credenciales incorrectas. Verifica tu email y contraseña."
+        error.message ||
+          "Credenciales incorrectas. Verifica tu email y contraseña.",
       );
     } finally {
       setLoading(false);
@@ -80,7 +88,14 @@ export default function LoginScreen() {
       style={{ flex: 1, backgroundColor: "#0f0f0f" }}
     >
       <View className="flex-1 bg-background justify-center px-6 py-8">
-        <View style={{ width: "100%", maxWidth: 380, marginHorizontal: "auto", gap: 24 }}>
+        <View
+          style={{
+            width: "100%",
+            maxWidth: 380,
+            marginHorizontal: "auto",
+            gap: 24,
+          }}
+        >
           {/* Logo y Branding */}
           <View style={{ alignItems: "center", marginBottom: 16 }}>
             <Image
@@ -227,7 +242,8 @@ export default function LoginScreen() {
                 lineHeight: 18,
               }}
             >
-              💡 Este es un acceso interno. Si no tienes credenciales, contacta al administrador.
+              💡 Este es un acceso interno. Si no tienes credenciales, contacta
+              al administrador.
             </Text>
           </View>
         </View>

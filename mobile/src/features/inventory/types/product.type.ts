@@ -5,6 +5,7 @@ export type ProductType = {
   price: number;
   stock: number;
   category_id: string;
+  is_visible_menu: 0 | 1;
   sincronizado?: 0 | 1;
   updated_at?: string;
 };
