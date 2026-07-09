@@ -67,8 +67,9 @@ export const CheckoutService = {
             comments: data.comentarios,
             total_price: totalPedido,
             status: "pending",
-            table_id: mesaNumber, // ← AQUÍ va el número de mesa
-            origin: isQR ? "qr_cliente" : "caja", // Distinguir origen
+            cashier_status: "pending",
+            table_id: mesaNumber,
+            origin: isQR ? "qr_cliente" : "caja",
           },
         ])
         .select("id")

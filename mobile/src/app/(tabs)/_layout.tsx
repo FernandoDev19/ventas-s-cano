@@ -4,7 +4,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAudioPlayer } from "expo-audio";
 import { Tabs, useRouter } from "expo-router";
 import { useEffect } from "react";
-import { ActivityIndicator, Alert, Pressable, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  DeviceEventEmitter,
+  Pressable,
+  Text,
+  View,
+} from "react-native";
 
 const activeColor = "#ff5722";
 
@@ -67,62 +74,101 @@ export default function TabLayout() {
   const router = useRouter();
 
   useEffect(() => {
-    // ID único para que cada dispositivo mantenga su canal limpio sin pisarse
+    if (!role) return; // esperamos a saber el rol antes de decidir qué escuchar
+
     const connectionId = Math.random().toString(36).substring(7);
     console.log(
-      `🔌 Conectando canal Realtime [pedidos-${connectionId}] para el rol: ${role}`,
+      `🔌 Conectando canal Realtime GLOBAL [pedidos-${connectionId}] rol: ${role}`,
     );
-    
+
+    const playSound = () => {
+      try {
+        player.play();
+      } catch (e) {
+        console.error("Error reproduciendo sonido:", e);
+      }
+    };
+
     const channel = supabase
       .channel(`pedidos-global-${connectionId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "orders" },
-        async (payload) => {
-          console.log("⚡ EVENTO RECIBIDO EN REALTIME:", payload.eventType);
+        (payload) => {
+          console.log("⚡ [GLOBAL] EVENTO REALTIME:", payload.eventType);
 
+          // CASO 1: Nuevo pedido web -> avisar a caja/admin
           if (
-            role &&
             payload.eventType === "INSERT" &&
-            role !== "kitchen"
+            role !== "kitchen" &&
+            payload.new.cashier_status === "pending"
           ) {
-            console.log("📢 NUEVO PEDIDO WEB DETECTADO");
-            try {
-              player.play();
-              console.log("Reproduciendo...");
-            } catch (e) {
-              console.error(e);
-            }
+            playSound();
             Alert.alert(
               "¡PEDIDO NUEVO!",
               `Llegó un pedido de ${payload.new.customer_name}.`,
               [
                 {
-                text: "Ver pedido",
-                onPress: () =>
-                  router.push({
-                    pathname: "/(tabs)/(sales)/sales",
-                    params: { tab: "Ordenes" },
-                  }),
-              },
-              ]
+                  text: "Ver pedido",
+                  onPress: () =>
+                    router.push({
+                      pathname: "/(tabs)/(sales)/sales",
+                      params: { tab: "Ordenes" },
+                    }),
+                },
+              ],
             );
           }
+
+          // CASO 2: Caja aceptó -> avisar a cocina
+          if (
+            payload.eventType === "UPDATE" &&
+            role === "kitchen" &&
+            payload.new.kitchen_status === "pending" &&
+            payload.old.kitchen_status !== "pending"
+          ) {
+            playSound();
+            Alert.alert(
+              "¡NUEVA COMANDA! 🍳",
+              `Preparar pedido para: ${payload.new.customer_name}`,
+            );
+          }
+
+          // CASO 3: Cocina terminó -> avisar a caja/admin
+          if (
+            payload.eventType === "UPDATE" &&
+            role !== "kitchen" &&
+            payload.new.kitchen_status === "ready" &&
+            payload.old.kitchen_status !== "ready"
+          ) {
+            playSound();
+            Alert.alert(
+              "¡Pedido Listo! 🧑‍🍳",
+              `El pedido de ${payload.new.customer_name} ya está listo.`,
+            );
+          }
+
+          // Refrescar cualquier pantalla de órdenes montada
+          DeviceEventEmitter.emit("NUEVO_PEDIDO_DESDE_WEB");
         },
       );
 
-    // ◄ AJUSTE CLAVE: Escuchamos el estado de la suscripción para pillar si Supabase conecta
     channel.subscribe((status) => {
-      console.log(`📡 ESTADO DEL CANAL [pedidos-${connectionId}]:`, status);
+      console.log(
+        `📡 [GLOBAL] ESTADO DEL CANAL [pedidos-${connectionId}]:`,
+        status,
+      );
       if (status === "CHANNEL_ERROR") {
         console.error(
-          "❌ Error de conexión en Realtime. Revisa las políticas o el SQL de Supabase.",
+          "❌ Error de conexión en Realtime. Revisa las políticas RLS.",
         );
       }
     });
 
     return () => {
-      console.log(`🔌 Desconectando canal Realtime [pedidos-${connectionId}]`);
+      console.log(
+        `🔌 Desconectando canal Realtime GLOBAL [pedidos-${connectionId}]`,
+      );
       supabase.removeChannel(channel);
     };
   }, [role, player, router]);

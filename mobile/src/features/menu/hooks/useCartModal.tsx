@@ -11,7 +11,10 @@ import { useContextOrder } from "@/src/shared/hooks/useContextOrder";
 import { ProductsService } from "../../inventory/services/products.service";
 import { PrinterService } from "@/src/shared/services/printer.service";
 import { OrdersService } from "../../orders/services/orders.service";
-import { buildInvoiceMessage, sendInvoiceViaWhatsApp } from "@/src/shared/helpers/whatsapp.helper";
+import {
+  buildInvoiceMessage,
+  sendInvoiceViaWhatsApp,
+} from "@/src/shared/helpers/whatsapp.helper";
 
 export const useCartModal = (onSaleCreated: () => void) => {
   const { order, addToOrder, addRecipeToOrder, removeFromOrder, clearOrder } =
@@ -58,7 +61,6 @@ export const useCartModal = (onSaleCreated: () => void) => {
     payment_method: paymentMethod,
     client_id: isDebt ? selectedClientId : null,
   });
-
 
   const handleCheckout = async (sale: SaleType, order: OrderItem[]) => {
     try {
@@ -216,7 +218,8 @@ export const useCartModal = (onSaleCreated: () => void) => {
 
         if (clientPhone) {
           const invoiceItems = order.map((item) => ({
-            name: item.type === "product" ? item.product.name : item.recipe.name,
+            name:
+              item.type === "product" ? item.product.name : item.recipe.name,
             quantity: item.quantity,
             price:
               item.type === "product"
@@ -241,7 +244,7 @@ export const useCartModal = (onSaleCreated: () => void) => {
                 text: "Sí, enviar 📤",
                 onPress: () => sendInvoiceViaWhatsApp(clientPhone, msg),
               },
-            ]
+            ],
           );
         }
         // ────────────────────────────────────────────────────
@@ -272,7 +275,7 @@ export const useCartModal = (onSaleCreated: () => void) => {
             if (clientObj && clientObj.phone) telefonoCliente = clientObj.phone;
           }
 
-          await OrdersService.createOrderFromMobile({
+          const orderId = await OrdersService.createOrderFromMobile({
             customer_name: nombreCliente,
             customer_phone: telefonoCliente,
             total_price: totalPrecio,
@@ -290,7 +293,10 @@ export const useCartModal = (onSaleCreated: () => void) => {
             })),
           });
 
-          // Cuando Supabase responde melo, cerramos el flujo completo
+          if (orderId && createdSale.id) {
+            await SalesService.linkToOrder(createdSale.id, orderId);
+          }
+
           await finalizarFlujoVenta();
         } catch (orderErr) {
           console.error("Error enviando la comanda digital al KDS:", orderErr);
@@ -327,7 +333,7 @@ export const useCartModal = (onSaleCreated: () => void) => {
       );
     }
   };
-  
+
   const getItemLabel = (item: OrderItem) => {
     if (item.type === "product") return item.product.name;
     return `🍽 ${item.recipe.name}`;

@@ -54,6 +54,7 @@ const DATABASE = {
           status TEXT DEFAULT 'active',
           cancel_reason TEXT,
           edit_reason TEXT,
+          source_order_id TEXT,
           sincronizado INTEGER DEFAULT 0,
           updated_at TEXT NOT NULL,
           deleted_at TEXT,
@@ -179,7 +180,7 @@ const DATABASE = {
         "sale_recipes",
         "cashier_shifts",
         "cash_movements",
-        "tables"
+        "tables",
       ];
       for (const tableName of tables) {
         try {
@@ -201,6 +202,28 @@ const DATABASE = {
             err,
           );
         }
+      }
+
+      try {
+        const info = (await DATABASE.db.getAllAsync(
+          `PRAGMA table_info(sales);`,
+        )) as any[];
+        const hasSourceOrderId = info.some(
+          (col) => col.name === "source_order_id",
+        );
+        if (!hasSourceOrderId) {
+          await DATABASE.db.execAsync(
+            `ALTER TABLE sales ADD COLUMN source_order_id TEXT;`,
+          );
+          console.log(
+            "Columna source_order_id añadida con éxito a la tabla [sales]",
+          );
+        }
+      } catch (err) {
+        console.error(
+          "Error al verificar/agregar source_order_id en sales:",
+          err,
+        );
       }
 
       console.log(

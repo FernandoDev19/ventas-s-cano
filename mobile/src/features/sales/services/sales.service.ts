@@ -132,7 +132,7 @@ export const SalesService = {
         // 💰 2. CREAR LA VENTA PRINCIPAL
         // =================================================================
         await DATABASE.db.runAsync(
-          "INSERT INTO sales (id, total, note, is_debt, debt_amount, debt_date, payment_method, client_id, sincronizado, updated_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          "INSERT INTO sales (id, total, note, is_debt, debt_amount, debt_date, payment_method, client_id, source_order_id, sincronizado, updated_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
           [
             saleId,
             orden.total_price,
@@ -142,6 +142,7 @@ export const SalesService = {
             debtDateStr,
             tipoPago,
             orden.client_id || null,
+            orden.id, // ← enlace con la orden
             0,
             hoy,
             hoy,
@@ -187,9 +188,12 @@ export const SalesService = {
               ],
             );
 
-            const ingredientes = await DATABASE.db.getAllAsync<{ product_id: string; quantity: number }>(
+            const ingredientes = await DATABASE.db.getAllAsync<{
+              product_id: string;
+              quantity: number;
+            }>(
               "SELECT product_id, quantity FROM recipe_ingredients WHERE recipe_id = ?;",
-              [item.recipe_id]
+              [item.recipe_id],
             );
 
             for (const ing of ingredientes) {
@@ -197,7 +201,7 @@ export const SalesService = {
 
               await DATABASE.db.runAsync(
                 "UPDATE products SET stock = stock - ?, sincronizado = 0, updated_at = ? WHERE id = ?",
-                [cantidadATorcer, hoy, ing.product_id]
+                [cantidadATorcer, hoy, ing.product_id],
               );
             }
           }
@@ -712,5 +716,42 @@ export const SalesService = {
         }
       });
     }
+  },
+
+  linkToOrder: async (saleId: string, orderId: string): Promise<void> => {
+    await DATABASE.db.runAsync(
+      "UPDATE sales SET source_order_id = ?, sincronizado = 0, updated_at = ? WHERE id = ?",
+      [orderId, new Date().toISOString(), saleId],
+    );
+
+    SyncService.run().catch((err) =>
+      console.error("Error sincronizando enlace venta-orden:", err),
+    );
+  },
+
+  /** Busca la venta local enlazada a una orden (por source_order_id) */
+  getBySourceOrderId: async (orderId: string): Promise<SaleType | null> => {
+    const sale: any = await DATABASE.db.getFirstAsync(
+      "SELECT * FROM sales WHERE source_order_id = ? AND (status IS NULL OR status != 'cancelled') LIMIT 1",
+      [orderId],
+    );
+    if (!sale) return null;
+    return {
+      ...sale,
+      is_debt: Boolean(sale.is_debt),
+      created_at: new Date(sale.created_at),
+      debt_date: sale.debt_date ? new Date(sale.debt_date) : null,
+    };
+  },
+
+  /** Cancela (revierte stock) la venta enlazada a una orden, si existe */
+  cancelBySourceOrderId: async (
+    orderId: string,
+    cancelReason: string,
+  ): Promise<boolean> => {
+    const sale = await SalesService.getBySourceOrderId(orderId);
+    if (!sale?.id) return false;
+    await SalesService.deleteSale(sale.id, cancelReason);
+    return true;
   },
 };

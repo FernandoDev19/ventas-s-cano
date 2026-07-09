@@ -18,6 +18,7 @@ export interface OrderPro {
   comments: string | null;
   total_price: number;
   status: "pending" | "accepted" | "preparing" | "ready" | "delivered" | "cancelled";
+  cashier_status?: "pending" | "accepted" | "rejected";
   created_at: string;
   table_id: number | null;
   origin: "caja" | "qr_cliente";

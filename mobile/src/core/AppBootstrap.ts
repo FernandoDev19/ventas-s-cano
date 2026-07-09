@@ -43,9 +43,9 @@ export const AppBootstrap = () => {
         // 4. Configurar el escuchador de red de forma correcta en el nivel superior
         unsubscribeNetInfo = NetInfo.addEventListener((state) => {
           if (state.isConnected) {
-            console.log(
-              "LOG [RED]: ¡Internet detectado! Ejecutando SyncService...",
-            );
+            // console.log(
+            //   "LOG [RED]: ¡Internet detectado! Ejecutando SyncService...",
+            // );
             SyncService.run();
           }
         });

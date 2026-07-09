@@ -36,7 +36,7 @@ export const CategoriesService = {
         "SELECT COUNT(*) as count FROM categories",
       );
 
-    console.log(categoriesCount?.count, typeof categoriesCount);
+    // console.log(categoriesCount?.count, typeof categoriesCount);
 
     if (categoriesCount?.count === 0) {
       await DATABASE.db.withTransactionAsync(async () => {

@@ -8,6 +8,7 @@ import {
   sendInvoiceViaWhatsApp,
 } from "@/src/shared/helpers/whatsapp.helper";
 import { OrderStatusTabType } from "../types/status-tab.type";
+import { TablesService } from "../../tables/services/tables.service";
 
 interface UseChangeOrderStatusProps {
   cargarOrdenes: (tab: OrderStatusTabType) => void;
@@ -28,8 +29,9 @@ export const useChangeOrderStatus = ({
     orderId: string,
     status: string,
     kStatus?: "pending" | "ready" | "unseen",
+    cStatus?: "pending" | "accepted" | "rejected",
   ) => {
-    await OrdersService.updateOrderStatus(orderId, status, kStatus);
+    await OrdersService.updateOrderStatus(orderId, status, kStatus, cStatus);
   };
 
   const ofrecerFacturaWhatsApp = (orden: OrderPro) => {
@@ -55,6 +57,25 @@ export const useChangeOrderStatus = ({
         },
       ],
     );
+  };
+
+  const revertirVentaSiExiste = async (orderId: string) => {
+    try {
+      const reverted = await SalesService.cancelBySourceOrderId(
+        orderId,
+        "Orden cancelada desde KDS/Cocina",
+      );
+      if (reverted) {
+        console.log(
+          `↩️ Venta local revertida y stock restaurado para orden ${orderId}`,
+        );
+      }
+    } catch (err) {
+      console.error(
+        "Error revirtiendo venta enlazada a la orden cancelada:",
+        err,
+      );
+    }
   };
 
   /* *******************[ CHANGE ORDER STATUS ]********************** */
@@ -100,7 +121,7 @@ export const useChangeOrderStatus = ({
       ) => {
         setLoading(true);
         await SalesService.crearVentaDesdeOrdenWeb(orden, tipoPago);
-        await updateOrderStatus(orden.id, "accepted", "pending");
+        await updateOrderStatus(orden.id, "accepted", "pending", "accepted");
 
         try {
           const cocinaConfig = await PrinterService.getConfig("cocina");
@@ -142,10 +163,7 @@ export const useChangeOrderStatus = ({
         "Método de Pago",
         "¿Cómo se registrará el ingreso de este pedido de la web?",
         [
-          {
-            text: "💵 Efectivo",
-            onPress: () => handleAccept("efectivo"),
-          },
+          { text: "💵 Efectivo", onPress: () => handleAccept("efectivo") },
           {
             text: "📱 Transferencia",
             onPress: () => handleAccept("transferencia"),
@@ -226,6 +244,11 @@ export const useChangeOrderStatus = ({
     const handleReadyWithoutPrint = async (orden: OrderPro) => {
       try {
         await updateOrderStatus(orden.id, "delivered");
+
+        if (orden.delivery_type === "mesa" && orden.table_id) {
+          await TablesService.release(orden.table_id);
+        }
+
         cargarOrdenes(activeTab);
         ofrecerFacturaWhatsApp(orden);
       } catch {
@@ -273,7 +296,14 @@ export const useChangeOrderStatus = ({
         {
           text: "Sí, avisar y rechazar",
           onPress: async () => {
-            await updateOrderStatus(orden.id, "cancelled");
+            await updateOrderStatus(
+              orden.id,
+              "cancelled",
+              undefined,
+              "rejected",
+            );
+            await revertirVentaSiExiste(orden.id);
+
             const mensaje = `¡Hola ${orden.customer_name}! Te hablamos de Sabor Espress. Lamentablemente no pudimos aceptar tu pedido en este momento...`;
             const url = `https://wa.me/57${orden.customer_phone}?text=${encodeURIComponent(mensaje)}`;
             await Linking.openURL(url).catch(() =>
@@ -285,7 +315,13 @@ export const useChangeOrderStatus = ({
         {
           text: "Solo rechazar",
           onPress: async () => {
-            await updateOrderStatus(orden.id, "cancelled");
+            await updateOrderStatus(
+              orden.id,
+              "cancelled",
+              undefined,
+              "rejected",
+            );
+            await revertirVentaSiExiste(orden.id);
             cargarOrdenes(activeTab);
           },
         },

@@ -3,7 +3,6 @@ import { OrderPro } from "../types/order.type";
 import { ORDER_STATUS_TAB, OrderStatusTabType } from "../types/status-tab.type";
 import { OrdersService } from "../services/orders.service";
 import { Alert, Linking, DeviceEventEmitter } from "react-native";
-import { useOrdersRealtime } from "./useOrdersRealtime";
 import { useChangeOrderStatus } from "./useChangeOrderStatus";
 import { PrinterService } from "@/src/shared/services/printer.service";
 
@@ -90,9 +89,7 @@ export const useOrders = (role?: "admin" | "kitchen" | "cashier") => {
       return false;
     }
   };
-
-  useOrdersRealtime({ activeTabRef, userRole, cargarOrdenes });
-
+  
   const { handleCambiarEstado } = useChangeOrderStatus({
     cargarOrdenes,
     activeTab,

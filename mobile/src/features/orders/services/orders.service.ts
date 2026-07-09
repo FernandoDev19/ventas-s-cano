@@ -41,10 +41,17 @@ export const OrdersService = {
     orderId: string,
     newStatus: string,
     kitchen_status?: "unseen" | "pending" | "ready",
+    cashier_status?: "pending" | "accepted" | "rejected",
   ) => {
+    const updatePayload: Record<string, any> = { status: newStatus };
+    if (kitchen_status !== undefined)
+      updatePayload.kitchen_status = kitchen_status;
+    if (cashier_status !== undefined)
+      updatePayload.cashier_status = cashier_status;
+
     const { error } = await supabase
       .from("orders")
-      .update({ status: newStatus, kitchen_status })
+      .update(updatePayload)
       .eq("id", orderId);
 
     if (error) throw error;
@@ -52,17 +59,17 @@ export const OrdersService = {
   },
 
   createOrderFromMobile: async (orderData: any) => {
-    // 1. Insertamos la cabecera de la orden
     const { data: order, error: orderError } = await supabase
       .from("orders")
       .insert({
         customer_name: orderData.customer_name || "Caja Local",
-        customer_phone: orderData.customer_phone || "", // ◄ ¡AQUÍ ESTÁ LA JUGADA! Si es null, manda un texto vacío
-        delivery_address: orderData.delivery_address || "", // Por si las moscas también está NOT NULL
+        customer_phone: orderData.customer_phone || "",
+        delivery_address: orderData.delivery_address || "",
         total_price: orderData.total_price,
         comments: orderData.comments || "",
-        status: orderData.status, // 'accepted'
+        status: orderData.status,
         kitchen_status: "pending",
+        cashier_status: "accepted",
         delivery_type: orderData.delivery_type || "local",
       })
       .select()
@@ -73,7 +80,6 @@ export const OrdersService = {
       throw orderError;
     }
 
-    // 2. Preparamos los items amarrados al ID de la orden que nos devolvió Supabase
     const itemsToInsert = orderData.order_items.map((item: any) => ({
       order_id: order.id,
       product_id: item.product_id,
@@ -82,7 +88,6 @@ export const OrdersService = {
       price_at_time: item.price_at_time,
     }));
 
-    // 3. Insertamos el detalle en la tabla intermedia
     const { error: itemsError } = await supabase
       .from("order_items")
       .insert(itemsToInsert);
@@ -95,6 +100,6 @@ export const OrdersService = {
       throw itemsError;
     }
 
-    return true;
+    return order.id;
   },
 };
