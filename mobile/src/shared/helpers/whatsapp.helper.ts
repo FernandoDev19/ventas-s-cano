@@ -68,21 +68,39 @@ export async function sendInvoiceViaWhatsApp(
   phone: string | null | undefined,
   message: string,
 ): Promise<boolean> {
-  if (!phone || phone.trim() === "") return false;
-
-  const normalized = normalizePhone(phone.trim());
-  const url = `https://wa.me/${normalized}?text=${encodeURIComponent(message)}`;
+  let url = "";
+  if (phone && phone.trim() !== "") {
+    const normalized = normalizePhone(phone.trim());
+    url = `https://wa.me/${normalized}?text=${encodeURIComponent(message)}`;
+  } else {
+    // Abrir WhatsApp sin número específico para que el usuario elija destinatario
+    url = `whatsapp://send?text=${encodeURIComponent(message)}`;
+  }
 
   try {
     const canOpen = await Linking.canOpenURL(url);
     if (!canOpen) {
+      // Fallback a wa.me en caso de que whatsapp:// no esté registrado
+      const fallbackUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+      const canOpenFallback = await Linking.canOpenURL(fallbackUrl);
+      if (canOpenFallback) {
+        await Linking.openURL(fallbackUrl);
+        return true;
+      }
       Alert.alert("WhatsApp no disponible", "No se pudo abrir WhatsApp en este dispositivo.");
       return false;
     }
     await Linking.openURL(url);
     return true;
   } catch {
-    Alert.alert("Error", "No se pudo abrir WhatsApp.");
-    return false;
+    // Fallback directo
+    try {
+      const fallbackUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+      await Linking.openURL(fallbackUrl);
+      return true;
+    } catch {
+      Alert.alert("Error", "No se pudo abrir WhatsApp.");
+      return false;
+    }
   }
 }

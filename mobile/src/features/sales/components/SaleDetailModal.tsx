@@ -19,18 +19,33 @@ import { Ionicons } from "@expo/vector-icons";
 import { priceFormat } from "@/src/shared/helpers/price-format.helper";
 import { ProductsService } from "@/src/features/inventory/services/products.service";
 import { ProductType } from "@/src/features/inventory/types/product.type";
+import { RecipesService } from "@/src/features/recipes/services/recipes.service";
+import { RecipeType } from "@/src/features/recipes/types/recipe.type";
 import { ClientsService } from "@/src/features/clients/services/clients.service";
 import { ClientType } from "@/src/features/clients/types/client.type";
 import ReasonDialog from "./ReasonDialog";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as Clipboard from "expo-clipboard";
 import { PrinterService } from "@/src/shared/services/printer.service";
+import {
+  buildInvoiceMessage,
+  sendInvoiceViaWhatsApp,
+} from "@/src/shared/helpers/whatsapp.helper";
 
 type SaleDetailModalProps = {
   visible: boolean;
   saleId: string | null;
   onClose: () => void;
   onUpdated: () => void;
+};
+
+type EditableItem = {
+  item_id: string; // product_id o recipe_id
+  item_name: string;
+  item_image?: string;
+  quantity: number;
+  price: number; // precio por unidad
+  is_recipe: boolean;
 };
 
 type FullSaleType = SaleType & {
@@ -63,24 +78,27 @@ export default function SaleDetailModal({
   const [isPaying, setIsPaying] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Edit Mode States
+  // Edit Mode
   const [isEditing, setIsEditing] = useState(false);
-  const [editedProducts, setEditedProducts] = useState<any[]>([]);
+  const [editedItems, setEditedItems] = useState<EditableItem[]>([]);
   const [editedNote, setEditedNote] = useState("");
   const [editedIsDebt, setEditedIsDebt] = useState(false);
   const [editedDebtAmount, setEditedDebtAmount] = useState(0);
 
-  // Product Selector States
-  const [showProductSelector, setShowProductSelector] = useState(false);
+  // Selector: "products" | "recipes" | null
+  const [selectorMode, setSelectorMode] = useState<
+    "products" | "recipes" | null
+  >(null);
   const [allProducts, setAllProducts] = useState<ProductType[]>([]);
+  const [allRecipes, setAllRecipes] = useState<RecipeType[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Client Selector States
+  // Client
   const [clients, setClients] = useState<ClientType[]>([]);
   const [editedClientId, setEditedClientId] = useState<string | null>(null);
   const [showClientPicker, setShowClientPicker] = useState(false);
 
-  // Date Picker States
+  // Date
   const [editedDebtDate, setEditedDebtDate] = useState<Date>(() => {
     const d = new Date();
     d.setDate(d.getDate() + 7);
@@ -88,7 +106,7 @@ export default function SaleDetailModal({
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  // Reason Dialog States
+  // Reason Dialog
   const [showReasonDialog, setShowReasonDialog] = useState(false);
   const [reasonType, setReasonType] = useState<"edit" | "cancel">("edit");
 
@@ -104,7 +122,6 @@ export default function SaleDetailModal({
         onClose();
       }
     } catch (err) {
-      console.error(err);
       Alert.alert("Error", "No se pudo cargar el detalle de la venta.");
     } finally {
       setIsLoading(false);
@@ -136,7 +153,7 @@ export default function SaleDetailModal({
               onUpdated();
               onClose();
             } catch (err) {
-              Alert.alert("Error", "No se pudo actualizar la venta.\n" + err);
+              Alert.alert("Error", "No se pudo actualizar la venta.");
             } finally {
               setIsPaying(false);
             }
@@ -148,15 +165,27 @@ export default function SaleDetailModal({
 
   const startEditing = async () => {
     if (!sale) return;
-    setEditedProducts(
-      sale.products.map((p) => ({
-        product_id: p.product_id,
-        product_name: p.product_name,
-        product_image: p.product_image,
-        quantity: p.quantity,
-        price: p.price,
-      })),
-    );
+
+    // Mapear productos y recetas al tipo unificado EditableItem
+    const mappedProducts: EditableItem[] = sale.products.map((p) => ({
+      item_id: p.product_id,
+      item_name: p.product_name,
+      item_image: p.product_image,
+      quantity: p.quantity,
+      price: p.price, // precio total del item (quantity * unitPrice)
+      is_recipe: false,
+    }));
+
+    const mappedRecipes: EditableItem[] = sale.recipes.map((r) => ({
+      item_id: r.recipe_id,
+      item_name: r.recipe_name,
+      item_image: r.recipe_image,
+      quantity: r.quantity,
+      price: r.price, // precio total del item
+      is_recipe: true,
+    }));
+
+    setEditedItems([...mappedProducts, ...mappedRecipes]);
     setEditedNote(sale.note || "");
     setEditedIsDebt(sale.is_debt || false);
     setEditedDebtAmount(sale.debt_amount || 0);
@@ -172,84 +201,117 @@ export default function SaleDetailModal({
     );
     setIsEditing(true);
 
+    // Precargar datos para selectores
     try {
-      const prods = await ProductsService.getProducts();
+      const [prods, recs, clientList] = await Promise.all([
+        ProductsService.getProducts(),
+        RecipesService.getAll(),
+        ClientsService.getAll(),
+      ]);
       setAllProducts(prods);
-    } catch (err) {
-      console.error("Error loading products for editor:", err);
-    }
-
-    try {
-      const clientList = await ClientsService.getAll();
+      setAllRecipes(recs);
       setClients(clientList);
     } catch (err) {
-      console.error("Error loading clients for editor:", err);
+      console.error("Error cargando datos para edición:", err);
     }
   };
 
   const cancelEditing = () => {
     setIsEditing(false);
-    setEditedProducts([]);
+    setEditedItems([]);
     setEditedNote("");
     setEditedClientId(null);
   };
 
+  // ─── Agregar producto al carrito de edición ───────────────
   const handleAddProduct = (product: ProductType) => {
-    setEditedProducts((prev) => {
-      const existing = prev.find((p) => p.product_id === product.id);
+    setEditedItems((prev) => {
+      const existing = prev.find(
+        (p) => p.item_id === product.id && !p.is_recipe,
+      );
       if (existing) {
         return prev.map((p) =>
-          p.product_id === product.id ? { ...p, quantity: p.quantity + 1 } : p,
+          p.item_id === product.id && !p.is_recipe
+            ? { ...p, quantity: p.quantity + 1 }
+            : p,
         );
-      } else {
-        return [
-          ...prev,
-          {
-            product_id: product.id,
-            product_name: product.name,
-            product_image: product.image_url,
-            quantity: 1,
-            price: product.price,
-          },
-        ];
       }
+      return [
+        ...prev,
+        {
+          item_id: product.id,
+          item_name: product.name,
+          item_image: product.image_url,
+          quantity: 1,
+          price: product.price, // precio unitario
+          is_recipe: false,
+        },
+      ];
     });
-    setShowProductSelector(false);
+    setSelectorMode(null);
   };
 
-  const updateProductQuantity = (productId: number, delta: number) => {
-    setEditedProducts((prev) =>
+  // ─── Agregar receta al carrito de edición ────────────────
+  const handleAddRecipe = (recipe: RecipeType) => {
+    setEditedItems((prev) => {
+      const existing = prev.find((p) => p.item_id === recipe.id && p.is_recipe);
+      if (existing) {
+        return prev.map((p) =>
+          p.item_id === recipe.id && p.is_recipe
+            ? { ...p, quantity: p.quantity + 1 }
+            : p,
+        );
+      }
+      return [
+        ...prev,
+        {
+          item_id: recipe.id!,
+          item_name: recipe.name,
+          item_image: recipe.image_url,
+          quantity: 1,
+          price: recipe.selling_price, // precio unitario
+          is_recipe: true,
+        },
+      ];
+    });
+    setSelectorMode(null);
+  };
+
+  const updateItemQty = (
+    item_id: string,
+    is_recipe: boolean,
+    delta: number,
+  ) => {
+    setEditedItems((prev) =>
       prev
-        .map((p) => {
-          if (p.product_id === productId) {
-            const newQty = p.quantity + delta;
-            return { ...p, quantity: newQty };
-          }
-          return p;
-        })
+        .map((p) =>
+          p.item_id === item_id && p.is_recipe === is_recipe
+            ? { ...p, quantity: p.quantity + delta }
+            : p,
+        )
         .filter((p) => p.quantity > 0),
     );
   };
 
-  const removeProduct = (productId: number) => {
-    setEditedProducts((prev) => prev.filter((p) => p.product_id !== productId));
+  const removeItem = (item_id: string, is_recipe: boolean) => {
+    setEditedItems((prev) =>
+      prev.filter((p) => !(p.item_id === item_id && p.is_recipe === is_recipe)),
+    );
   };
 
-  const editedTotal = editedProducts.reduce(
-    (sum, p) => sum + p.quantity * p.price,
+  // Total calculado: precio unitario × cantidad
+  const editedTotal = editedItems.reduce(
+    (sum, p) => sum + p.price * p.quantity,
     0,
   );
 
-  // Clamp debt amount to edited total
   useEffect(() => {
-    if (editedDebtAmount > editedTotal) {
-      setEditedDebtAmount(editedTotal);
-    }
+    if (editedDebtAmount > editedTotal) setEditedDebtAmount(editedTotal);
   }, [editedTotal, editedDebtAmount]);
 
   const handleSave = () => {
-    if (editedProducts.length === 0) {
-      Alert.alert("Error", "Debe haber al menos un producto en la venta.");
+    if (editedItems.length === 0) {
+      Alert.alert("Error", "Debe haber al menos un ítem en la venta.");
       return;
     }
     setReasonType("edit");
@@ -263,9 +325,27 @@ export default function SaleDetailModal({
 
   const handleConfirmReason = async (reason: string) => {
     setShowReasonDialog(false);
+
     if (reasonType === "edit") {
       setIsLoading(true);
       try {
+        // ✅ Separar correctamente productos y recetas
+        const editedPureProducts = editedItems
+          .filter((p) => !p.is_recipe)
+          .map((p) => ({
+            product_id: p.item_id,
+            quantity: p.quantity,
+            price: p.price, // precio unitario → SalesService lo guarda como unit price
+          }));
+
+        const editedPureRecipes = editedItems
+          .filter((p) => p.is_recipe)
+          .map((p) => ({
+            recipe_id: p.item_id,
+            quantity: p.quantity,
+            price: p.price, // precio unitario
+          }));
+
         await SalesService.updateSale(saleId!, {
           total: editedTotal,
           note: editedNote,
@@ -274,14 +354,14 @@ export default function SaleDetailModal({
           debt_date: editedIsDebt
             ? editedDebtDate.toISOString().split("T")[0]
             : null,
-          products: editedProducts,
+          products: editedPureProducts,
+          recipes: editedPureRecipes,
           client_id: editedClientId,
           edit_reason: reason,
         });
 
-        // Check for low stock products
         const lowStockAlerts: string[] = [];
-        for (const item of editedProducts) {
+        for (const item of editedPureProducts) {
           const prod = await ProductsService.getProductById(item.product_id);
           if (prod && prod.stock <= 10) {
             lowStockAlerts.push(`${prod.name} (Quedan: ${prod.stock})`);
@@ -292,14 +372,12 @@ export default function SaleDetailModal({
         onUpdated();
         await loadSaleDetails();
 
-        if (lowStockAlerts.length > 0) {
-          Alert.alert(
-            "Éxito",
-            `Venta modificada correctamente.\n\n⚠️ ¡Alerta de Stock Bajo!\nLos siguientes productos tienen stock bajo:\n\n${lowStockAlerts.map((a) => `• ${a}`).join("\n")}`,
-          );
-        } else {
-          Alert.alert("Éxito", "Venta modificada correctamente.");
-        }
+        Alert.alert(
+          "Éxito",
+          lowStockAlerts.length > 0
+            ? `Venta modificada.\n\n⚠️ Stock bajo:\n${lowStockAlerts.map((a) => `• ${a}`).join("\n")}`
+            : "Venta modificada correctamente.",
+        );
       } catch (err) {
         console.error(err);
         Alert.alert("Error", "No se pudo modificar la venta.");
@@ -314,17 +392,11 @@ export default function SaleDetailModal({
         onClose();
         Alert.alert("Éxito", "Venta anulada correctamente.");
       } catch (err) {
-        console.error(err);
         Alert.alert("Error", "No se pudo anular la venta.");
       } finally {
         setIsDeleting(false);
       }
     }
-  };
-
-  const copyToClipboard = async (text: string) => {
-    await Clipboard.setStringAsync(text);
-    Alert.alert("¡Copiado!", "El texto se ha guardado en el portapapeles");
   };
 
   const handleReprintTicket = async () => {
@@ -342,31 +414,262 @@ export default function SaleDetailModal({
           price: r.price,
         })),
       ];
-
       const printerSaleObj = {
         id: sale.id,
         total: sale.total,
         is_debt: sale.is_debt,
         debt_amount: sale.debt_amount,
-        debt_date: sale.debt_date ? new Date(sale.debt_date).toISOString().split("T")[0] : null,
+        debt_date: sale.debt_date
+          ? new Date(sale.debt_date).toISOString().split("T")[0]
+          : null,
         payment_method: sale.payment_method,
         client_name: sale.client?.name || "",
         note: sale.note,
         created_at: sale.created_at,
       };
-
-      const ticketCmds = PrinterService.generateCajaTicket(printerSaleObj, displayItems);
-      const ok = await PrinterService.print("caja", ticketCmds);
-      if (ok) {
-        Alert.alert("¡Enviado!", "Comandos de impresión enviados a la caja.");
-      }
+      const ok = await PrinterService.print(
+        "caja",
+        PrinterService.generateCajaTicket(printerSaleObj, displayItems),
+      );
+      if (ok) Alert.alert("¡Enviado!", "Ticket enviado a la caja.");
     } catch (err) {
-      console.error(err);
-      Alert.alert("Error", "No se pudo generar o enviar el ticket.");
+      Alert.alert("Error", "No se pudo generar el ticket.");
     }
   };
 
   if (!visible) return null;
+
+  // ─── Selector unificado (productos o recetas) ─────────────────────────────
+  const SelectorModal = () => {
+    const isProductMode = selectorMode === "products";
+    const data = isProductMode
+      ? allProducts.filter((p) =>
+          p.name.toLowerCase().includes(searchQuery.toLowerCase()),
+        )
+      : allRecipes.filter((r) =>
+          r.name.toLowerCase().includes(searchQuery.toLowerCase()),
+        );
+
+    return (
+      <Modal
+        visible={selectorMode !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSelectorMode(null)}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.6)",
+            justifyContent: "flex-end",
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: "#141414",
+              borderTopLeftRadius: 28,
+              borderTopRightRadius: 28,
+              padding: 24,
+              maxHeight: "70%",
+              paddingBottom: 40,
+            }}
+          >
+            {/* Header con tabs */}
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: 16,
+              }}
+            >
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                <Pressable
+                  onPress={() => {
+                    setSelectorMode("products");
+                    setSearchQuery("");
+                  }}
+                  style={{
+                    paddingHorizontal: 14,
+                    paddingVertical: 8,
+                    borderRadius: 20,
+                    backgroundColor: isProductMode ? "#ff5722" : "#2a2a2a",
+                  }}
+                >
+                  <Text
+                    style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}
+                  >
+                    Productos
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    setSelectorMode("recipes");
+                    setSearchQuery("");
+                  }}
+                  style={{
+                    paddingHorizontal: 14,
+                    paddingVertical: 8,
+                    borderRadius: 20,
+                    backgroundColor: !isProductMode ? "#ff5722" : "#2a2a2a",
+                  }}
+                >
+                  <Text
+                    style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}
+                  >
+                    🍽 Recetas
+                  </Text>
+                </Pressable>
+              </View>
+              <Pressable
+                onPress={() => setSelectorMode(null)}
+                style={{
+                  backgroundColor: "#2a2a2a",
+                  borderRadius: 20,
+                  padding: 8,
+                }}
+              >
+                <Ionicons name="close" size={18} color="#fff" />
+              </Pressable>
+            </View>
+
+            {/* Buscador */}
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                backgroundColor: "#1a1a1a",
+                borderRadius: 12,
+                paddingHorizontal: 12,
+                borderWidth: 1,
+                borderColor: "#2a2a2a",
+                marginBottom: 16,
+              }}
+            >
+              <Ionicons
+                name="search-outline"
+                size={18}
+                color="#737373"
+                style={{ marginRight: 8 }}
+              />
+              <TextInput
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder={
+                  isProductMode ? "Buscar producto..." : "Buscar receta..."
+                }
+                placeholderTextColor="#555"
+                style={{
+                  flex: 1,
+                  color: "#fff",
+                  fontSize: 14,
+                  paddingVertical: 10,
+                }}
+              />
+            </View>
+
+            <FlatList<ProductType | RecipeType>
+              data={data}
+              keyExtractor={(item) => String(item.id)}
+              renderItem={({ item }) => {
+                const isProduct = isProductMode;
+                const prod = item as ProductType;
+                const rec = item as RecipeType;
+                const name = isProduct ? prod.name : rec.name;
+                const image = isProduct ? prod.image_url : rec.image_url;
+                const price = isProduct ? prod.price : rec.selling_price;
+                const stock = isProduct ? prod.stock : null;
+
+                // Marcar si ya está en el carrito
+                const inCart = editedItems.find(
+                  (e) => e.item_id === item.id && e.is_recipe === !isProduct,
+                );
+
+                return (
+                  <Pressable
+                    onPress={() =>
+                      isProduct ? handleAddProduct(prod) : handleAddRecipe(rec)
+                    }
+                    style={{
+                      padding: 12,
+                      borderRadius: 14,
+                      marginBottom: 8,
+                      backgroundColor: "#1a1a1a",
+                      borderWidth: 1,
+                      borderColor: inCart ? "#ff5722" : "#2a2a2a",
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 12,
+                    }}
+                  >
+                    <Image
+                      source={
+                        image
+                          ? { uri: image }
+                          : require("@/assets/images/default-food.png")
+                      }
+                      style={{ width: 40, height: 40, borderRadius: 8 }}
+                      resizeMode="cover"
+                    />
+                    <View style={{ flex: 1 }}>
+                      <Text
+                        style={{
+                          color: "#fff",
+                          fontWeight: "600",
+                          fontSize: 14,
+                        }}
+                      >
+                        {name}
+                      </Text>
+                      <Text
+                        style={{ color: "#737373", fontSize: 12, marginTop: 2 }}
+                      >
+                        {priceFormat(price)}
+                        {stock !== null ? ` · Stock: ${stock}` : ""}
+                      </Text>
+                    </View>
+                    {inCart ? (
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 4,
+                        }}
+                      >
+                        <Text
+                          style={{
+                            color: "#ff5722",
+                            fontWeight: "800",
+                            fontSize: 13,
+                          }}
+                        >
+                          ×{inCart.quantity}
+                        </Text>
+                        <Ionicons name="add-circle" size={24} color="#ff5722" />
+                      </View>
+                    ) : (
+                      <Ionicons
+                        name="add-circle-outline"
+                        size={24}
+                        color="#737373"
+                      />
+                    )}
+                  </Pressable>
+                );
+              }}
+              ListEmptyComponent={
+                <Text
+                  style={{ color: "#555", textAlign: "center", marginTop: 20 }}
+                >
+                  No se encontraron {isProductMode ? "productos" : "recetas"}
+                </Text>
+              }
+            />
+          </View>
+        </View>
+      </Modal>
+    );
+  };
 
   return (
     <Modal
@@ -413,7 +716,12 @@ export default function SaleDetailModal({
               >
                 {isEditing ? "Modificando Venta" : "Detalle de Venta"}
               </Text>
-              <TouchableOpacity onPress={() => copyToClipboard(saleId || "")}>
+              <TouchableOpacity
+                onPress={async () => {
+                  await Clipboard.setStringAsync(saleId || "");
+                  Alert.alert("¡Copiado!", "ID copiado al portapapeles");
+                }}
+              >
                 <Text
                   style={{ color: "#fff", fontSize: 20, fontWeight: "800" }}
                 >
@@ -476,7 +784,7 @@ export default function SaleDetailModal({
             <View style={{ paddingVertical: 60, alignItems: "center" }}>
               <ActivityIndicator size="large" color="#ff5722" />
               <Text style={{ color: "#737373", marginTop: 12, fontSize: 13 }}>
-                Cargando datos de la venta...
+                Cargando...
               </Text>
             </View>
           ) : sale ? (
@@ -486,8 +794,7 @@ export default function SaleDetailModal({
             >
               {isEditing ? (
                 <>
-                  {/* EDIT MODE */}
-                  {/* Lista de productos editados */}
+                  {/* ── EDIT MODE ── */}
                   <View
                     style={{
                       flexDirection: "row",
@@ -504,54 +811,92 @@ export default function SaleDetailModal({
                         letterSpacing: 1,
                       }}
                     >
-                      Editar Productos
+                      Productos y Recetas
                     </Text>
-                    <Pressable
-                      onPress={() => {
-                        setSearchQuery("");
-                        setShowProductSelector(true);
-                      }}
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 4,
-                        backgroundColor: "#ff572222",
-                        paddingHorizontal: 12,
-                        paddingVertical: 6,
-                        borderRadius: 10,
-                      }}
-                    >
-                      <Ionicons name="add" size={14} color="#ff5722" />
-                      <Text
+                    {/* Botones para abrir selector */}
+                    <View style={{ flexDirection: "row", gap: 8 }}>
+                      <Pressable
+                        onPress={() => {
+                          setSearchQuery("");
+                          setSelectorMode("products");
+                        }}
                         style={{
-                          color: "#ff5722",
-                          fontSize: 12,
-                          fontWeight: "700",
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 4,
+                          backgroundColor: "#ff572222",
+                          paddingHorizontal: 10,
+                          paddingVertical: 6,
+                          borderRadius: 10,
                         }}
                       >
-                        Agregar
-                      </Text>
-                    </Pressable>
+                        <Ionicons
+                          name="cube-outline"
+                          size={13}
+                          color="#ff5722"
+                        />
+                        <Text
+                          style={{
+                            color: "#ff5722",
+                            fontSize: 12,
+                            fontWeight: "700",
+                          }}
+                        >
+                          Producto
+                        </Text>
+                      </Pressable>
+                      <Pressable
+                        onPress={() => {
+                          setSearchQuery("");
+                          setSelectorMode("recipes");
+                        }}
+                        style={{
+                          flexDirection: "row",
+                          alignItems: "center",
+                          gap: 4,
+                          backgroundColor: "#ff572222",
+                          paddingHorizontal: 10,
+                          paddingVertical: 6,
+                          borderRadius: 10,
+                        }}
+                      >
+                        <Ionicons
+                          name="restaurant-outline"
+                          size={13}
+                          color="#ff5722"
+                        />
+                        <Text
+                          style={{
+                            color: "#ff5722",
+                            fontSize: 12,
+                            fontWeight: "700",
+                          }}
+                        >
+                          Receta
+                        </Text>
+                      </Pressable>
+                    </View>
                   </View>
 
+                  {/* Lista unificada de ítems editables */}
                   <View style={{ gap: 8, marginBottom: 16 }}>
-                    {editedProducts.map((item) => (
+                    {editedItems.map((item) => (
                       <View
-                        key={item.product_id}
+                        key={`${item.is_recipe ? "r" : "p"}-${item.item_id}`}
                         style={{
                           flexDirection: "row",
                           backgroundColor: "#1a1a1a",
                           borderRadius: 14,
                           padding: 10,
                           borderWidth: 1,
-                          borderColor: "#2a2a2a",
+                          borderColor: item.is_recipe ? "#ff572244" : "#2a2a2a",
                           alignItems: "center",
                         }}
                       >
                         <Image
                           source={
-                            item.product_image
-                              ? { uri: item.product_image }
+                            item.item_image
+                              ? { uri: item.item_image }
                               : require("@/assets/images/default-food.png")
                           }
                           style={{
@@ -563,16 +908,45 @@ export default function SaleDetailModal({
                           resizeMode="cover"
                         />
                         <View style={{ flex: 1, marginRight: 8 }}>
-                          <Text
+                          <View
                             style={{
-                              color: "#fff",
-                              fontSize: 14,
-                              fontWeight: "600",
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 6,
                             }}
-                            numberOfLines={1}
                           >
-                            {item.product_name}
-                          </Text>
+                            {item.is_recipe && (
+                              <View
+                                style={{
+                                  backgroundColor: "#ff572222",
+                                  borderRadius: 4,
+                                  paddingHorizontal: 5,
+                                  paddingVertical: 1,
+                                }}
+                              >
+                                <Text
+                                  style={{
+                                    color: "#ff5722",
+                                    fontSize: 9,
+                                    fontWeight: "800",
+                                  }}
+                                >
+                                  RECETA
+                                </Text>
+                              </View>
+                            )}
+                            <Text
+                              style={{
+                                color: "#fff",
+                                fontSize: 14,
+                                fontWeight: "600",
+                                flex: 1,
+                              }}
+                              numberOfLines={1}
+                            >
+                              {item.item_name}
+                            </Text>
+                          </View>
                           <Text
                             style={{
                               color: "#737373",
@@ -583,8 +957,7 @@ export default function SaleDetailModal({
                             {priceFormat(item.price)} c/u
                           </Text>
                         </View>
-
-                        {/* Controles de Cantidad */}
+                        {/* Controles de cantidad */}
                         <View
                           style={{
                             flexDirection: "row",
@@ -598,7 +971,7 @@ export default function SaleDetailModal({
                         >
                           <Pressable
                             onPress={() =>
-                              updateProductQuantity(item.product_id, -1)
+                              updateItemQty(item.item_id, item.is_recipe, -1)
                             }
                             style={{ padding: 2 }}
                           >
@@ -621,7 +994,7 @@ export default function SaleDetailModal({
                           </Text>
                           <Pressable
                             onPress={() =>
-                              updateProductQuantity(item.product_id, 1)
+                              updateItemQty(item.item_id, item.is_recipe, 1)
                             }
                             style={{ padding: 2 }}
                           >
@@ -632,10 +1005,10 @@ export default function SaleDetailModal({
                             />
                           </Pressable>
                         </View>
-
-                        {/* Quitar Producto */}
                         <Pressable
-                          onPress={() => removeProduct(item.product_id)}
+                          onPress={() =>
+                            removeItem(item.item_id, item.is_recipe)
+                          }
                           style={{ padding: 6 }}
                         >
                           <Ionicons
@@ -646,9 +1019,33 @@ export default function SaleDetailModal({
                         </Pressable>
                       </View>
                     ))}
+                    {editedItems.length === 0 && (
+                      <View
+                        style={{
+                          backgroundColor: "#1a1a1a",
+                          borderRadius: 14,
+                          padding: 20,
+                          alignItems: "center",
+                          borderWidth: 1,
+                          borderColor: "#2a2a2a",
+                          borderStyle: "dashed",
+                        }}
+                      >
+                        <Ionicons
+                          name="basket-outline"
+                          size={28}
+                          color="#444"
+                        />
+                        <Text
+                          style={{ color: "#555", fontSize: 12, marginTop: 8 }}
+                        >
+                          Sin ítems. Agrega productos o recetas.
+                        </Text>
+                      </View>
+                    )}
                   </View>
 
-                  {/* Tipo de Pago / Deuda */}
+                  {/* Tipo de Pago */}
                   <Text
                     style={{
                       color: "#737373",
@@ -663,63 +1060,47 @@ export default function SaleDetailModal({
                   <View
                     style={{ flexDirection: "row", gap: 10, marginBottom: 16 }}
                   >
-                    <Pressable
-                      onPress={() => {
-                        setEditedIsDebt(false);
-                        setEditedDebtAmount(0);
-                      }}
-                      style={{
-                        flex: 1,
-                        paddingVertical: 12,
-                        borderRadius: 12,
-                        alignItems: "center",
-                        backgroundColor: !editedIsDebt
-                          ? "#ff572222"
-                          : "#1a1a1a",
-                        borderWidth: 1,
-                        borderColor: !editedIsDebt ? "#ff5722" : "#2a2a2a",
-                      }}
-                    >
-                      <Text
+                    {[
+                      { label: "Contado", value: false },
+                      { label: "Fiado", value: true },
+                    ].map((opt) => (
+                      <Pressable
+                        key={opt.label}
+                        onPress={() => {
+                          setEditedIsDebt(opt.value);
+                          if (!opt.value) setEditedDebtAmount(0);
+                          else setEditedDebtAmount(editedTotal);
+                        }}
                         style={{
-                          color: !editedIsDebt ? "#fff" : "#737373",
-                          fontWeight: "700",
-                          fontSize: 13,
+                          flex: 1,
+                          paddingVertical: 12,
+                          borderRadius: 12,
+                          alignItems: "center",
+                          backgroundColor:
+                            editedIsDebt === opt.value
+                              ? "#ff572222"
+                              : "#1a1a1a",
+                          borderWidth: 1,
+                          borderColor:
+                            editedIsDebt === opt.value ? "#ff5722" : "#2a2a2a",
                         }}
                       >
-                        Contado
-                      </Text>
-                    </Pressable>
-                    <Pressable
-                      onPress={() => {
-                        setEditedIsDebt(true);
-                        setEditedDebtAmount(editedTotal);
-                      }}
-                      style={{
-                        flex: 1,
-                        paddingVertical: 12,
-                        borderRadius: 12,
-                        alignItems: "center",
-                        backgroundColor: editedIsDebt ? "#ff572222" : "#1a1a1a",
-                        borderWidth: 1,
-                        borderColor: editedIsDebt ? "#ff5722" : "#2a2a2a",
-                      }}
-                    >
-                      <Text
-                        style={{
-                          color: editedIsDebt ? "#fff" : "#737373",
-                          fontWeight: "700",
-                          fontSize: 13,
-                        }}
-                      >
-                        Fiado
-                      </Text>
-                    </Pressable>
+                        <Text
+                          style={{
+                            color:
+                              editedIsDebt === opt.value ? "#fff" : "#737373",
+                            fontWeight: "700",
+                            fontSize: 13,
+                          }}
+                        >
+                          {opt.label}
+                        </Text>
+                      </Pressable>
+                    ))}
                   </View>
 
-                  {/* Monto de Deuda si es fiado */}
                   {editedIsDebt && (
-                    <View style={{ marginBottom: 16 }}>
+                    <>
                       <Text
                         style={{
                           color: "#737373",
@@ -748,14 +1129,9 @@ export default function SaleDetailModal({
                           padding: 12,
                           color: "#fff",
                           fontSize: 14,
+                          marginBottom: 16,
                         }}
                       />
-                    </View>
-                  )}
-
-                  {/* Fecha de Pago si es fiado */}
-                  {editedIsDebt && (
-                    <View style={{ marginBottom: 16 }}>
                       <Text
                         style={{
                           color: "#737373",
@@ -779,6 +1155,7 @@ export default function SaleDetailModal({
                           flexDirection: "row",
                           alignItems: "center",
                           justifyContent: "space-between",
+                          marginBottom: 16,
                         }}
                       >
                         <Text
@@ -805,91 +1182,88 @@ export default function SaleDetailModal({
                           value={editedDebtDate}
                           mode="date"
                           minimumDate={new Date()}
-                          onChange={(event, selectedDate) => {
+                          onChange={(_, date) => {
                             setShowDatePicker(Platform.OS === "ios");
-                            if (selectedDate) {
-                              setEditedDebtDate(selectedDate);
-                            }
+                            if (date) setEditedDebtDate(date);
                           }}
                         />
                       )}
-                    </View>
+                    </>
                   )}
 
-                  {/* Asignar Cliente (opcional) */}
-                  <View style={{ marginBottom: 16 }}>
-                    <Text
+                  {/* Cliente */}
+                  <Text
+                    style={{
+                      color: "#737373",
+                      fontSize: 11,
+                      textTransform: "uppercase",
+                      letterSpacing: 1,
+                      marginBottom: 8,
+                    }}
+                  >
+                    Cliente (Opcional)
+                  </Text>
+                  <Pressable
+                    onPress={() => setShowClientPicker(true)}
+                    style={{
+                      height: 56,
+                      backgroundColor: "#1a1a1a",
+                      borderRadius: 14,
+                      borderWidth: 1,
+                      borderColor: "#2a2a2a",
+                      paddingHorizontal: 16,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      marginBottom: 16,
+                    }}
+                  >
+                    <View
                       style={{
-                        color: "#737373",
-                        fontSize: 11,
-                        textTransform: "uppercase",
-                        letterSpacing: 1,
-                        marginBottom: 8,
-                      }}
-                    >
-                      Cliente (Opcional)
-                    </Text>
-                    <Pressable
-                      onPress={() => setShowClientPicker(true)}
-                      style={{
-                        height: 56,
-                        backgroundColor: "#1a1a1a",
-                        borderRadius: 14,
-                        borderWidth: 1,
-                        borderColor: "#2a2a2a",
-                        paddingHorizontal: 16,
                         flexDirection: "row",
                         alignItems: "center",
-                        justifyContent: "space-between",
+                        gap: 8,
                       }}
                     >
-                      <View
+                      <Ionicons
+                        name="person-outline"
+                        size={18}
+                        color={editedClientId ? "#ff5722" : "#737373"}
+                      />
+                      <Text
                         style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          gap: 8,
+                          color: editedClientId ? "#fff" : "#737373",
+                          fontSize: 14,
                         }}
                       >
-                        <Ionicons
-                          name="person-outline"
-                          size={18}
-                          color={editedClientId ? "#ff5722" : "#737373"}
-                        />
-                        <Text
-                          style={{
-                            color: editedClientId ? "#fff" : "#737373",
-                            fontSize: 14,
-                          }}
+                        {editedClientId
+                          ? clients.find((c) => c.id === editedClientId)?.name
+                          : "Asignar cliente"}
+                      </Text>
+                    </View>
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        gap: 8,
+                      }}
+                    >
+                      {editedClientId && (
+                        <Pressable
+                          hitSlop={8}
+                          onPress={() => setEditedClientId(null)}
+                          style={{ padding: 4 }}
                         >
-                          {editedClientId
-                            ? clients.find((c) => c.id === editedClientId)?.name
-                            : "Asignar cliente"}
-                        </Text>
-                      </View>
-                      <View
-                        style={{
-                          flexDirection: "row",
-                          alignItems: "center",
-                          gap: 8,
-                        }}
-                      >
-                        {editedClientId && (
-                          <Pressable
-                            hitSlop={8}
-                            onPress={() => setEditedClientId(null)}
-                            style={{ padding: 4 }}
-                          >
-                            <Ionicons
-                              name="close-circle"
-                              size={16}
-                              color="#737373"
-                            />
-                          </Pressable>
-                        )}
-                        <Ionicons name="chevron-down" size={16} color="#555" />
-                      </View>
-                    </Pressable>
-                  </View>
+                          <Ionicons
+                            name="close-circle"
+                            size={16}
+                            color="#737373"
+                          />
+                        </Pressable>
+                      )}
+                      <Ionicons name="chevron-down" size={16} color="#555" />
+                    </View>
+                  </Pressable>
 
                   {/* Nota */}
                   <Text
@@ -1009,8 +1383,7 @@ export default function SaleDetailModal({
                 </>
               ) : (
                 <>
-                  {/* VIEW MODE */}
-                  {/* Info General */}
+                  {/* ── VIEW MODE ── */}
                   <View
                     style={{
                       backgroundColor: "#1a1a1a",
@@ -1046,7 +1419,6 @@ export default function SaleDetailModal({
                         </Text>
                       </View>
                     )}
-
                     <View
                       style={{
                         flexDirection: "row",
@@ -1106,7 +1478,6 @@ export default function SaleDetailModal({
                         </Text>
                       </View>
                     </View>
-
                     <View
                       style={{
                         flexDirection: "row",
@@ -1136,7 +1507,6 @@ export default function SaleDetailModal({
                           : ""}
                       </Text>
                     </View>
-
                     <View
                       style={{
                         flexDirection: "row",
@@ -1166,7 +1536,6 @@ export default function SaleDetailModal({
                           : ""}
                       </Text>
                     </View>
-
                     {sale.is_debt && sale.debt_date && (
                       <View
                         style={{
@@ -1190,18 +1559,14 @@ export default function SaleDetailModal({
                         >
                           {new Date(sale.debt_date).toLocaleDateString(
                             "es-CO",
-                            {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                            },
+                            { day: "2-digit", month: "short", year: "numeric" },
                           )}
                         </Text>
                       </View>
                     )}
                   </View>
 
-                  {/* Lista de productos */}
+                  {/* Productos */}
                   <Text
                     style={{
                       color: "#737373",
@@ -1213,7 +1578,6 @@ export default function SaleDetailModal({
                   >
                     Productos Vendidos
                   </Text>
-
                   <View style={{ gap: 8, marginBottom: 16 }}>
                     {sale.products?.map((item) => (
                       <View
@@ -1276,7 +1640,7 @@ export default function SaleDetailModal({
                     ))}
                   </View>
 
-                  {/* ✅ RECETAS VENDIDAS */}
+                  {/* Recetas */}
                   {sale.recipes && sale.recipes.length > 0 && (
                     <>
                       <Text
@@ -1290,7 +1654,6 @@ export default function SaleDetailModal({
                       >
                         Recetas Vendidas
                       </Text>
-
                       <View style={{ gap: 8, marginBottom: 16 }}>
                         {sale.recipes.map((item) => (
                           <View
@@ -1389,7 +1752,6 @@ export default function SaleDetailModal({
                     </Text>
                   </View>
 
-                  {/* Motivos de Edición o Cancelación */}
                   {sale.edit_reason && (
                     <>
                       <Text
@@ -1493,7 +1855,6 @@ export default function SaleDetailModal({
                         {priceFormat(sale.total)}
                       </Text>
                     </View>
-
                     {sale.is_debt && (sale.debt_amount ?? 0) > 0 && (
                       <View
                         style={{
@@ -1528,7 +1889,6 @@ export default function SaleDetailModal({
                     )}
                   </View>
 
-                  {/* Botón Cobrar si es deuda y está activa */}
                   {sale.is_debt && sale.status !== "cancelled" && (
                     <Pressable
                       onPress={handleMarkAsPaid}
@@ -1559,45 +1919,115 @@ export default function SaleDetailModal({
                               fontWeight: "800",
                             }}
                           >
-                            Marcar como Pagado (Cobrar)
+                            Marcar como Pagado
                           </Text>
                         </>
                       )}
                     </Pressable>
                   )}
 
-                  {/* Botón Reimprimir Ticket */}
                   {sale.status !== "cancelled" && (
-                    <Pressable
-                      onPress={handleReprintTicket}
-                      style={{
-                        backgroundColor: "#1a1a1a",
-                        paddingVertical: 16,
-                        borderRadius: 16,
-                        alignItems: "center",
-                        flexDirection: "row",
-                        justifyContent: "center",
-                        gap: 8,
-                        marginTop: 12,
-                        borderWidth: 1.5,
-                        borderColor: "#ff5722",
-                      }}
-                    >
-                      <Ionicons
-                        name="print-outline"
-                        size={20}
-                        color="#ff5722"
-                      />
-                      <Text
+                    <>
+                      <Pressable
+                        onPress={handleReprintTicket}
                         style={{
-                          color: "#ff5722",
-                          fontSize: 16,
-                          fontWeight: "800",
+                          backgroundColor: "#1a1a1a",
+                          paddingVertical: 16,
+                          borderRadius: 16,
+                          alignItems: "center",
+                          flexDirection: "row",
+                          justifyContent: "center",
+                          gap: 8,
+                          marginTop: 12,
+                          borderWidth: 1.5,
+                          borderColor: "#ff5722",
                         }}
                       >
-                        Reimprimir Ticket de Venta
-                      </Text>
-                    </Pressable>
+                        <Ionicons
+                          name="print-outline"
+                          size={20}
+                          color="#ff5722"
+                        />
+                        <Text
+                          style={{
+                            color: "#ff5722",
+                            fontSize: 16,
+                            fontWeight: "800",
+                          }}
+                        >
+                          Reimprimir Ticket
+                        </Text>
+                      </Pressable>
+
+                      <Pressable
+                        onPress={async () => {
+                          const displayItems = [
+                            ...sale.products.map((p) => ({
+                              quantity: p.quantity,
+                              name: p.product_name,
+                              price: p.price,
+                            })),
+                            ...sale.recipes.map((r) => ({
+                              quantity: r.quantity,
+                              name: r.recipe_name,
+                              price: r.price,
+                            })),
+                          ];
+                          const msg = buildInvoiceMessage({
+                            customerName:
+                              sale.client?.name || "Cliente General",
+                            items: displayItems,
+                            total: sale.total,
+                            paymentMethod: sale.payment_method,
+                            note: sale.note,
+                          });
+                          const clientPhone = (sale.client as any)?.phone || "";
+                          Alert.alert(
+                            "Compartir por WhatsApp 📱",
+                            clientPhone
+                              ? `¿Enviar factura al ${clientPhone}?`
+                              : "Sin número asociado, ¿compartir genérico?",
+                            [
+                              { text: "Cancelar", style: "cancel" },
+                              {
+                                text: clientPhone
+                                  ? "Sí, enviar 📤"
+                                  : "Compartir 📤",
+                                onPress: () =>
+                                  sendInvoiceViaWhatsApp(clientPhone, msg),
+                              },
+                            ],
+                          );
+                        }}
+                        style={{
+                          backgroundColor: "#1a1a1a",
+                          paddingVertical: 16,
+                          borderRadius: 16,
+                          alignItems: "center",
+                          flexDirection: "row",
+                          justifyContent: "center",
+                          gap: 8,
+                          marginTop: 12,
+                          borderWidth: 1.5,
+                          borderColor: "#25D366",
+                        }}
+                      >
+                        <Ionicons
+                          name="logo-whatsapp"
+                          size={20}
+                          color="#25D366"
+                        />
+                        <Text
+                          style={{
+                            color: "#25D366",
+                            fontSize: 16,
+                            fontWeight: "800",
+                          }}
+                        >
+                          Compartir por WhatsApp
+                        </Text>
+                      </Pressable>
+                    </>
                   )}
                 </>
               )}
@@ -1606,149 +2036,10 @@ export default function SaleDetailModal({
         </View>
       </View>
 
-      {/* Selector de Productos */}
-      <Modal
-        visible={showProductSelector}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowProductSelector(false)}
-      >
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: "rgba(0,0,0,0.6)",
-            justifyContent: "flex-end",
-          }}
-        >
-          <View
-            style={{
-              backgroundColor: "#141414",
-              borderTopLeftRadius: 28,
-              borderTopRightRadius: 28,
-              padding: 24,
-              maxHeight: "70%",
-              paddingBottom: 40,
-            }}
-          >
-            {/* Header */}
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 16,
-              }}
-            >
-              <Text style={{ color: "#fff", fontSize: 18, fontWeight: "800" }}>
-                Seleccionar Producto
-              </Text>
-              <Pressable
-                onPress={() => setShowProductSelector(false)}
-                style={{
-                  backgroundColor: "#2a2a2a",
-                  borderRadius: 20,
-                  padding: 8,
-                }}
-              >
-                <Ionicons name="close" size={18} color="#fff" />
-              </Pressable>
-            </View>
+      {/* Modal selector unificado (productos / recetas) */}
+      <SelectorModal />
 
-            {/* Buscador */}
-            <View
-              style={{
-                flexDirection: "row",
-                alignItems: "center",
-                backgroundColor: "#1a1a1a",
-                borderRadius: 12,
-                paddingHorizontal: 12,
-                borderWidth: 1,
-                borderColor: "#2a2a2a",
-                marginBottom: 16,
-              }}
-            >
-              <Ionicons
-                name="search-outline"
-                size={18}
-                color="#737373"
-                style={{ marginRight: 8 }}
-              />
-              <TextInput
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                placeholder="Buscar por nombre..."
-                placeholderTextColor="#555"
-                style={{
-                  flex: 1,
-                  color: "#fff",
-                  fontSize: 14,
-                  paddingVertical: 10,
-                }}
-              />
-            </View>
-
-            {/* Listado de Productos */}
-            <FlatList
-              data={allProducts.filter((p) =>
-                p.name.toLowerCase().includes(searchQuery.toLowerCase()),
-              )}
-              keyExtractor={(p) => String(p.id)}
-              renderItem={({ item }) => (
-                <Pressable
-                  onPress={() => handleAddProduct(item)}
-                  style={{
-                    padding: 12,
-                    borderRadius: 14,
-                    marginBottom: 8,
-                    backgroundColor: "#1a1a1a",
-                    borderWidth: 1,
-                    borderColor: "#2a2a2a",
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 12,
-                  }}
-                >
-                  <Image
-                    source={
-                      item.image_url
-                        ? { uri: item.image_url }
-                        : require("@/assets/images/default-food.png")
-                    }
-                    style={{ width: 40, height: 40, borderRadius: 8 }}
-                    resizeMode="cover"
-                  />
-                  <View style={{ flex: 1 }}>
-                    <Text
-                      style={{ color: "#fff", fontWeight: "600", fontSize: 14 }}
-                    >
-                      {item.name}
-                    </Text>
-                    <Text
-                      style={{ color: "#737373", fontSize: 12, marginTop: 2 }}
-                    >
-                      Stock: {item.stock} | {priceFormat(item.price)}
-                    </Text>
-                  </View>
-                  <Ionicons name="add-circle" size={24} color="#ff5722" />
-                </Pressable>
-              )}
-              ListEmptyComponent={
-                <Text
-                  style={{
-                    color: "#555",
-                    textAlign: "center",
-                    marginTop: 20,
-                  }}
-                >
-                  No se encontraron productos
-                </Text>
-              }
-            />
-          </View>
-        </View>
-      </Modal>
-
-      {/* Selector de Clientes */}
+      {/* Modal selector de clientes */}
       <Modal
         visible={showClientPicker}
         transparent
@@ -1780,13 +2071,7 @@ export default function SaleDetailModal({
                 marginBottom: 16,
               }}
             >
-              <Text
-                style={{
-                  color: "#fff",
-                  fontSize: 18,
-                  fontWeight: "800",
-                }}
-              >
+              <Text style={{ color: "#fff", fontSize: 18, fontWeight: "800" }}>
                 Seleccionar Cliente
               </Text>
               <Pressable
@@ -1851,11 +2136,7 @@ export default function SaleDetailModal({
               )}
               ListEmptyComponent={
                 <Text
-                  style={{
-                    color: "#555",
-                    textAlign: "center",
-                    marginTop: 20,
-                  }}
+                  style={{ color: "#555", textAlign: "center", marginTop: 20 }}
                 >
                   No hay clientes registrados
                 </Text>
@@ -1865,7 +2146,6 @@ export default function SaleDetailModal({
         </View>
       </Modal>
 
-      {/* Reason Dialog */}
       <ReasonDialog
         visible={showReasonDialog}
         title={
@@ -1875,8 +2155,8 @@ export default function SaleDetailModal({
         }
         description={
           reasonType === "edit"
-            ? "Por favor, ingresa el motivo del cambio en los productos o datos de la venta."
-            : "¿Seguro que deseas anular esta venta? El stock de los productos vendidos se devolverá al inventario."
+            ? "Ingresa el motivo del cambio."
+            : "¿Seguro que deseas anular esta venta? El stock se devolverá al inventario."
         }
         confirmText={reasonType === "edit" ? "Guardar" : "Anular Venta"}
         onClose={() => setShowReasonDialog(false)}

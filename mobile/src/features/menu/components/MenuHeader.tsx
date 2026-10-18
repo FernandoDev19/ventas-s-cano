@@ -44,20 +44,20 @@ export default function MenuHeader({
             {categories &&
               categories.map((category) => (
                 <Pressable
-                  key={category.id}
-                  onPress={() => setFilter(category.id!)}
+                  key={category.id ?? "all"}
+                  onPress={() => setFilter(category.id ?? "")}
                   className="px-4 py-2 rounded-full"
                   style={{
                     backgroundColor:
-                      filter === category.id ? "#ff5722" : "#1a1a1a",
+                      filter === (category.id ?? "") ? "#ff5722" : "#1a1a1a",
                     borderWidth: 1,
-                    borderColor: filter === category.id ? "#ff5722" : "#333",
+                    borderColor: filter === (category.id ?? "") ? "#ff5722" : "#333",
                   }}
                 >
                   <Text
                     className="text-sm font-semibold"
                     style={{
-                      color: filter === category.id ? "#fff" : "#a3a3a3",
+                      color: filter === (category.id ?? "") ? "#fff" : "#a3a3a3",
                     }}
                   >
                     {category.name}

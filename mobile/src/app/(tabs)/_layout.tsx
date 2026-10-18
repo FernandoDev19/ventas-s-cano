@@ -135,11 +135,14 @@ export default function TabLayout() {
           }
 
           // CASO 3: Cocina terminó -> avisar a caja/admin
+          // Omitir si fue el propio Admin quien puso kitchen_status en "ready"
+          // (el admin lo hace junto con status="ready"; la cocina solo cambia kitchen_status)
           if (
             payload.eventType === "UPDATE" &&
             role !== "kitchen" &&
             payload.new.kitchen_status === "ready" &&
-            payload.old.kitchen_status !== "ready"
+            payload.old.kitchen_status !== "ready" &&
+            payload.new.status !== "ready" // admin lo cambia todo a "ready" simultáneamente
           ) {
             playSound();
             Alert.alert(

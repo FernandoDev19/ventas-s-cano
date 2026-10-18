@@ -26,19 +26,23 @@ export default function Header() {
   };
 
   const handleLogout = async () => {
-    Alert.alert("Cerrando sesión", "¿Estás seguro de que deseas cerrar sesión?", [
-      {
-        text: "Cancelar",
-        style: "cancel",
-      },
-      {
-        text: "Cerrar sesión",
-        onPress: async () => {
-          await supabase.auth.signOut();
-          router.replace("/login");
+    Alert.alert(
+      "Cerrando sesión",
+      "¿Estás seguro de que deseas cerrar sesión?",
+      [
+        {
+          text: "Cancelar",
+          style: "cancel",
         },
-      },
-    ]);
+        {
+          text: "Cerrar sesión",
+          onPress: async () => {
+            await supabase.auth.signOut();
+            router.replace("/login");
+          },
+        },
+      ],
+    );
   };
 
   return (
@@ -57,17 +61,17 @@ export default function Header() {
 
         <View className="flex-row items-center gap-4">
           {configVisible && (
-          <Pressable
-            onPress={() => setSettingsVisible(true)}
-            android_ripple={{
-              color: "rgba(255, 87, 34, 0.1)",
-              borderless: true,
-              radius: 24,
-            }}
-            style={{ padding: 4 }}
-          >
-            <Ionicons name="print-outline" size={24} color="#ff5722" />
-          </Pressable>
+            <Pressable
+              onPress={() => setSettingsVisible(true)}
+              android_ripple={{
+                color: "rgba(255, 87, 34, 0.1)",
+                borderless: true,
+                radius: 24,
+              }}
+              style={{ padding: 4 }}
+            >
+              <Ionicons name="print-outline" size={24} color="#ff5722" />
+            </Pressable>
           )}
           <Pressable onPress={handleLogout}>
             <Ionicons name="log-out-outline" size={22} color="#ff5722" />

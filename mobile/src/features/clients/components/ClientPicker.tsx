@@ -102,6 +102,7 @@ export default function ClientPicker({
               renderItem={({ item }) => (
                 <Pressable
                   onPress={() => {
+                    console.log("Clieente seleccionado", item.id)
                     setSelectedClientId(item.id);
                     setShowClientPicker(false);
                   }}

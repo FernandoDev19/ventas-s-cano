@@ -406,7 +406,7 @@ export const SalesService = {
     | (SaleType & {
         products: any[];
         recipes: any[];
-        client: { id: string; name: string } | null;
+        client: { id: string; name: string; phone?: string | null } | null;
       })
     | null
   > => {
@@ -414,7 +414,8 @@ export const SalesService = {
       `SELECT 
         s.*,
         c.id as client_id,
-        c.name as client_name
+        c.name as client_name,
+        c.phone as client_phone
         FROM sales s
         LEFT JOIN clients c ON s.client_id = c.id
         WHERE s.id = ?`,
@@ -452,6 +453,7 @@ export const SalesService = {
         ? {
             id: sale.client_id,
             name: sale.client_name,
+            phone: sale.client_phone,
           }
         : null,
     };

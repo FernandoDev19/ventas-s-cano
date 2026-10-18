@@ -62,6 +62,7 @@ export const OrdersService = {
     const { data: order, error: orderError } = await supabase
       .from("orders")
       .insert({
+        client_id: orderData.client_id || null,
         customer_name: orderData.customer_name || "Caja Local",
         customer_phone: orderData.customer_phone || "",
         delivery_address: orderData.delivery_address || "",

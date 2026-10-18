@@ -1,0 +1,90 @@
+import { Alert } from "react-native";
+import { SalesService } from "../features/sales/services/sales.service";
+import { SyncService } from "../shared/services/sync.service";
+import DATABASE from "./config/db";
+// import { seeders } from "./config/seeders";
+import { useEffect, useState } from "react";
+import { useNotifications } from "../shared/hooks/useNotifications";
+import NetInfo from "@react-native-community/netinfo";
+
+export const AppBootstrap = () => {
+  const [isInitialized, setIsInitialized] = useState(false);
+  const { notificationsConfigurate, listenToNotifications } =
+    useNotifications();
+
+
+  useEffect(() => {
+    notificationsConfigurate();
+
+    const unsubscribeClicks = listenToNotifications();
+
+    // Limpieza obligatoria al desmontar el componente
+    return () => {
+      if (unsubscribeClicks) unsubscribeClicks();
+    };
+  }, [notificationsConfigurate, listenToNotifications]);
+
+  useEffect(() => {
+    let unsubscribeNetInfo: (() => void) | undefined;
+
+    async function inicializarTodo() {
+      try {
+        // 1. Inicializar la base de datos local SQLite
+        await DATABASE.initDb();
+
+        // 2. Ejecutar los seeders de desarrollo
+        // if(__DEV__) {
+        //   await seeders.run();
+        // }
+
+        // 3. Forzar una sincronización inicial por si quedaron ventas reales con '0' antes de cerrar la app
+        await SyncService.run();
+
+        // 4. Configurar el escuchador de red de forma correcta en el nivel superior
+        unsubscribeNetInfo = NetInfo.addEventListener((state) => {
+          if (state.isConnected) {
+            // console.log(
+            //   "LOG [RED]: ¡Internet detectado! Ejecutando SyncService...",
+            // );
+            SyncService.run();
+          }
+        });
+
+        // 5. Verificar alertas de deudas expiradas
+        const debts = await SalesService.getDebtSales();
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const dueDebts = debts.filter((d) => {
+          if (!d.debt_date) return false;
+          const dueDate = new Date(d.debt_date);
+          dueDate.setHours(0, 0, 0, 0);
+          return dueDate <= today;
+        });
+
+        if (dueDebts.length > 0) {
+          Alert.alert(
+            "Deudas Pendientes",
+            `Tienes ${dueDebts.length} venta(s) fiada(s) cuya fecha de cobro es hoy o ya expiró. ¡Revisa los reportes o deudas!`,
+            [{ text: "Entendido", style: "default" }],
+          );
+        }
+      } catch (error) {
+        console.error("Error crítico al arrancar la aplicación:", error);
+      } finally {
+        setIsInitialized(true);
+      }
+    }
+
+    inicializarTodo();
+
+    // Función de limpieza de React completa
+    return () => {
+      if (unsubscribeNetInfo) {
+        unsubscribeNetInfo();
+      }
+    };
+  }, []);
+
+  return { isInitialized };
+};

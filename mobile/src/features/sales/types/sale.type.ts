@@ -8,7 +8,7 @@ export type SaleType = {
   payment_method?: string;
   client_id?: string | null;
   created_at?: Date | string | null;
-  client?: { id: string; name: string } | null;
+  client?: { id: string; name: string; phone?: string | null } | null;
   status?: "active" | "cancelled";
   cancel_reason?: string | null;
   edit_reason?: string | null;

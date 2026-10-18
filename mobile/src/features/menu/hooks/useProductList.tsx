@@ -28,7 +28,8 @@ export const useProductList = (filter: string) => {
       if (!silent) setIsLoading(true);
       try {
         const [loadedProducts, loadedRecipes] = await Promise.all([
-          ProductsService.getAllMenu({ category_id: filter.toString() }),
+          // Pasa category_id solo cuando hay filtro activo; "" trae todo el catálogo
+          ProductsService.getAllMenu(filter ? { category_id: filter } : undefined),
           RecipesService.getAll(),
         ]);
         setProducts(loadedProducts);

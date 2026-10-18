@@ -59,10 +59,14 @@ export const useCartModal = (onSaleCreated: () => void) => {
     debt_amount: isDebt ? (amountDebt > 0 ? amountDebt : totalPrecio) : 0,
     debt_date: isDebt ? debtDate.toISOString().split("T")[0] : null,
     payment_method: paymentMethod,
-    client_id: isDebt ? selectedClientId : null,
+    client_id: selectedClientId,
   });
 
-  const handleCheckout = async (sale: SaleType, order: OrderItem[]) => {
+  const handleCheckout = async (saleParam: SaleType, order: OrderItem[]) => {
+    // Siempre tomar client_id del estado del hook (no del parámetro snapshot)
+    // para evitar problemas de closure stale o timing en React Native
+    const sale: SaleType = { ...saleParam, client_id: selectedClientId };
+
     try {
       const productItems = order.filter((i) => i.type === "product");
       const recipeItems = order.filter((i) => i.type === "recipe");
@@ -97,6 +101,7 @@ export const useCartModal = (onSaleCreated: () => void) => {
         productsToSave,
         recipesToSave,
       );
+
 
       // ⚙️ FUNCIÓN CENTRAL: Ejecuta todo el cierre de la venta (Impresión, stock, limpiar UI)
       const finalizarFlujoVenta = async () => {
@@ -205,7 +210,6 @@ export const useCartModal = (onSaleCreated: () => void) => {
         });
 
         // ─── WhatsApp ───────────────────────────────────────
-        // Obtener el teléfono del cliente si existe
         let clientPhone = "";
         let clientName = "";
         if (sale.client_id) {
@@ -216,37 +220,39 @@ export const useCartModal = (onSaleCreated: () => void) => {
           }
         }
 
-        if (clientPhone) {
-          const invoiceItems = order.map((item) => ({
-            name:
-              item.type === "product" ? item.product.name : item.recipe.name,
-            quantity: item.quantity,
-            price:
-              item.type === "product"
-                ? item.product.price
-                : item.recipe.selling_price,
-          }));
+        const invoiceItems = order.map((item) => ({
+          name:
+            item.type === "product" ? item.product.name : item.recipe.name,
+          quantity: item.quantity,
+          price:
+            item.type === "product"
+              ? item.product.price
+              : item.recipe.selling_price,
+        }));
 
-          const msg = buildInvoiceMessage({
-            customerName: clientName,
-            items: invoiceItems,
-            total: totalPrecio,
-            paymentMethod: sale.payment_method,
-            note: sale.note,
-          });
+        const msg = buildInvoiceMessage({
+          customerName: clientName || "Cliente General",
+          items: invoiceItems,
+          total: totalPrecio,
+          paymentMethod: sale.payment_method,
+          note: sale.note,
+        });
 
-          Alert.alert(
-            "¿Enviar factura por WhatsApp? 📱",
-            `Se enviará la factura a ${clientPhone}`,
-            [
-              { text: "No, gracias", style: "cancel" },
-              {
-                text: "Sí, enviar 📤",
-                onPress: () => sendInvoiceViaWhatsApp(clientPhone, msg),
-              },
-            ],
-          );
-        }
+        const tieneTelefono = !!clientPhone.trim();
+
+        Alert.alert(
+          "¿Enviar factura por WhatsApp? 📱",
+          tieneTelefono
+            ? `Se enviará la factura a ${clientPhone}`
+            : "No hay un número telefónico asignado a este cliente.",
+          [
+            { text: "No, gracias", style: "cancel" },
+            {
+              text: tieneTelefono ? "Sí, enviar 📤" : "Compartir por WhatsApp 📤",
+              onPress: () => sendInvoiceViaWhatsApp(clientPhone, msg),
+            },
+          ],
+        );
         // ────────────────────────────────────────────────────
 
         // Alerta final de éxito o advertencia de inventario
@@ -264,18 +270,18 @@ export const useCartModal = (onSaleCreated: () => void) => {
       const enviarAlKDS = async () => {
         try {
           let nombreCliente = "Caja Local";
-          if (sale.client_id) {
-            const clientObj = clients.find((c) => c.id === sale.client_id);
-            if (clientObj) nombreCliente = clientObj.name;
-          }
-
           let telefonoCliente = "";
-          if (sale.client_id) {
-            const clientObj = clients.find((c) => c.id === sale.client_id);
-            if (clientObj && clientObj.phone) telefonoCliente = clientObj.phone;
+          
+          if (selectedClientId) {
+            const clientObj = clients.find((c) => c.id === selectedClientId);
+            if (clientObj) {
+              nombreCliente = clientObj.name;
+              telefonoCliente = clientObj.phone || "";
+            }
           }
 
           const orderId = await OrdersService.createOrderFromMobile({
+            client_id: selectedClientId || null,
             customer_name: nombreCliente,
             customer_phone: telefonoCliente,
             total_price: totalPrecio,

@@ -10,13 +10,11 @@ export const useMenu = () => {
 
   const loadCategories = useCallback(async () => {
     try {
-      const categories: CategoryType[] = await CategoriesService.getAll();
-      const mapped = categories.map((category) => ({ id: category.id, name: category.name }));
-      setCategories(mapped);
-      // Inicializar filtro con la primera categoría si no hay ninguna seleccionada
-      if (mapped.length > 0 && mapped[0].id !== undefined) {
-        setFilter(mapped[0].id);
-      }
+      const loaded: CategoryType[] = await CategoriesService.getAll();
+      const mapped = loaded.map((category) => ({ id: category.id, name: category.name }));
+      // Agregar botón "Todos" al inicio del menú de categorías
+      const allCategories = [{ id: "", name: "Todos" }, ...mapped];
+      setCategories(allCategories);
     } catch (error) {
       console.log(error);
       Alert.alert("Error", "No se pudieron cargar las categorías");

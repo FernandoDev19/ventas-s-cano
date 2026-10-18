@@ -35,7 +35,6 @@ export const useChangeOrderStatus = ({
   };
 
   const ofrecerFacturaWhatsApp = (orden: OrderPro) => {
-    if (!orden.customer_phone) return;
     const invoiceItems = orden.order_items.map((item) => ({
       name: item.products?.name || item.recipes?.name || "Producto",
       quantity: item.quantity,
@@ -46,13 +45,18 @@ export const useChangeOrderStatus = ({
       items: invoiceItems,
       total: orden.total_price,
     });
+
+    const tieneTelefono = !!orden.customer_phone?.trim();
+
     Alert.alert(
       "¿Enviar factura por WhatsApp? 📱",
-      `Se enviará la factura a ${orden.customer_phone}`,
+      tieneTelefono
+        ? `Se enviará la factura a ${orden.customer_phone}`
+        : "El pedido no cuenta con número telefónico registrado.",
       [
         { text: "No, gracias", style: "cancel" },
         {
-          text: "Sí, enviar 📤",
+          text: tieneTelefono ? "Sí, enviar 📤" : "Compartir por WhatsApp 📤",
           onPress: () => sendInvoiceViaWhatsApp(orden.customer_phone, msg),
         },
       ],
@@ -209,25 +213,36 @@ export const useChangeOrderStatus = ({
         "Se notificó a la caja que el pedido está preparado.",
       );
       cargarOrdenes(activeTab);
+      return;
     }
 
     if (userRole === "admin") {
+      // Textos dinámicos según tipo de entrega (Fix 5)
+      const esMesa = orden.delivery_type === "mesa";
+      const accionLabel = esMesa ? "Servir a la Mesa 🍽️" : "Despachar Domicilio 🛵";
+
       Alert.alert(
-        "¿Despachar Pedido? 🍔",
-        "¿El plato ya está listo para salir al cliente?",
+        accionLabel,
+        esMesa
+          ? "¿El plato ya está listo para servir en la mesa?"
+          : "¿El pedido ya está listo para despachar al domicilio?",
         [
           {
+            // Fix 3: entrega → estado "delivered" + liberar mesa
             text: "Sí, entregar e imprimir cuenta",
             onPress: async () => {
-              // Actualizamos el estado de la orden a LISTO y el del KDS a READY en un solo tiro
-              await updateOrderStatus(orden.id, "ready", "ready");
+              await updateOrderStatus(orden.id, "delivered", "ready");
+              if (esMesa && orden.table_id) {
+                await TablesService.release(orden.table_id);
+              }
               await handlePrintCashierTicket(orden);
               cargarOrdenes(activeTab);
               ofrecerFacturaWhatsApp(orden);
             },
           },
           {
-            text: "Solo marcar como Listo (Sin imprimir)",
+            // Fix 3: solo marcar → estado "ready"
+            text: "Solo marcar como listo",
             onPress: async () => {
               await updateOrderStatus(orden.id, "ready", "ready");
               cargarOrdenes(activeTab);
@@ -289,44 +304,44 @@ export const useChangeOrderStatus = ({
   };
 
   const handleCancelled = async (orden: OrderPro) => {
+    const tienePhone = !!orden.customer_phone?.trim();
+
+    // Fix 4: construir los botones condicionalmente
+    const buttons: any[] = [];
+
+    if (tienePhone) {
+      buttons.push({
+        text: "Sí, avisar y rechazar por WhatsApp",
+        onPress: async () => {
+          await updateOrderStatus(orden.id, "cancelled", undefined, "rejected");
+          await revertirVentaSiExiste(orden.id);
+          const mensaje = `¡Hola ${orden.customer_name}! Te hablamos de Sabor Espress. Lamentablemente no pudimos aceptar tu pedido en este momento...`;
+          const url = `https://wa.me/57${orden.customer_phone}?text=${encodeURIComponent(mensaje)}`;
+          await Linking.openURL(url).catch(() =>
+            console.log("No se pudo abrir WhatsApp"),
+          );
+          cargarOrdenes(activeTab);
+        },
+      });
+    }
+
+    buttons.push({
+      text: "Solo rechazar",
+      onPress: async () => {
+        await updateOrderStatus(orden.id, "cancelled", undefined, "rejected");
+        await revertirVentaSiExiste(orden.id);
+        cargarOrdenes(activeTab);
+      },
+    });
+
+    buttons.push({ text: "Cancelar", style: "cancel" });
+
     Alert.alert(
       "Rechazar Pedido",
-      "¿Quieres avisarle al cliente por WhatsApp el motivo del rechazo?",
-      [
-        {
-          text: "Sí, avisar y rechazar",
-          onPress: async () => {
-            await updateOrderStatus(
-              orden.id,
-              "cancelled",
-              undefined,
-              "rejected",
-            );
-            await revertirVentaSiExiste(orden.id);
-
-            const mensaje = `¡Hola ${orden.customer_name}! Te hablamos de Sabor Espress. Lamentablemente no pudimos aceptar tu pedido en este momento...`;
-            const url = `https://wa.me/57${orden.customer_phone}?text=${encodeURIComponent(mensaje)}`;
-            await Linking.openURL(url).catch(() =>
-              console.log("No se pudo abrir WhatsApp"),
-            );
-            cargarOrdenes(activeTab);
-          },
-        },
-        {
-          text: "Solo rechazar",
-          onPress: async () => {
-            await updateOrderStatus(
-              orden.id,
-              "cancelled",
-              undefined,
-              "rejected",
-            );
-            await revertirVentaSiExiste(orden.id);
-            cargarOrdenes(activeTab);
-          },
-        },
-        { text: "Cancelar", style: "cancel" },
-      ],
+      tienePhone
+        ? "¿Quieres avisarle al cliente por WhatsApp el motivo del rechazo?"
+        : "¿Confirmas el rechazo de este pedido?",
+      buttons,
     );
   };
 

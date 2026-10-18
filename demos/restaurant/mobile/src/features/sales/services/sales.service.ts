@@ -1,0 +1,759 @@
+import DATABASE from "@/src/core/config/db";
+import { SaleType } from "../types/sale.type";
+import { v4 as uuidv4 } from "uuid";
+import { SyncService } from "@/src/shared/services/sync.service";
+import { OrderPro } from "../../orders/types/order.type";
+
+export const SalesService = {
+  createSale: async (
+    sale: Omit<SaleType, "id" | "created_at">,
+    products: { product_id: string; quantity: number; price: number }[],
+    recipes?: { recipe_id: string; quantity: number; price: number }[], // ✅ NUEVO
+  ): Promise<SaleType> => {
+    const createdAtStr = new Date().toISOString();
+    const debtDateStr = sale.debt_date
+      ? new Date(sale.debt_date).toISOString().split("T")[0]
+      : null;
+
+    const saleId = uuidv4();
+
+    await DATABASE.db.withTransactionAsync(async () => {
+      // Crear la venta
+      await DATABASE.db.runAsync(
+        "INSERT INTO sales (id, total, note, is_debt, debt_amount, debt_date, payment_method, client_id, sincronizado, updated_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        [
+          saleId,
+          sale.total,
+          sale.note || "",
+          sale.is_debt ? 1 : 0,
+          sale.debt_amount || 0,
+          debtDateStr,
+          sale.payment_method || "cash",
+          sale.client_id || null,
+          0,
+          new Date().toISOString(),
+          createdAtStr,
+        ],
+      );
+
+      // Guardar PRODUCTOS en sale_products
+      for (const prod of products) {
+        let prodId = uuidv4();
+        await DATABASE.db.runAsync(
+          "INSERT INTO sale_products (id, sale_id, product_id, quantity, price, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+          [
+            prodId,
+            saleId,
+            prod.product_id,
+            prod.quantity,
+            prod.price,
+            0,
+            new Date().toISOString(),
+          ],
+        );
+
+        // Deducir stock de productos
+        await DATABASE.db.runAsync(
+          "UPDATE products SET stock = stock - ?, sincronizado = 0, updated_at = ? WHERE id = ?",
+          [prod.quantity, new Date().toISOString(), prod.product_id],
+        );
+      }
+
+      // Guardar RECETAS en sale_recipes (separado!)
+      if (recipes && recipes.length > 0) {
+        for (const recipe of recipes) {
+          let recipeId = uuidv4();
+          await DATABASE.db.runAsync(
+            "INSERT INTO sale_recipes (id, sale_id, recipe_id, quantity, price, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            [
+              recipeId,
+              saleId,
+              recipe.recipe_id,
+              recipe.quantity,
+              recipe.price,
+              0,
+              new Date().toISOString(),
+            ],
+          );
+        }
+      }
+    });
+
+    SyncService.run().catch((err) =>
+      console.error("Error sincronizando al crear venta:", err),
+    );
+
+    return {
+      id: saleId,
+      total: sale.total,
+      note: sale.note,
+      is_debt: sale.is_debt,
+      debt_amount: sale.debt_amount,
+      debt_date: sale.debt_date,
+      created_at: new Date(createdAtStr),
+    };
+  },
+
+  crearVentaDesdeOrdenWeb: async (
+    orden: OrderPro,
+    tipoPago: "efectivo" | "transferencia" | "deuda",
+  ): Promise<boolean> => {
+    try {
+      const hoy = new Date().toISOString();
+      const debtDateStr = tipoPago === "deuda" ? hoy.split("T")[0] : null;
+      const saleId = uuidv4();
+
+      await DATABASE.db.withTransactionAsync(async () => {
+        if (orden.client_id) {
+          const clienteLocal = await DATABASE.db.getFirstAsync<{ id: string }>(
+            "SELECT id FROM clients WHERE id = ?;",
+            [orden.client_id],
+          );
+
+          if (!clienteLocal) {
+            console.log(
+              `🕵️‍♂️ Cliente nuevo de la web. Registrando en SQLite: ${orden.customer_name}`,
+            );
+            await DATABASE.db.runAsync(
+              "INSERT INTO clients (id, name, phone, notes, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+              [
+                orden.client_id,
+                orden.customer_name,
+                orden.customer_phone,
+                orden.delivery_address || "Cliente de la Web",
+                1,
+                hoy,
+              ],
+            );
+          }
+        }
+
+        // =================================================================
+        // 💰 2. CREAR LA VENTA PRINCIPAL
+        // =================================================================
+        await DATABASE.db.runAsync(
+          "INSERT INTO sales (id, total, note, is_debt, debt_amount, debt_date, payment_method, client_id, source_order_id, sincronizado, updated_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+          [
+            saleId,
+            orden.total_price,
+            orden.comments || "",
+            tipoPago === "deuda" ? 1 : 0,
+            tipoPago === "deuda" ? orden.total_price : 0,
+            debtDateStr,
+            tipoPago,
+            orden.client_id || null,
+            orden.id, // ← enlace con la orden
+            0,
+            hoy,
+            hoy,
+          ],
+        );
+
+        // =================================================================
+        // 📦 3. DESGLOSAR ÍTEMS EN PRODUCTOS O RECETAS Y ACTUALIZAR STOCK
+        // =================================================================
+        for (const item of orden.order_items) {
+          if (item.product_id) {
+            // Es un producto individual
+            await DATABASE.db.runAsync(
+              "INSERT INTO sale_products (id, sale_id, product_id, quantity, price, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+              [
+                uuidv4(),
+                saleId,
+                item.product_id,
+                item.quantity,
+                item.price_at_time,
+                0,
+                hoy,
+              ],
+            );
+
+            // Deducir stock del producto local
+            await DATABASE.db.runAsync(
+              "UPDATE products SET stock = stock - ?, sincronizado = 0, updated_at = ? WHERE id = ?",
+              [item.quantity, hoy, item.product_id],
+            );
+          } else if (item.recipe_id) {
+            // Es una receta / combo especial
+            await DATABASE.db.runAsync(
+              "INSERT INTO sale_recipes (id, sale_id, recipe_id, quantity, price, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+              [
+                uuidv4(),
+                saleId,
+                item.recipe_id,
+                item.quantity,
+                item.price_at_time,
+                0,
+                hoy,
+              ],
+            );
+
+            const ingredientes = await DATABASE.db.getAllAsync<{
+              product_id: string;
+              quantity: number;
+            }>(
+              "SELECT product_id, quantity FROM recipe_ingredients WHERE recipe_id = ?;",
+              [item.recipe_id],
+            );
+
+            for (const ing of ingredientes) {
+              const cantidadATorcer = ing.quantity * item.quantity;
+
+              await DATABASE.db.runAsync(
+                "UPDATE products SET stock = stock - ?, sincronizado = 0, updated_at = ? WHERE id = ?",
+                [cantidadATorcer, hoy, ing.product_id],
+              );
+            }
+          }
+        }
+      });
+
+      // Disparar la sincronización
+      SyncService.run().catch((err) =>
+        console.error("Error sincronizando al aceptar orden web:", err),
+      );
+
+      console.log(
+        `✅ ¡Orden web integrada limpiamente en SQLite con ID: ${saleId}!`,
+      );
+      return true;
+    } catch (error) {
+      console.error("Error guardando la orden web en SQLite:", error);
+      throw error;
+    }
+  },
+
+  getSales: async (): Promise<SaleType[]> => {
+    const sales = await DATABASE.db.getAllAsync(
+      `SELECT s.*, c.name as client_name 
+       FROM sales s 
+       LEFT JOIN clients c ON s.client_id = c.id 
+       WHERE s.status IS NULL OR s.status != 'cancelled'
+       ORDER BY s.created_at DESC`,
+    );
+    return sales.map((sale: any) => ({
+      ...sale,
+      is_debt: Boolean(sale.is_debt),
+      created_at: new Date(sale.created_at),
+      debt_date: sale.debt_date ? new Date(sale.debt_date) : null,
+      client: sale.client_id
+        ? {
+            id: sale.client_id,
+            name: sale.client_name,
+          }
+        : null,
+    }));
+  },
+
+  getReportsSummary: async (): Promise<{
+    totalDay: number;
+    totalMonth: number;
+    debtTotal: number;
+    paidTotal: number;
+    weeklySales: { dateStr: string; total: number }[];
+    recentSales: SaleType[];
+  }> => {
+    const todayStr = new Date().toISOString().split("T")[0];
+
+    // Primer y último día del mes actual
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1)
+      .toISOString()
+      .split("T")[0];
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+      .toISOString()
+      .split("T")[0];
+
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+    const startDateStr = sevenDaysAgo.toISOString().split("T")[0];
+
+    const [rowDay, rowMonth, rowDebt, rowPaid, weeklySales, recentSalesRaw] =
+      await Promise.all([
+        DATABASE.db.getFirstAsync(
+          "SELECT SUM(total) as total FROM sales WHERE (status IS NULL OR status != 'cancelled') AND created_at LIKE ?",
+          [`${todayStr}%`],
+        ),
+        DATABASE.db.getFirstAsync(
+          "SELECT SUM(total) as total FROM sales WHERE (status IS NULL OR status != 'cancelled') AND created_at BETWEEN ? AND ?",
+          [firstDay, lastDay],
+        ), // fix
+        DATABASE.db.getFirstAsync(
+          "SELECT SUM(debt_amount) as total FROM sales WHERE is_debt = 1 AND (status IS NULL OR status != 'cancelled')",
+        ),
+        DATABASE.db.getFirstAsync(
+          "SELECT SUM(total) as total FROM sales WHERE is_debt = 0 AND (status IS NULL OR status != 'cancelled') AND created_at LIKE ?",
+          [`${todayStr}%`],
+        ),
+        DATABASE.db.getAllAsync(
+          "SELECT substr(created_at, 1, 10) as dateStr, SUM(total) as total FROM sales WHERE (status IS NULL OR status != 'cancelled') AND created_at >= ? GROUP BY substr(created_at, 1, 10)",
+          [startDateStr],
+        ),
+        DATABASE.db.getAllAsync(
+          `SELECT s.*, c.name as client_name 
+           FROM sales s 
+           LEFT JOIN clients c ON s.client_id = c.id 
+           WHERE s.status IS NULL OR s.status != 'cancelled' 
+           ORDER BY s.created_at DESC LIMIT 5`,
+        ),
+      ]);
+
+    const recentSales = (recentSalesRaw || []).map((sale: any) => ({
+      ...sale,
+      is_debt: Boolean(sale.is_debt),
+      created_at: new Date(sale.created_at),
+      debt_date: sale.debt_date ? new Date(sale.debt_date) : null,
+      client: sale.client_id
+        ? {
+            id: sale.client_id,
+            name: sale.client_name,
+          }
+        : null,
+    }));
+
+    return {
+      totalDay: (rowDay as any)?.total || 0,
+      totalMonth: (rowMonth as any)?.total || 0,
+      debtTotal: (rowDebt as any)?.total || 0,
+      paidTotal: (rowPaid as any)?.total || 0,
+      weeklySales: (weeklySales || []) as { dateStr: string; total: number }[],
+      recentSales,
+    };
+  },
+
+  getReportByRange: async (
+    startDate: string,
+    endDate: string,
+  ): Promise<{
+    totalSales: number;
+    totalPaid: number;
+    totalDebt: number;
+    salesCount: number;
+    salesByDay: { dateStr: string; total: number; count: number }[];
+    topProducts: { name: string; quantity: number; total: number }[];
+    sales: SaleType[];
+  }> => {
+    const end = `${endDate}T23:59:59`;
+
+    const [rowTotal, rowPaid, rowDebt, rowCount, byDay, topProducts, salesRaw] =
+      await Promise.all([
+        DATABASE.db.getFirstAsync(
+          "SELECT SUM(total) as total FROM sales WHERE (status IS NULL OR status != 'cancelled') AND created_at BETWEEN ? AND ?",
+          [startDate, end],
+        ),
+        DATABASE.db.getFirstAsync(
+          "SELECT SUM(total) as total FROM sales WHERE is_debt = 0 AND (status IS NULL OR status != 'cancelled') AND created_at BETWEEN ? AND ?",
+          [startDate, end],
+        ),
+        DATABASE.db.getFirstAsync(
+          "SELECT SUM(debt_amount) as total FROM sales WHERE is_debt = 1 AND (status IS NULL OR status != 'cancelled') AND created_at BETWEEN ? AND ?",
+          [startDate, end],
+        ),
+        DATABASE.db.getFirstAsync(
+          "SELECT COUNT(*) as count FROM sales WHERE (status IS NULL OR status != 'cancelled') AND created_at BETWEEN ? AND ?",
+          [startDate, end],
+        ),
+        DATABASE.db.getAllAsync(
+          `SELECT substr(created_at, 1, 10) as dateStr, SUM(total) as total, COUNT(*) as count 
+       FROM sales WHERE (status IS NULL OR status != 'cancelled') AND created_at BETWEEN ? AND ? 
+       GROUP BY substr(created_at, 1, 10) ORDER BY dateStr ASC`,
+          [startDate, end],
+        ),
+        DATABASE.db.getAllAsync(
+          `SELECT p.name, SUM(sp.quantity) as quantity, SUM(sp.quantity * sp.price) as total
+       FROM sale_products sp
+       JOIN products p ON sp.product_id = p.id
+       JOIN sales s ON sp.sale_id = s.id
+       WHERE (s.status IS NULL OR s.status != 'cancelled') AND s.created_at BETWEEN ? AND ?
+       GROUP BY sp.product_id ORDER BY quantity DESC LIMIT 5`,
+          [startDate, end],
+        ),
+        DATABASE.db.getAllAsync(
+          `SELECT s.*, c.name as client_name 
+           FROM sales s 
+           LEFT JOIN clients c ON s.client_id = c.id 
+           WHERE (s.status IS NULL OR s.status != 'cancelled') AND s.created_at BETWEEN ? AND ? 
+           ORDER BY s.created_at DESC`,
+          [startDate, end],
+        ),
+      ]);
+
+    return {
+      totalSales: (rowTotal as any)?.total || 0,
+      totalPaid: (rowPaid as any)?.total || 0,
+      totalDebt: (rowDebt as any)?.total || 0,
+      salesCount: (rowCount as any)?.count || 0,
+      salesByDay: (byDay || []) as any[],
+      topProducts: (topProducts || []) as any[],
+      sales: (salesRaw || []).map((s: any) => ({
+        ...s,
+        is_debt: Boolean(s.is_debt),
+        created_at: new Date(s.created_at),
+        debt_date: s.debt_date ? new Date(s.debt_date) : null,
+        client: s.client_id
+          ? {
+              id: s.client_id,
+              name: s.client_name,
+            }
+          : null,
+      })),
+    };
+  },
+
+  getSaleById: async (
+    id: string,
+  ): Promise<
+    | (SaleType & {
+        products: any[];
+        recipes: any[];
+        client: { id: string; name: string; phone?: string | null } | null;
+      })
+    | null
+  > => {
+    const sale: any = await DATABASE.db.getFirstAsync(
+      `SELECT 
+        s.*,
+        c.id as client_id,
+        c.name as client_name,
+        c.phone as client_phone
+        FROM sales s
+        LEFT JOIN clients c ON s.client_id = c.id
+        WHERE s.id = ?`,
+      [id],
+    );
+
+    if (!sale) return null;
+
+    // Obtener productos vendidos
+    const products = await DATABASE.db.getAllAsync(
+      `SELECT sp.*, p.name as product_name, p.image_url as product_image 
+       FROM sale_products sp
+       JOIN products p ON sp.product_id = p.id
+       WHERE sp.sale_id = ?`,
+      [id],
+    );
+
+    // Obtener recetas vendidas
+    const recipes = await DATABASE.db.getAllAsync(
+      `SELECT sr.*, r.name as recipe_name, r.image_url as recipe_image
+       FROM sale_recipes sr
+       JOIN recipes r ON sr.recipe_id = r.id
+       WHERE sr.sale_id = ?`,
+      [id],
+    );
+
+    return {
+      ...sale,
+      is_debt: Boolean(sale.is_debt),
+      created_at: new Date(sale.created_at),
+      debt_date: sale.debt_date ? new Date(sale.debt_date) : null,
+      products,
+      recipes,
+      client: sale.client_id
+        ? {
+            id: sale.client_id,
+            name: sale.client_name,
+            phone: sale.client_phone,
+          }
+        : null,
+    };
+  },
+
+  updateSale: async (
+    id: string,
+    sale: Partial<SaleType> & {
+      products?: { product_id: string; quantity: number; price: number }[];
+      recipes?: { recipe_id: string; quantity: number; price: number }[]; // ✅ NUEVO
+    },
+  ): Promise<void> => {
+    await DATABASE.db.withTransactionAsync(async () => {
+      // ✅ 1. Si vienen productos, actualizar stock
+      if (sale.products) {
+        // Obtener productos previos
+        const prevProducts: any[] = await DATABASE.db.getAllAsync(
+          "SELECT product_id, quantity FROM sale_products WHERE sale_id = ?",
+          [id],
+        );
+
+        // Devolver stock de productos previos
+        for (const item of prevProducts) {
+          await DATABASE.db.runAsync(
+            "UPDATE products SET stock = stock + ?, sincronizado = 0, updated_at = ? WHERE id = ?",
+            [item.quantity, new Date().toISOString(), item.product_id],
+          );
+        }
+
+        // Eliminar productos previos
+        await DATABASE.db.runAsync(
+          "DELETE FROM sale_products WHERE sale_id = ?",
+          [id],
+        );
+
+        // Insertar nuevos productos
+        for (const prod of sale.products) {
+          let prodId = uuidv4();
+          await DATABASE.db.runAsync(
+            "INSERT INTO sale_products (id, sale_id, product_id, quantity, price, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            [
+              prodId,
+              id,
+              prod.product_id,
+              prod.quantity,
+              prod.price,
+              0,
+              new Date().toISOString(),
+            ],
+          );
+
+          // Deducir nuevo stock
+          await DATABASE.db.runAsync(
+            "UPDATE products SET stock = stock - ?, sincronizado = 0, updated_at = ? WHERE id = ?",
+            [prod.quantity, new Date().toISOString(), prod.product_id],
+          );
+        }
+      }
+
+      // ✅ 2. Si vienen recetas, actualizar sale_recipes (NUEVO!)
+      if (sale.recipes) {
+        // Eliminar recetas previas
+        await DATABASE.db.runAsync(
+          "DELETE FROM sale_recipes WHERE sale_id = ?",
+          [id],
+        );
+
+        // Insertar nuevas recetas
+        for (const recipe of sale.recipes) {
+          let recipeId = uuidv4();
+          await DATABASE.db.runAsync(
+            "INSERT INTO sale_recipes (id, sale_id, recipe_id, quantity, price, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            [
+              recipeId,
+              id,
+              recipe.recipe_id,
+              recipe.quantity,
+              recipe.price,
+              0,
+              new Date().toISOString(),
+            ],
+          );
+        }
+      }
+
+      // ✅ 3. Actualizar campos de la venta
+      const fields: string[] = [];
+      const values: any[] = [];
+
+      if (sale.total !== undefined) {
+        fields.push("total = ?");
+        values.push(sale.total);
+      }
+      if (sale.note !== undefined) {
+        fields.push("note = ?");
+        values.push(sale.note);
+      }
+      if (sale.payment_method !== undefined) {
+        fields.push("payment_method = ?");
+        values.push(sale.payment_method);
+      }
+      if (sale.is_debt !== undefined) {
+        fields.push("is_debt = ?");
+        values.push(sale.is_debt ? 1 : 0);
+      }
+      if (sale.debt_amount !== undefined) {
+        fields.push("debt_amount = ?");
+        values.push(sale.debt_amount);
+      }
+      if (sale.debt_date !== undefined) {
+        fields.push("debt_date = ?");
+        values.push(
+          sale.debt_date
+            ? new Date(sale.debt_date).toISOString().split("T")[0]
+            : null,
+        );
+      }
+      if (sale.created_at !== undefined) {
+        fields.push("created_at = ?");
+        values.push(
+          new Date(sale.created_at || "").toISOString().split("T")[0],
+        );
+      }
+      if (sale.client_id !== undefined) {
+        fields.push("client_id = ?");
+        values.push(sale.client_id);
+      }
+      if (sale.edit_reason !== undefined) {
+        fields.push("edit_reason = ?");
+        values.push(sale.edit_reason);
+      }
+
+      if (fields.length > 0) {
+        values.push(new Date().toISOString());
+        values.push(id);
+        await DATABASE.db.runAsync(
+          `UPDATE sales SET ${fields.join(", ")}, sincronizado = 0, updated_at = ? WHERE id = ?`,
+          values,
+        );
+      }
+    });
+
+    SyncService.run().catch((err) =>
+      console.error("Error sincronizando al actualizar venta:", err),
+    );
+  },
+
+  deleteSale: async (id: string, cancelReason?: string): Promise<void> => {
+    await DATABASE.db.withTransactionAsync(async () => {
+      // Obtener productos para devolverlos al stock
+      const saleProducts: any[] = await DATABASE.db.getAllAsync(
+        "SELECT product_id, quantity FROM sale_products WHERE sale_id = ?",
+        [id],
+      );
+
+      // Devolver stock de cada producto
+      for (const item of saleProducts) {
+        await DATABASE.db.runAsync(
+          "UPDATE products SET stock = stock + ?, sincronizado = 0, updated_at = ? WHERE id = ?",
+          [item.quantity, new Date().toISOString(), item.product_id],
+        );
+      }
+
+      // ✅ Eliminar registros de recetas (no se devuelven ingredientes al eliminar venta completa)
+      await DATABASE.db.runAsync("DELETE FROM sale_recipes WHERE sale_id = ?", [
+        id,
+      ]);
+
+      // Marcar la venta como anulada
+      await DATABASE.db.runAsync(
+        "UPDATE sales SET status = 'cancelled', cancel_reason = ?, sincronizado = 0, updated_at = ? WHERE id = ?",
+        [cancelReason || "", new Date().toISOString(), id],
+      );
+    });
+
+    SyncService.run().catch((err) =>
+      console.error("Error sincronizando al borrar/anular venta:", err),
+    );
+  },
+
+  getTodaySales: async (): Promise<SaleType[]> => {
+    const todayStr = new Date().toISOString().split("T")[0];
+    const sales = await DATABASE.db.getAllAsync(
+      `SELECT s.*, c.name as client_name 
+       FROM sales s 
+       LEFT JOIN clients c ON s.client_id = c.id 
+       WHERE s.created_at = ? AND (s.status IS NULL OR s.status != 'cancelled')`,
+      [todayStr],
+    );
+    return sales.map((sale: any) => ({
+      ...sale,
+      is_debt: Boolean(sale.is_debt),
+      created_at: new Date(sale.created_at),
+      debt_date: sale.debt_date ? new Date(sale.debt_date) : null,
+      client: sale.client_id
+        ? {
+            id: sale.client_id,
+            name: sale.client_name,
+          }
+        : null,
+    }));
+  },
+
+  getDebtSales: async (): Promise<SaleType[]> => {
+    const sales = await DATABASE.db.getAllAsync(
+      `SELECT s.*, c.name as client_name 
+       FROM sales s 
+       LEFT JOIN clients c ON s.client_id = c.id 
+       WHERE s.is_debt = 1 AND (s.status IS NULL OR s.status != 'cancelled') 
+       ORDER BY s.created_at DESC`,
+    );
+    return sales.map((sale: any) => ({
+      ...sale,
+      is_debt: true,
+      created_at: new Date(sale.created_at),
+      debt_date: sale.debt_date ? new Date(sale.debt_date) : null,
+      client: sale.client_id
+        ? {
+            id: sale.client_id,
+            name: sale.client_name,
+          }
+        : null,
+    }));
+  },
+
+  markSaleAsPaid: async (saleId: string): Promise<void> => {
+    await DATABASE.db.runAsync(
+      "UPDATE sales SET is_debt = 0, debt_amount = 0, sincronizado = 0, updated_at = ? WHERE id = ?",
+      [new Date().toISOString(), saleId],
+    );
+
+    SyncService.run().catch((err) =>
+      console.error("Error sincronizando al marcar como pagada:", err),
+    );
+  },
+
+  createMany: async (sales: SaleType[]) => {
+    const salesCount: { count: number } | null =
+      await DATABASE.db.getFirstAsync("SELECT COUNT(*) as count FROM sales");
+
+    console.log(salesCount?.count, typeof salesCount);
+
+    if (salesCount?.count === 0) {
+      await DATABASE.db.withTransactionAsync(async () => {
+        for (const sale of sales) {
+          await DATABASE.db.runAsync(
+            "INSERT INTO sales (id, total, note, is_debt, debt_amount, debt_date, sincronizado, updated_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [
+              sale.id!,
+              sale.total,
+              sale.note || "",
+              sale.is_debt ? 1 : 0,
+              sale.debt_amount || null,
+              sale.debt_date
+                ? new Date(sale.debt_date).toISOString().split("T")[0]
+                : null,
+              0,
+              new Date().toISOString(),
+              new Date().toISOString().split("T")[0],
+            ],
+          );
+        }
+      });
+    }
+  },
+
+  linkToOrder: async (saleId: string, orderId: string): Promise<void> => {
+    await DATABASE.db.runAsync(
+      "UPDATE sales SET source_order_id = ?, sincronizado = 0, updated_at = ? WHERE id = ?",
+      [orderId, new Date().toISOString(), saleId],
+    );
+
+    SyncService.run().catch((err) =>
+      console.error("Error sincronizando enlace venta-orden:", err),
+    );
+  },
+
+  /** Busca la venta local enlazada a una orden (por source_order_id) */
+  getBySourceOrderId: async (orderId: string): Promise<SaleType | null> => {
+    const sale: any = await DATABASE.db.getFirstAsync(
+      "SELECT * FROM sales WHERE source_order_id = ? AND (status IS NULL OR status != 'cancelled') LIMIT 1",
+      [orderId],
+    );
+    if (!sale) return null;
+    return {
+      ...sale,
+      is_debt: Boolean(sale.is_debt),
+      created_at: new Date(sale.created_at),
+      debt_date: sale.debt_date ? new Date(sale.debt_date) : null,
+    };
+  },
+
+  /** Cancela (revierte stock) la venta enlazada a una orden, si existe */
+  cancelBySourceOrderId: async (
+    orderId: string,
+    cancelReason: string,
+  ): Promise<boolean> => {
+    const sale = await SalesService.getBySourceOrderId(orderId);
+    if (!sale?.id) return false;
+    await SalesService.deleteSale(sale.id, cancelReason);
+    return true;
+  },
+};
