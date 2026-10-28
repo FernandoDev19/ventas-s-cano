@@ -40,6 +40,8 @@ export const AppBootstrap = () => {
         // 3. Forzar una sincronización inicial por si quedaron ventas reales con '0' antes de cerrar la app
         await SyncService.run();
 
+        await seedLocalDemoData();
+
         // 4. Configurar el escuchador de red de forma correcta en el nivel superior
         unsubscribeNetInfo = NetInfo.addEventListener((state) => {
           if (state.isConnected) {
