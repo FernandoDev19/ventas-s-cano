@@ -52,7 +52,7 @@ export const MenuService = {
       );
 
       // 4. Mapear y estampar la bandera 'is_recipe' a las recetas
-      const mappedRecipes: MenuExtendedItem[] = (recipes || []).map((r) => ({
+      const mappedRecipes: MenuExtendedItem[] = ((recipes || []) as any[]).map((r) => ({
         id: r.id,
         name: r.name,
         description: r.description || undefined,
@@ -103,7 +103,7 @@ export const MenuService = {
       );
 
       // 4. Mapear y estampar la bandera 'is_recipe' a las recetas
-      const mappedRecipes: MenuExtendedItem[] = (recipes || []).map((r) => ({
+      const mappedRecipes: MenuExtendedItem[] = ((recipes || []) as any[]).map((r) => ({
         id: r.id,
         name: r.name,
         description: r.description || undefined,
@@ -141,10 +141,10 @@ export const MenuService = {
 
       if (error) throw error;
 
-      const categoriasActivas = (categories || []).filter((cat) => {
+      const categoriasActivas = ((categories || []) as any[]).filter((cat) => {
         // Verifica si tiene al menos un producto visible
         const tieneProductosVisibles = cat.products?.some(
-          (p) => p.is_visible_menu === true,
+          (p: any) => p.is_visible_menu === true,
         );
         // Verifica si tiene al menos una receta (como no tiene bandera, si hay registro, cuenta)
         const tieneRecetas = cat.recipes && cat.recipes.length > 0;

@@ -131,7 +131,8 @@ export function createMockSupabase({ seed, users, storage, key = "mock-supabase"
     private mode: "many" | "single" | "maybe" = "many";
     private lim: number | null = null;
 
-    constructor(private table: string) {}
+    private table: string;
+    constructor(table: string) { this.table = table; }
 
     select(str = "*") {
       if (this.op === "select") this.selStr = str;

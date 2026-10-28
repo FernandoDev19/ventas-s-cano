@@ -23,7 +23,7 @@ export const CheckoutService = {
         if (clientError) throw clientError;
 
         if (existingClient) {
-          clientId = existingClient.id;
+          clientId = (existingClient as any).id;
         } else {
           const { data: newClient, error: createError } = await supabase
             .from("clients")
@@ -34,12 +34,12 @@ export const CheckoutService = {
                 phone: data.celular,
                 notes: data.direccion
               },
-            ])
+            ] as any)
             .select("id")
             .single();
 
           if (createError) throw createError;
-          clientId = newClient.id;
+          clientId = (newClient as any).id;
         }
       }
 
@@ -71,7 +71,7 @@ export const CheckoutService = {
             table_id: mesaNumber,
             origin: isQR ? "qr_cliente" : "caja",
           },
-        ])
+        ] as any)
         .select("id")
         .single();
 
@@ -79,7 +79,7 @@ export const CheckoutService = {
 
       // 3. REGISTRAR LOS PRODUCTOS DETALLADOS DE LA ORDEN
       const orderItemsPayload = data.items.map((item) => ({
-        order_id: order.id,
+        order_id: (order as any).id,
         product_id: !item.is_recipe ? item.id : null,
         recipe_id: item.is_recipe ? item.id : null,
         quantity: item.quantity,
@@ -88,19 +88,18 @@ export const CheckoutService = {
 
       const { error: itemsError } = await supabase
         .from("order_items")
-        .insert(orderItemsPayload);
+        .insert(orderItemsPayload as any);
 
       if (itemsError) throw itemsError;
 
       if (isQR) {
         // Marcar mesa como ocupada en Supabase
-        await supabase
-          .from("tables")
+        await (supabase.from("tables") as any)
           .update({ status: "ocupada" })
           .eq("id", mesaNumber);
       }
 
-      return { success: true, orderId: order.id };
+      return { success: true, orderId: (order as any).id };
     } catch (error) {
       console.error("Error procesando el pedido en la web:", error);
       return { success: false, error };
