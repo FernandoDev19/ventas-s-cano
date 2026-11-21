@@ -14,4 +14,6 @@ export type SaleType = {
   edit_reason?: string | null;
   sincronizado?: 0 | 1;
   updated_at?: string;
+    items_summary?: string;
+  items_count?: number;
 };

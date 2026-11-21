@@ -11,6 +11,7 @@ import { useCartModal } from "../../hooks/useCartModal";
 import CartHeader from "./CartHeader";
 import CartProductsList from "./CartProductsList";
 import CartFooter from "./CartFooter";
+import CartCheckoutBar from "./CartCheckoutBar";
 
 type Props = {
   onSaleCreated: () => void;
@@ -94,7 +95,7 @@ const CartModal = ({ onSaleCreated }: Props) => {
                 onClearOrder={clearOrder}
               />
 
-              <CartProductsList
+                       <CartProductsList
                 order={order}
                 getItemImage={getItemImage}
                 getItemLabel={getItemLabel}
@@ -105,10 +106,7 @@ const CartModal = ({ onSaleCreated }: Props) => {
                   <CartFooter
                     totalPrecio={totalPrecio}
                     setShowDatePicker={setShowDatePicker}
-                    handleCheckout={handleCheckout}
                     setSelectedClientId={setSelectedClientId}
-                    buildSale={buildSale}
-                    order={order}
                     paymentMethod={paymentMethod}
                     setPaymentMethod={setPaymentMethod}
                     isDebt={isDebt}
@@ -123,7 +121,6 @@ const CartModal = ({ onSaleCreated }: Props) => {
                     onClientCreated={refreshClients}
                     showDatePicker={showDatePicker}
                     selectedClientId={selectedClientId}
-                    isSubmitting={isSubmitting}
                     orderType={orderType}
                     setOrderType={setOrderType}
                     tables={tables}
@@ -135,6 +132,29 @@ const CartModal = ({ onSaleCreated }: Props) => {
                     setCashReceived={setCashReceived}
                   />
                 }
+              />
+
+              <CartCheckoutBar
+                total={totalPrecio}
+                itemsCount={totalItems}
+                isSubmitting={isSubmitting}
+                summary={[
+                  orderType === "domicilio"
+                    ? "Domicilio"
+                    : orderType === "para_llevar"
+                      ? "Para llevar"
+                      : selectedTableId
+                        ? `Mesa ${tables.find((t) => t.id === selectedTableId)?.number_mesa ?? selectedTableId}`
+                        : "Comer aquí",
+                  isDebt
+                    ? "Fiado"
+                    : paymentMethod === "cash"
+                      ? "Efectivo"
+                      : paymentMethod === "card"
+                        ? "Tarjeta"
+                        : "Nequi",
+                ].join(" · ")}
+                onConfirm={() => handleCheckout(buildSale(), order)}
               />
             </View>
           </View>

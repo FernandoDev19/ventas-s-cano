@@ -13,7 +13,7 @@ export interface OrderPro {
   client_id: string | null;
   customer_name: string;
   customer_phone: string;
-  delivery_type: "domicilio" | "local" | "mesa";
+delivery_type: "domicilio" | "local" | "mesa" | "para_llevar";
   delivery_address: string | null;
   comments: string | null;
   total_price: number;

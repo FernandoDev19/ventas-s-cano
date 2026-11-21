@@ -15,6 +15,7 @@ export const OrdersService = {
         comments,
         total_price,
         status,
+        created_at,
         client_id,
         table_id,
         order_items (

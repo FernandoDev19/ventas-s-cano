@@ -116,5 +116,6 @@ export const useOrders = (role?: "admin" | "kitchen" | "cashier") => {
     handleCambiarEstado,
     abrirWhatsAppCliente,
     handlePrintCashierTicket,
+    cargarOrdenes,
   };
 };

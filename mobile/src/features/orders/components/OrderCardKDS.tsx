@@ -1,20 +1,21 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, Alert } from "react-native";
-import { OrderPro } from "../types/order.type";
+import React, { useEffect, useRef, useState } from "react";
+import { View, Text, TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { Audio } from "expo-av";
+import { OrderPro } from "../types/order.type";
 import { useUserRole } from "@/src/shared/hooks/useUserRole";
-import { OrderStatusTabType } from "../types/status-tab.type";
+import { priceFormat } from "@/src/shared/helpers/price-format.helper";
+import InfoChip from "@/src/shared/components/ui/InfoChip";
+import {
+  KIND_INFO,
+  OrderKind,
+  parseSaleNote,
+} from "@/src/shared/helpers/sale-note.helper";
 
 interface CardProps {
   item: OrderPro;
   onAccionEstado: (
-    estado:
-      | "pending"
-      | "accepted"
-      | "preparing"
-      | "ready"
-      | "delivered"
-      | "cancelled",
+    estado: "pending" | "accepted" | "preparing" | "ready" | "delivered" | "cancelled",
   ) => void;
   onChatCliente: () => void;
   onPrintBill: () => void;
@@ -30,223 +31,343 @@ const parseUTCDate = (dateStr: string) => {
   return isNaN(parsed.getTime()) ? new Date(dateStr) : parsed;
 };
 
+const ACTIVE = ["pending", "accepted", "preparing"];
+
+const urgency = (min: number) => {
+  if (min < 10) return { color: "#22c55e", label: "A tiempo" };
+  if (min <= 20) return { color: "#f59e0b", label: "Atención" };
+  return { color: "#ef4444", label: "Retrasado" };
+};
+
+const Btn = ({
+  label,
+  bg,
+  onPress,
+  outline,
+}: {
+  label: string;
+  bg: string;
+  onPress: () => void;
+  outline?: boolean;
+}) => (
+  <TouchableOpacity
+    onPress={onPress}
+    activeOpacity={0.85}
+    style={{
+      flex: 1,
+      paddingVertical: 12,
+      borderRadius: 12,
+      alignItems: "center",
+      backgroundColor: outline ? "transparent" : bg,
+      borderWidth: outline ? 1.5 : 0,
+      borderColor: bg,
+    }}
+  >
+    <Text
+      style={{ color: outline ? bg : "#fff", fontWeight: "800", fontSize: 13 }}
+    >
+      {label}
+    </Text>
+  </TouchableOpacity>
+);
+
 export const OrderCardKDS = ({
   item,
   onAccionEstado,
   onChatCliente,
   onPrintBill,
 }: CardProps) => {
-  const [minutosEnEspera, setMinutosEnEspera] = useState<number>(0);
+  const [minutosEnEspera, setMinutosEnEspera] = useState(0);
+  const alertedRef = useRef(false);
   const { role } = useUserRole();
   const userRole = role || "cashier";
+  const isKitchen = userRole === "kitchen";
 
   useEffect(() => {
-    const calcularTiempo = async () => {
+    const tick = async () => {
       const creacion = parseUTCDate(item.created_at).getTime();
-      const ahora = new Date().getTime();
-      const diferenciaMinutos = Math.max(
-        0,
-        Math.floor((ahora - creacion) / 60000),
-      );
-      setMinutosEnEspera(diferenciaMinutos);
+      const mins = Math.max(0, Math.floor((Date.now() - creacion) / 60000));
+      setMinutosEnEspera(mins);
 
       if (
-        diferenciaMinutos >= 20 &&
-        (item.status === "accepted" || item.status === "preparing")
+        mins >= 20 &&
+        (item.status === "accepted" || item.status === "preparing") &&
+        !alertedRef.current
       ) {
+        alertedRef.current = true;
         try {
           const { sound } = await Audio.Sound.createAsync(
             require("@/assets/sounds/alerta-cocina.mp3"),
           );
           await sound.playAsync();
-          Alert.alert(
-            "Alerta",
-            "Han pasado mas de 20 minutos con el pedido sin finalizar",
-          );
         } catch {
           console.log("Error al pitar en cocina");
         }
       }
     };
-
-    calcularTiempo();
-    const interval = setInterval(calcularTiempo, 30000);
+    tick();
+    const interval = setInterval(tick, 30000);
     return () => clearInterval(interval);
   }, [item.created_at, item.status]);
 
-  const obtenerColorFondo = () => {
-    if (minutosEnEspera < 10) return "bg-emerald-50 border-emerald-500";
-    if (minutosEnEspera <= 20) return "bg-amber-50 border-amber-500";
-    return "bg-rose-50 border-rose-500";
-  };
+  const parsed = parseSaleNote(item.comments);
+  const kind: OrderKind =
+    item.delivery_type === "domicilio"
+      ? "domicilio"
+      : item.table_id
+        ? "mesa"
+        : item.delivery_type === "para_llevar" || parsed.kind === "para_llevar"
+          ? "para_llevar"
+          : "comer_aqui";
+  const kindInfo = KIND_INFO[kind];
+  const kindLabel = kind === "mesa" ? `Mesa ${item.table_id}` : kindInfo.label;
+  const address = item.delivery_address || parsed.address;
+  const isActive = ACTIVE.includes(item.status);
+  const urg = urgency(minutosEnEspera);
+  const barColor = isActive ? urg.color : "#2a2a2a";
+  const clock = parseUTCDate(item.created_at).toLocaleTimeString("es-CO", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
 
-  const renderButtons = (orderStatus: OrderStatusTabType) => {
-    switch (orderStatus) {
-      case "accepted":
-        return (
-          <>
-            {userRole === "kitchen" || userRole === "admin" ? (
-              <>
-                <View className="flex-row gap-3">
-                  {userRole === "admin" && (
-                    <TouchableOpacity
-                      className="bg-red-500 px-3 py-1.5 rounded-lg"
-                      onPress={() => onAccionEstado("cancelled")}
-                    >
-                      <Text className="text-white font-bold text-xs">
-                        Rechazar
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                  <TouchableOpacity
-                    className="bg-orange-500 px-4 py-2 rounded-lg"
-                    onPress={() => onAccionEstado("preparing")}
-                  >
-                    <Text className="text-white font-bold text-xs">
-                      Preparar Pedido 🍳
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </>
-            ) : (
-              <TouchableOpacity
-                className="bg-red-500 px-3 py-1.5 rounded-lg"
-                onPress={() => onAccionEstado("cancelled")}
-              >
-                <Text className="text-white font-bold text-xs">Rechazar</Text>
-              </TouchableOpacity>
-            )}
-          </>
-        );
+  const renderButtons = () => {
+    const reject = (
+      <Btn key="r" label="Rechazar" bg="#ef4444" outline onPress={() => onAccionEstado("cancelled")} />
+    );
+    const prepare = (
+      <Btn key="p" label="Preparar 🍳" bg="#f97316" onPress={() => onAccionEstado("preparing")} />
+    );
+
+    switch (item.status) {
       case "pending":
-        return (
-          <View className="flex-row gap-2">
-            <TouchableOpacity
-              className="bg-red-500 px-3 py-1.5 rounded-lg"
-              onPress={() => onAccionEstado("cancelled")}
-            >
-              <Text className="text-white font-bold text-xs">Rechazar</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              className="bg-emerald-600 px-4 py-1.5 rounded-lg"
-              onPress={() => onAccionEstado("accepted")}
-            >
-              <Text className="text-white font-bold text-xs">Aceptar</Text>
-            </TouchableOpacity>
-          </View>
-        );
+        return [
+          reject,
+          <Btn key="a" label="Aceptar" bg="#10b981" onPress={() => onAccionEstado("accepted")} />,
+        ];
+      case "accepted":
+        if (isKitchen) return [prepare];
+        if (userRole === "admin") return [reject, prepare];
+        return [reject];
       case "preparing":
-        return (
-          <TouchableOpacity
-            className="bg-amber-600 px-4 py-2 rounded-lg"
-            onPress={() => onAccionEstado("ready")}
-          >
-            <Text className="text-white font-bold text-xs">
-              Pedido Listo 🚀
-            </Text>
-          </TouchableOpacity>
-        );
+        return [
+          <Btn key="l" label="Pedido listo 🚀" bg="#f59e0b" onPress={() => onAccionEstado("ready")} />,
+        ];
       case "ready":
-        return (
-          <View className="flex-row gap-2">
-            {/* Solo se le muestra el botón de imprimir a la caja o administrador, no a cocina */}
-            {userRole !== "kitchen" && onPrintBill && (
-              <TouchableOpacity
-                className="bg-neutral-700 px-3 py-2 rounded-lg"
-                onPress={onPrintBill}
-              >
-                <Text className="text-white font-bold text-xs">
-                  Imprimir 🖨️
-                </Text>
-              </TouchableOpacity>
-            )}
-            {item.delivery_type === "mesa" ? (
-              <TouchableOpacity
-                className="bg-purple-600 px-4 py-2 rounded-lg"
-                onPress={() => onAccionEstado("delivered")}
-              >
-                <Text className="text-white font-bold text-xs">
-                  Finalizar Mesa 🍽️
-                </Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                className="bg-blue-600 px-4 py-2 rounded-lg"
-                onPress={() => onAccionEstado("delivered")}
-              >
-                <Text className="text-white font-bold text-xs">
-                  Despachar Pedido ✓
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        );
+        return [
+          !isKitchen && onPrintBill ? (
+            <Btn key="i" label="Imprimir 🖨️" bg="#525252" onPress={onPrintBill} />
+          ) : null,
+          <Btn
+            key="d"
+            label={
+              kind === "mesa"
+                ? "Finalizar mesa 🍽️"
+                : kind === "domicilio"
+                  ? "Despachar 🛵"
+                  : "Entregar ✓"
+            }
+            bg={kind === "mesa" ? "#9333ea" : "#2563eb"}
+            onPress={() => onAccionEstado("delivered")}
+          />,
+        ];
+      default:
+        return [];
     }
   };
 
+  const buttons = renderButtons();
+
   return (
     <View
-      className={`rounded-xl p-4 mb-4 border-l-8 shadow-sm bg-white ${obtenerColorFondo()}`}
+      style={{
+        marginBottom: 14,
+        borderRadius: 18,
+        backgroundColor: "#1a1a1a",
+        borderWidth: 1,
+        borderColor: "#2a2a2a",
+        overflow: "hidden",
+      }}
     >
-      {/* Header */}
-      <View className="flex-row justify-between items-center mb-2">
-        <View className="flex-row items-center gap-2">
-          <Text className="text-lg font-bold text-neutral-800">
-            {item.customer_name}
-          </Text>
-          {item.table_id && (
-            <View className="bg-amber-500 px-2 py-0.5 rounded">
-              <Text className="text-white text-[10px] font-black">
-                MESA {item.table_id}
+      <View style={{ height: 3, backgroundColor: barColor }} />
+
+      <View style={{ padding: 14 }}>
+        {/* Header: tipo + id | tiempo */}
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 12,
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <InfoChip icon={kindInfo.icon} label={kindLabel} color={kindInfo.color} />
+            <Text style={{ color: "#737373", fontSize: 12, fontWeight: "700" }}>
+              #{String(item.id).slice(0, 6).toUpperCase()}
+            </Text>
+          </View>
+
+          {isActive ? (
+            <View
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 4,
+                paddingHorizontal: 8,
+                paddingVertical: 3,
+                borderRadius: 999,
+                backgroundColor: `${urg.color}22`,
+              }}
+            >
+              <Ionicons name="time-outline" size={12} color={urg.color} />
+              <Text style={{ color: urg.color, fontSize: 11, fontWeight: "800" }}>
+                {minutosEnEspera} min · {urg.label}
               </Text>
             </View>
+          ) : (
+            <Text style={{ color: "#737373", fontSize: 12 }}>{clock}</Text>
           )}
         </View>
-        <Text className="text-xs font-black text-neutral-400 uppercase">
-          {item.delivery_type === "mesa" ? "Mesa QR" : item.delivery_type}
-        </Text>
-      </View>
 
-      {/* WhatsApp Cliente */}
-      <TouchableOpacity onPress={onChatCliente}>
-        <Text className="text-emerald-600 font-semibold mb-1 text-xs">
-          📞 {item.customer_phone} (Chatear)
-        </Text>
-      </TouchableOpacity>
-
-      {item.comments && (
-        <Text className="text-neutral-400 text-xs italic mb-2">
-          💬 &quot;{item.comments}&quot;
-        </Text>
-      )}
-
-      <View className="h-[1px] bg-neutral-100 my-2" />
-
-      {/* Productos */}
-      {item.order_items.map((detail) => (
-        <Text key={detail.id} className="text-sm text-neutral-700 mb-0.5">
-          • <Text className="font-bold">{detail.quantity}x</Text>{" "}
-          {detail.products?.name || detail.recipes?.name}
-        </Text>
-      ))}
-
-      <View className="h-[1px] bg-neutral-100 my-2" />
-
-      {/* Footer / Botones dinámicos basados en tu lógica previa */}
-      <View className="mt-1 flex-row justify-between items-center">
-        <View>
-          <Text className="text-[10px] text-neutral-400 uppercase font-bold">
-            Total (⏱️ {Number(minutosEnEspera || 0)} min)
-          </Text>
-          {/* Si el usuario es admin, mostrar el precio */}
-          {userRole !== "kitchen" && (
-            <Text className="text-base font-black text-neutral-800">
-              ${Number(item.total_price).toLocaleString("es-CO")}
+        {/* Cliente */}
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 8,
+          }}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: "#fff", fontSize: 17, fontWeight: "800" }} numberOfLines={1}>
+              {item.customer_name}
             </Text>
+            {!!item.customer_phone && (
+              <Text style={{ color: "#737373", fontSize: 12, marginTop: 1 }}>
+                {item.customer_phone}
+              </Text>
+            )}
+          </View>
+          {!!item.customer_phone && (
+            <TouchableOpacity
+              onPress={onChatCliente}
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 19,
+                backgroundColor: "#25D36622",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
+            </TouchableOpacity>
           )}
         </View>
 
-        {renderButtons(item.status)}
+        {/* Dirección */}
+        {!!address && (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 }}>
+            <Ionicons name="location-outline" size={14} color="#a855f7" />
+            <Text style={{ color: "#a3a3a3", fontSize: 12, flex: 1 }}>{address}</Text>
+          </View>
+        )}
+
+        {/* Nota */}
+        {!!parsed.userNote && (
+          <View
+            style={{
+              flexDirection: "row",
+              gap: 6,
+              padding: 10,
+              borderRadius: 10,
+              backgroundColor: "#f59e0b12",
+              borderWidth: 1,
+              borderColor: "#f59e0b33",
+              marginBottom: 8,
+            }}
+          >
+            <Ionicons name="chatbubble-ellipses-outline" size={14} color="#f59e0b" />
+            <Text style={{ color: "#fbbf24", fontSize: 12, flex: 1 }}>
+              {parsed.userNote}
+            </Text>
+          </View>
+        )}
+
+        {/* Ítems */}
+        <View
+          style={{
+            paddingVertical: 8,
+            borderTopWidth: 1,
+            borderBottomWidth: 1,
+            borderColor: "#262626",
+            marginVertical: 6,
+          }}
+        >
+          {item.order_items.map((d) => (
+            <View
+              key={d.id}
+              style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 4 }}
+            >
+              <View
+                style={{
+                  minWidth: 34,
+                  paddingHorizontal: 6,
+                  paddingVertical: 2,
+                  borderRadius: 8,
+                  backgroundColor: "#ff572222",
+                  alignItems: "center",
+                }}
+              >
+                <Text style={{ color: "#ff5722", fontWeight: "900", fontSize: 13 }}>
+                  {d.quantity}x
+                </Text>
+              </View>
+              <Text style={{ flex: 1, color: "#fff", fontSize: 14, fontWeight: "600" }}>
+                {d.products?.name || d.recipes?.name || "Producto"}
+              </Text>
+              {!isKitchen && (
+                <Text style={{ color: "#737373", fontSize: 12 }}>
+                  {priceFormat(d.price_at_time * d.quantity)}
+                </Text>
+              )}
+            </View>
+          ))}
+        </View>
+
+        {/* Total / paga */}
+        {!isKitchen && (
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "flex-end",
+              marginBottom: 12,
+            }}
+          >
+            <View>
+              <Text style={{ color: "#737373", fontSize: 10, fontWeight: "700", textTransform: "uppercase" }}>
+                Total
+              </Text>
+              {parsed.paid && (
+                <Text style={{ color: "#737373", fontSize: 11 }}>
+                  Paga {parsed.paid} · Cambio {parsed.change}
+                </Text>
+              )}
+            </View>
+            <Text style={{ color: "#fff", fontSize: 22, fontWeight: "900" }}>
+              {priceFormat(Number(item.total_price))}
+            </Text>
+          </View>
+        )}
+
+        {/* Acciones */}
+        {buttons.length > 0 && (
+          <View style={{ flexDirection: "row", gap: 8, marginTop: isKitchen ? 8 : 0 }}>
+            {buttons}
+          </View>
+        )}
       </View>
     </View>
   );

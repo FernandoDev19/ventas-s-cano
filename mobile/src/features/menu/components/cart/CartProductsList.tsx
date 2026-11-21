@@ -25,6 +25,7 @@ export default function CartProductsList({
 }: Props) {
   return (
     <FlatList
+    style={{ flex: 1 }}
       data={order}
       keyExtractor={(item, idx) =>
         item.type === "product"

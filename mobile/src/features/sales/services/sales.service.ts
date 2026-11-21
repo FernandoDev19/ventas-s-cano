@@ -225,9 +225,17 @@ export const SalesService = {
 
   getSales: async (): Promise<SaleType[]> => {
     const sales = await DATABASE.db.getAllAsync(
-      `SELECT s.*, c.name as client_name 
-       FROM sales s 
-       LEFT JOIN clients c ON s.client_id = c.id 
+      `SELECT s.*, c.name as client_name,
+        (SELECT group_concat(sp.quantity || 'x ' || p.name, ', ')
+           FROM sale_products sp JOIN products p ON p.id = sp.product_id
+          WHERE sp.sale_id = s.id) as products_summary,
+        (SELECT group_concat(sr.quantity || 'x ' || r.name, ', ')
+           FROM sale_recipes sr JOIN recipes r ON r.id = sr.recipe_id
+          WHERE sr.sale_id = s.id) as recipes_summary,
+        (SELECT COALESCE(SUM(quantity), 0) FROM sale_products WHERE sale_id = s.id)
+        + (SELECT COALESCE(SUM(quantity), 0) FROM sale_recipes WHERE sale_id = s.id) as items_count
+       FROM sales s
+       LEFT JOIN clients c ON s.client_id = c.id
        WHERE s.status IS NULL OR s.status != 'cancelled'
        ORDER BY s.created_at DESC`,
     );
@@ -236,11 +244,11 @@ export const SalesService = {
       is_debt: Boolean(sale.is_debt),
       created_at: new Date(sale.created_at),
       debt_date: sale.debt_date ? new Date(sale.debt_date) : null,
+      items_summary: [sale.products_summary, sale.recipes_summary]
+        .filter(Boolean)
+        .join(", "),
       client: sale.client_id
-        ? {
-            id: sale.client_id,
-            name: sale.client_name,
-          }
+        ? { id: sale.client_id, name: sale.client_name }
         : null,
     }));
   },
