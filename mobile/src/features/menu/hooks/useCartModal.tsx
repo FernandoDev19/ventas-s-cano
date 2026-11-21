@@ -1,5 +1,5 @@
 import { OrderItem } from "@/src/core/context/OrderContext";
-import { Alert, Linking } from "react-native";
+import { Alert } from "react-native";
 import { RecipesService } from "../../recipes/services/recipes.service";
 import { SalesService } from "../../sales/services/sales.service";
 import { SaleType } from "../../sales/types/sale.type";
@@ -11,6 +11,7 @@ import { useContextOrder } from "@/src/shared/hooks/useContextOrder";
 import { ProductsService } from "../../inventory/services/products.service";
 import { PrinterService } from "@/src/shared/services/printer.service";
 import { OrdersService } from "../../orders/services/orders.service";
+import { SyncService } from "@/src/shared/services/sync.service";
 import {
   buildInvoiceMessage,
   sendInvoiceViaWhatsApp,
@@ -36,6 +37,7 @@ export const useCartModal = (onSaleCreated: () => void) => {
   const [note, setNote] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
   const [amountDebt, setAmountDebt] = useState<number>(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [paymentMethod, setPaymentMethod] =
     useState<PaymentMethodsType>("cash");
   const [debtDate, setDebtDate] = useState<Date>(() => {
@@ -45,9 +47,13 @@ export const useCartModal = (onSaleCreated: () => void) => {
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
 
+  const refreshClients = () => {
+    ClientsService.getAll().then(setClients);
+  };
+
   useEffect(() => {
     if (modalVisible) {
-      ClientsService.getAll().then(setClients);
+      refreshClients();
       setAmountDebt(totalPrecio);
     }
   }, [modalVisible, totalPrecio]);
@@ -63,9 +69,26 @@ export const useCartModal = (onSaleCreated: () => void) => {
   });
 
   const handleCheckout = async (saleParam: SaleType, order: OrderItem[]) => {
+    if (isSubmitting) return;
+
+    if (!order || order.length === 0) {
+      Alert.alert("Orden vacía", "Agrega al menos un producto antes de continuar.");
+      return;
+    }
+
     // Siempre tomar client_id del estado del hook (no del parámetro snapshot)
     // para evitar problemas de closure stale o timing en React Native
     const sale: SaleType = { ...saleParam, client_id: selectedClientId };
+
+    if (sale.is_debt && !sale.client_id) {
+      Alert.alert(
+        "Cliente requerido",
+        "Debes asignar un cliente para poder registrar una venta fiada.",
+      );
+      return;
+    }
+
+    setIsSubmitting(true);
 
     try {
       const productItems = order.filter((i) => i.type === "product");
@@ -105,7 +128,7 @@ export const useCartModal = (onSaleCreated: () => void) => {
 
       // ⚙️ FUNCIÓN CENTRAL: Ejecuta todo el cierre de la venta (Impresión, stock, limpiar UI)
       const finalizarFlujoVenta = async () => {
-        // 🖨️ TUS IMPRESORAS INTACTAS
+        // 🖨️ Impresión (sin bloquear UI)
         try {
           const cajaConfig = await PrinterService.getConfig("caja");
           if (cajaConfig.enabled) {
@@ -120,7 +143,7 @@ export const useCartModal = (onSaleCreated: () => void) => {
             }));
 
             let clientName = "";
-            if (sale.is_debt && sale.client_id) {
+            if (sale.client_id) {
               const clientObj = clients.find((c) => c.id === sale.client_id);
               if (clientObj) clientName = clientObj.name;
             }
@@ -148,7 +171,7 @@ export const useCartModal = (onSaleCreated: () => void) => {
             }));
 
             let clientName = "";
-            if (sale.is_debt && sale.client_id) {
+            if (sale.client_id) {
               const clientObj = clients.find((c) => c.id === sale.client_id);
               if (clientObj) clientName = clientObj.name;
             }
@@ -178,29 +201,32 @@ export const useCartModal = (onSaleCreated: () => void) => {
 
         onSaleCreated();
 
-        // Verificar stock bajo
+        // Verificar stock bajo (en paralelo para no bloquear)
         const lowStockAlerts: string[] = [];
-        for (const item of productItems) {
-          if (item.type !== "product") continue;
-          const prod = await ProductsService.getProductById(item.product.id);
-          if (prod && prod.stock <= 10) {
-            lowStockAlerts.push(`${prod.name} (Quedan: ${prod.stock})`);
-          }
-        }
+        await Promise.all([
+          ...productItems.map(async (item) => {
+            if (item.type !== "product") return;
+            const prod = await ProductsService.getProductById(item.product.id);
+            if (prod && prod.stock <= 10) {
+              lowStockAlerts.push(`${prod.name} (Quedan: ${prod.stock})`);
+            }
+          }),
+          ...recipeItems.map(async (item) => {
+            if (item.type !== "recipe") return;
+            const low = await RecipesService.checkLowStock(item.recipe.id!);
+            for (const l of low) {
+              lowStockAlerts.push(`${l.name} (Quedan: ${l.stock})`);
+            }
+          }),
+        ]);
 
-        for (const item of recipeItems) {
-          if (item.type !== "recipe") continue;
-          const low = await RecipesService.checkLowStock(item.recipe.id!);
-          for (const l of low) {
-            lowStockAlerts.push(`${l.name} (Quedan: ${l.stock})`);
-          }
-        }
-
-        // Limpiar el estado del carrito
+        // ✅ Limpiar carrito y cerrar modal ANTES de cualquier alert
+        setIsSubmitting(false);
         clearOrder();
         setIsDebt(false);
         setAmountDebt(0);
         setNote("");
+        setPaymentMethod("cash");
         setModalVisible(false);
         setSelectedClientId(null);
         setDebtDate(() => {
@@ -209,60 +235,54 @@ export const useCartModal = (onSaleCreated: () => void) => {
           return d;
         });
 
-        // ─── WhatsApp ───────────────────────────────────────
-        let clientPhone = "";
-        let clientName = "";
-        if (sale.client_id) {
-          const clientObj = clients.find((c) => c.id === sale.client_id);
-          if (clientObj) {
-            clientPhone = clientObj.phone || "";
-            clientName = clientObj.name;
-          }
-        }
-
-        const invoiceItems = order.map((item) => ({
-          name:
-            item.type === "product" ? item.product.name : item.recipe.name,
-          quantity: item.quantity,
-          price:
-            item.type === "product"
-              ? item.product.price
-              : item.recipe.selling_price,
-        }));
-
-        const msg = buildInvoiceMessage({
-          customerName: clientName || "Cliente General",
-          items: invoiceItems,
-          total: totalPrecio,
-          paymentMethod: sale.payment_method,
-          note: sale.note,
-        });
-
-        const tieneTelefono = !!clientPhone.trim();
-
-        Alert.alert(
-          "¿Enviar factura por WhatsApp? 📱",
-          tieneTelefono
-            ? `Se enviará la factura a ${clientPhone}`
-            : "No hay un número telefónico asignado a este cliente.",
-          [
-            { text: "No, gracias", style: "cancel" },
-            {
-              text: tieneTelefono ? "Sí, enviar 📤" : "Compartir por WhatsApp 📤",
-              onPress: () => sendInvoiceViaWhatsApp(clientPhone, msg),
-            },
-          ],
+        // Sincronizar en segundo plano
+        SyncService.run().catch((e) =>
+          console.warn("Error sync tras crear venta:", e)
         );
-        // ────────────────────────────────────────────────────
 
-        // Alerta final de éxito o advertencia de inventario
+        // ─── Post-cierre: alertas informativas ────────────────
+        // 1. Stock bajo (si hay)
         if (lowStockAlerts.length > 0) {
           Alert.alert(
-            "¡Venta Completada!",
-            `⚠️ ¡Alerta de Stock Bajo!\nLos siguientes productos tienen stock bajo:\n\n${lowStockAlerts.map((a) => `• ${a}`).join("\n")}`,
+            "⚠️ Stock Bajo",
+            lowStockAlerts.map((a) => `• ${a}`).join("\n"),
           );
-        } else {
-          Alert.alert("¡Venta registrada con éxito!");
+        }
+
+        // 2. WhatsApp solo si hay cliente con teléfono
+        if (sale.client_id) {
+          const clientObj = clients.find((c) => c.id === sale.client_id);
+          if (clientObj?.phone?.trim()) {
+            const invoiceItems = order.map((item) => ({
+              name:
+                item.type === "product" ? item.product.name : item.recipe.name,
+              quantity: item.quantity,
+              price:
+                item.type === "product"
+                  ? item.product.price
+                  : item.recipe.selling_price,
+            }));
+
+            const msg = buildInvoiceMessage({
+              customerName: clientObj.name,
+              items: invoiceItems,
+              total: totalPrecio,
+              paymentMethod: sale.payment_method,
+              note: sale.note,
+            });
+
+            Alert.alert(
+              "📱 Enviar factura",
+              `¿Enviar por WhatsApp a ${clientObj.phone}?`,
+              [
+                { text: "No, gracias", style: "cancel" },
+                {
+                  text: "Enviar 📤",
+                  onPress: () => sendInvoiceViaWhatsApp(clientObj.phone!, msg),
+                },
+              ],
+            );
+          }
         }
       };
 
@@ -306,32 +326,34 @@ export const useCartModal = (onSaleCreated: () => void) => {
           await finalizarFlujoVenta();
         } catch (orderErr) {
           console.error("Error enviando la comanda digital al KDS:", orderErr);
+          // Finalizar de todas formas (la venta ya está guardada local)
+          await finalizarFlujoVenta();
           Alert.alert(
-            "Error KDS",
-            "La venta se guardó local, pero no se pudo avisar a la cocina. ¿Continuar con el cierre?",
-            [{ text: "Forzar Cierre", onPress: () => finalizarFlujoVenta() }],
+            "⚠️ Aviso KDS",
+            "La venta se registró, pero no se pudo enviar la comanda a cocina.",
           );
         }
       };
 
-      // 🛑 EL DISPARADOR CRONOLÓGICO: Primero la pregunta en pantalla
+      // 🍳 Preguntar si se manda a cocina
       Alert.alert(
         "¿Enviar a Cocina? 🍳",
-        "¿Este pedido requiere preparación en la cocina o es entrega directa?",
+        "¿Este pedido requiere preparación en cocina?",
         [
           {
-            text: "No, entrega directa ❌",
+            text: "No, entrega directa",
             style: "cancel",
-            onPress: () => finalizarFlujoVenta(), // Cierra de una e imprime
+            onPress: () => finalizarFlujoVenta(),
           },
           {
             text: "Sí, mandar a cocina 🔥",
-            onPress: () => enviarAlKDS(), // Envía a Supabase y luego cierra
+            onPress: () => enviarAlKDS(),
           },
         ],
         { cancelable: false },
       );
     } catch (error: any) {
+      setIsSubmitting(false);
       console.error(error);
       Alert.alert(
         "Error",
@@ -382,6 +404,7 @@ export const useCartModal = (onSaleCreated: () => void) => {
     setAmountDebt,
     setNote,
     clients,
+    refreshClients,
     totalPrecio,
     totalItems,
     showDatePicker,
@@ -393,5 +416,7 @@ export const useCartModal = (onSaleCreated: () => void) => {
     amountDebt,
     paymentMethod,
     note,
+    isSubmitting,
+    clearOrder,
   };
 };

@@ -18,7 +18,11 @@ export const ClientsService = {
       "INSERT INTO clients (id, name, phone, notes, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
       [id, client.name, client.phone || "", client.notes || "", client.sincronizado || 0, client.updated_at || new Date().toISOString()]
     );
-    return { id, ...client };
+    const created = { id, ...client };
+    SyncService.run().catch((err) =>
+      console.error("Error sincronizando cliente creado:", err),
+    );
+    return created;
   },
 
   update: async (id: string, client: Partial<Omit<ClientType, "id">>): Promise<void> => {
@@ -31,6 +35,9 @@ export const ClientsService = {
     values.push(new Date().toISOString());
     values.push(id);
     await DATABASE.db.runAsync(`UPDATE clients SET ${fields.join(", ")}, sincronizado = 0, updated_at = ? WHERE id = ?`, values);
+    SyncService.run().catch((err) =>
+      console.error("Error sincronizando cliente actualizado:", err),
+    );
   },
 
   delete: async (id: string): Promise<void> => {

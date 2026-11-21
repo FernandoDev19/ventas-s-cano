@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import PrinterSettingsModal from "@/src/shared/components/printer/PrinterSettingsModal";
 import "../../global.css";
 import { supabase } from "../config/supabase";
-import { useUserRole } from "@/src/shared/hooks/useUserRole";
+import { useUserRole, BYPASS_AUTH } from "@/src/shared/hooks/useUserRole";
 
 export default function Header() {
   const router = useRouter();
@@ -26,6 +26,15 @@ export default function Header() {
   };
 
   const handleLogout = async () => {
+    if (BYPASS_AUTH) {
+      Alert.alert(
+        "Modo Administrador",
+        "El inicio de sesión está desactivado temporalmente. La aplicación está abierta en modo Administrador.",
+        [{ text: "Entendido" }]
+      );
+      return;
+    }
+
     Alert.alert(
       "Cerrando sesión",
       "¿Estás seguro de que deseas cerrar sesión?",

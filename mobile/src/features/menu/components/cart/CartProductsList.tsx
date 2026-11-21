@@ -11,6 +11,7 @@ type Props = {
   getItemPrice: (item: OrderItem) => number;
   handleDecrement: (item: OrderItem) => void;
   handleIncrement: (item: OrderItem) => void;
+  ListFooterComponent?: React.ReactElement | null;
 };
 
 export default function CartProductsList({
@@ -20,6 +21,7 @@ export default function CartProductsList({
   getItemPrice,
   handleDecrement,
   handleIncrement,
+  ListFooterComponent,
 }: Props) {
   return (
     <FlatList
@@ -31,6 +33,8 @@ export default function CartProductsList({
       }
       contentContainerStyle={{ gap: 16, paddingBottom: 24 }}
       showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+      ListFooterComponent={ListFooterComponent}
       renderItem={({ item }) => (
         <View className="flex-row bg-neutral-800 p-4 rounded-2xl items-center justify-between">
           <View className="flex-row items-center flex-1 mr-4">

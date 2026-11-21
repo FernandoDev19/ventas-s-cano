@@ -10,7 +10,7 @@ import { AppBootstrap } from "../core/AppBootstrap";
 import VirtualPrinterModal from "@/src/shared/components/printer/VirtualPrinterModal";
 import { useEffect, useState } from "react";
 import { supabase } from "../core/config/supabase";
-import { useUserRole } from "@/src/shared/hooks/useUserRole";
+import { useUserRole, BYPASS_AUTH } from "@/src/shared/hooks/useUserRole";
 
 function AuthProtector({ children }: { children: React.ReactNode }) {
   const segments = useSegments();
@@ -20,6 +20,15 @@ function AuthProtector({ children }: { children: React.ReactNode }) {
   const { role, loading: roleLoading } = useUserRole();
 
   useEffect(() => {
+    if (BYPASS_AUTH) {
+      const firstSegment = segments[0] as string;
+      const inAuthGroup = firstSegment === "(auth)" || firstSegment === "login";
+      if (inAuthGroup) {
+        router.replace("/(tabs)");
+      }
+      return;
+    }
+
     const loadSession = async () => {
       const {
         data: { session },
@@ -37,9 +46,11 @@ function AuthProtector({ children }: { children: React.ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [segments, router]);
 
   useEffect(() => {
+    if (BYPASS_AUTH) return;
+
     // Esperamos sesión y, si hay sesión, esperamos a que el rol termine de resolverse
     if (!authReady || (session && roleLoading)) return;
 
@@ -71,7 +82,7 @@ function AuthProtector({ children }: { children: React.ReactNode }) {
     }
   }, [session, authReady, roleLoading, segments, router, role]);
 
-  if (!authReady || (session && roleLoading)) {
+  if (!BYPASS_AUTH && (!authReady || (session && roleLoading))) {
     return (
       <View
         style={{
@@ -111,12 +122,12 @@ export default function RootLayout() {
     <ThemeProvider value={DarkTheme}>
       <OrderProvider>
         <AuthProtector>
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="(auth)" />
+          <Stack screenOptions={{ headerShown: false }} initialRouteName="(tabs)">
             <Stack.Screen
               name="(tabs)"
               options={{ header: () => <Header />, headerShown: true }}
             />
+            <Stack.Screen name="(auth)" />
           </Stack>
         </AuthProtector>
         <VirtualPrinterModal />

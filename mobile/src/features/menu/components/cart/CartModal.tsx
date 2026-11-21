@@ -39,12 +39,15 @@ const CartModal = ({ onSaleCreated }: Props) => {
     order,
     selectedClientId,
     clients,
+    refreshClients,
     note,
     paymentMethod,
     isDebt,
     debtDate,
     amountDebt,
     showDatePicker,
+    isSubmitting,
+    clearOrder,
   } = useCartModal(onSaleCreated);
 
   if (totalItems === 0) return null;
@@ -79,6 +82,7 @@ const CartModal = ({ onSaleCreated }: Props) => {
               <CartHeader
                 setModalVisible={setModalVisible}
                 totalItems={totalItems}
+                onClearOrder={clearOrder}
               />
 
               <CartProductsList
@@ -88,28 +92,31 @@ const CartModal = ({ onSaleCreated }: Props) => {
                 getItemPrice={getItemPrice}
                 handleDecrement={handleDecrement}
                 handleIncrement={handleIncrement}
-              />
-
-              <CartFooter
-                totalPrecio={totalPrecio}
-                setShowDatePicker={setShowDatePicker}
-                handleCheckout={handleCheckout}
-                setSelectedClientId={setSelectedClientId}
-                buildSale={buildSale}
-                order={order}
-                paymentMethod={paymentMethod}
-                setPaymentMethod={setPaymentMethod}
-                isDebt={isDebt}
-                setIsDebt={setIsDebt}
-                note={note}
-                setNote={setNote}
-                debtDate={debtDate}
-                setDebtDate={setDebtDate}
-                amountDebt={amountDebt}
-                setAmountDebt={setAmountDebt}
-                clients={clients}
-                showDatePicker={showDatePicker}
-                selectedClientId={selectedClientId}
+                ListFooterComponent={
+                  <CartFooter
+                    totalPrecio={totalPrecio}
+                    setShowDatePicker={setShowDatePicker}
+                    handleCheckout={handleCheckout}
+                    setSelectedClientId={setSelectedClientId}
+                    buildSale={buildSale}
+                    order={order}
+                    paymentMethod={paymentMethod}
+                    setPaymentMethod={setPaymentMethod}
+                    isDebt={isDebt}
+                    setIsDebt={setIsDebt}
+                    note={note}
+                    setNote={setNote}
+                    debtDate={debtDate}
+                    setDebtDate={setDebtDate}
+                    amountDebt={amountDebt}
+                    setAmountDebt={setAmountDebt}
+                    clients={clients}
+                    onClientCreated={refreshClients}
+                    showDatePicker={showDatePicker}
+                    selectedClientId={selectedClientId}
+                    isSubmitting={isSubmitting}
+                  />
+                }
               />
             </View>
           </View>

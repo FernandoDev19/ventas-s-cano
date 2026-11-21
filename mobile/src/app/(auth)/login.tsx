@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { supabase } from "@/src/core/config/supabase";
+import { BYPASS_AUTH } from "@/src/shared/hooks/useUserRole";
 import "@/src/global.css";
 
 export default function LoginScreen() {
@@ -19,6 +20,12 @@ export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (BYPASS_AUTH) {
+      router.replace("/(tabs)");
+    }
+  }, [router]);
 
   const redirectUserByRole = useCallback(
     (role?: string) => {

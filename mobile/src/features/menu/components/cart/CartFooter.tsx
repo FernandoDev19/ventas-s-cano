@@ -7,11 +7,20 @@ import {
   PaymentMethodsType,
 } from "@/src/shared/types/payment-methods.type";
 import { Ionicons } from "@expo/vector-icons";
-import { Image, Platform, Pressable, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Image,
+  Platform,
+  Pressable,
+  Text,
+  View,
+} from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { OrderItem } from "@/src/core/context/OrderContext";
 import { SaleType } from "@/src/features/sales/types/sale.type";
 import ClientPicker from "@/src/features/clients/components/ClientPicker";
+
+const QUICK_NOTES = ["Para llevar", "Comer aquí", "Sin salsas", "Domicilio"];
 
 type Props = {
   setAmountDebt: (v: number) => void;
@@ -25,6 +34,7 @@ type Props = {
   handleCheckout: (sale: SaleType, order: OrderItem[]) => void;
   selectedClientId: string | null;
   clients: ClientType[];
+  onClientCreated?: () => void;
   note: string;
   paymentMethod: PaymentMethodsType;
   isDebt: boolean;
@@ -33,6 +43,7 @@ type Props = {
   showDatePicker: boolean;
   totalPrecio: number;
   order: OrderItem[];
+  isSubmitting?: boolean;
 };
 
 export default function CartFooter({
@@ -47,6 +58,7 @@ export default function CartFooter({
   handleCheckout,
   selectedClientId,
   clients,
+  onClientCreated,
   note,
   paymentMethod,
   isDebt,
@@ -55,21 +67,66 @@ export default function CartFooter({
   showDatePicker,
   totalPrecio,
   order,
+  isSubmitting,
 }: Props) {
+  const handleTagPress = (tag: string) => {
+    if (note.includes(tag)) {
+      const clean = note
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s !== tag && s.length > 0)
+        .join(", ");
+      setNote(clean);
+    } else {
+      setNote(note.trim() ? `${note.trim()}, ${tag}` : tag);
+    }
+  };
+
   return (
     <View className="border-t border-neutral-800 pt-4 pb-10">
       <ClientPicker
         setSelectedClientId={setSelectedClientId}
         selectedClientId={selectedClientId}
         clients={clients}
+        onClientCreated={onClientCreated}
       />
 
-      {/* Nota */}
+      {/* Nota con etiquetas rápidas */}
       <View className="mb-4">
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+          {QUICK_NOTES.map((tag) => {
+            const isSelected = note.includes(tag);
+            return (
+              <Pressable
+                key={tag}
+                onPress={() => handleTagPress(tag)}
+                style={{
+                  paddingHorizontal: 10,
+                  paddingVertical: 5,
+                  borderRadius: 8,
+                  backgroundColor: isSelected ? "#ff572233" : "#262626",
+                  borderWidth: 1,
+                  borderColor: isSelected ? "#ff5722" : "#3f3f46",
+                }}
+              >
+                <Text
+                  style={{
+                    color: isSelected ? "#ff5722" : "#a3a3a3",
+                    fontSize: 12,
+                    fontWeight: isSelected ? "700" : "500",
+                  }}
+                >
+                  {tag}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
         <Input
           type="text"
           onChangeText={(text) => setNote(text)}
-          placeholder="Nota"
+          placeholder="Nota o comentarios especiales..."
           value={note}
         />
       </View>
@@ -106,27 +163,41 @@ export default function CartFooter({
       </View>
 
       {/* Contado / Fiado */}
-      <View className="flex-row items-center gap-6 mb-4">
+      <View className="flex-row items-center gap-6 mb-2">
         <Pressable
           onPress={() => setIsDebt(false)}
-          className={`flex-1 flex-row items-center p-3 rounded-xl border ${!isDebt ? "border-primary" : "border-neutral-700"} active:opacity-70`}
+          className={`flex-1 flex-row items-center justify-center p-3 rounded-xl border ${!isDebt ? "border-primary bg-primary/10" : "border-neutral-700"} active:opacity-70`}
         >
-          <Text className="text-white font-semibold">Contado</Text>
+          <Text className={`font-semibold ${!isDebt ? "text-primary" : "text-white"}`}>
+            Contado
+          </Text>
         </Pressable>
         <Pressable
           onPress={() => {
             setIsDebt(true);
             setAmountDebt(totalPrecio);
           }}
-          className={`flex-1 flex-row items-center p-3 rounded-xl border ${isDebt ? "border-primary" : "border-neutral-700"} active:opacity-70`}
+          className={`flex-1 flex-row items-center justify-center p-3 rounded-xl border ${isDebt ? "border-primary bg-primary/10" : "border-neutral-700"} active:opacity-70`}
         >
-          <Text className="text-white font-semibold">Fiado</Text>
+          <Text className={`font-semibold ${isDebt ? "text-primary" : "text-white"}`}>
+            Fiado
+          </Text>
         </Pressable>
       </View>
 
+      {/* Aviso si fiado pero sin cliente */}
+      {isDebt && !selectedClientId && (
+        <View className="flex-row items-center gap-1.5 mb-3 bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-xl">
+          <Ionicons name="warning-outline" size={16} color="#f59e0b" />
+          <Text className="text-amber-400 text-xs font-semibold flex-1">
+            Debes asignar un cliente arriba para poder fiar esta venta.
+          </Text>
+        </View>
+      )}
+
       {/* Deuda */}
       {isDebt && (
-        <View style={{ gap: 12, marginBottom: 16 }}>
+        <View style={{ gap: 12, marginBottom: 16, marginTop: 4 }}>
           <Input
             type="number"
             placeholder="Monto que quedan debiendo"
@@ -194,7 +265,7 @@ export default function CartFooter({
       )}
 
       {/* Total y confirmar */}
-      <View className="flex-row justify-between items-center mb-6">
+      <View className="flex-row justify-between items-center my-4">
         <Text className="text-gray-400 text-lg font-medium">
           Total de la orden
         </Text>
@@ -205,9 +276,14 @@ export default function CartFooter({
 
       <Pressable
         onPress={() => handleCheckout(buildSale(), order)}
-        className="bg-primary py-4 rounded-2xl items-center justify-center active:opacity-90 shadow-xl"
+        disabled={isSubmitting}
+        className={`bg-primary py-4 rounded-2xl items-center justify-center active:opacity-90 shadow-xl ${isSubmitting ? "opacity-60" : ""}`}
       >
-        <Text className="text-white text-xl font-black">Confirmar Pedido</Text>
+        {isSubmitting ? (
+          <ActivityIndicator color="white" />
+        ) : (
+          <Text className="text-white text-xl font-black">Confirmar Pedido</Text>
+        )}
       </Pressable>
     </View>
   );
