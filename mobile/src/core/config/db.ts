@@ -1,7 +1,18 @@
-import { openDatabaseSync } from "expo-sqlite";
+import { openDatabaseSync, SQLiteDatabase } from "expo-sqlite";
+
+let _dbInstance: SQLiteDatabase | null = null;
+
+function getDatabase(): SQLiteDatabase {
+  if (!_dbInstance) {
+    _dbInstance = openDatabaseSync("sabor_espress.db");
+  }
+  return _dbInstance;
+}
 
 const DATABASE = {
-  db: openDatabaseSync("sabor_espress.db"),
+  get db(): SQLiteDatabase {
+    return getDatabase();
+  },
 
   initDb: async () => {
     try {

@@ -33,6 +33,10 @@ export const useNotifications = () => {
   // Tu función original melá, usando tu projectId real
   const notificationsConfigurate = useCallback(async () => {
     try {
+      if (Platform.OS === "web") {
+        return null;
+      }
+
       if (__DEV__) {
         console.log(
           "⚠️ Estás en Expo Go. Las Push remotas están desactivadas para evitar el crash. ¡Sigue derecho!",
@@ -80,6 +84,10 @@ export const useNotifications = () => {
 
   // 🚀 LA TRAÍDA DEL MÁS ALLÁ: Escuchar cuando el dueño toca la notificación
   const listenToNotifications = useCallback(() => {
+    if (Platform.OS === "web") {
+      return () => {};
+    }
+
     const subscription = Notifications.addNotificationResponseReceivedListener(
       (response) => {
         // Extraemos el ID de la orden que viaja en el objeto 'data' desde la Edge Function

@@ -47,9 +47,10 @@ export const useTables = () => {
         (payload) => {
           console.log("📊 Mesa cambió:", payload.new);
           // Actualizar solo la mesa que cambió
-          if (payload.new) {
+          if (payload.new && "id" in payload.new) {
+            const updatedTable = payload.new as TableType;
             setTables((prev) =>
-              prev.map((t) => (t.id === payload.new.id ? payload.new : t))
+              prev.map((t) => (t.id === updatedTable.id ? updatedTable : t))
             );
           }
         }

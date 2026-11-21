@@ -48,6 +48,15 @@ const CartModal = ({ onSaleCreated }: Props) => {
     showDatePicker,
     isSubmitting,
     clearOrder,
+    orderType,
+    setOrderType,
+    tables,
+    selectedTableId,
+    setSelectedTableId,
+    deliveryAddress,
+    setDeliveryAddress,
+    cashReceived,
+    setCashReceived,
   } = useCartModal(onSaleCreated);
 
   if (totalItems === 0) return null;
@@ -115,6 +124,15 @@ const CartModal = ({ onSaleCreated }: Props) => {
                     showDatePicker={showDatePicker}
                     selectedClientId={selectedClientId}
                     isSubmitting={isSubmitting}
+                    orderType={orderType}
+                    setOrderType={setOrderType}
+                    tables={tables}
+                    selectedTableId={selectedTableId}
+                    setSelectedTableId={setSelectedTableId}
+                    deliveryAddress={deliveryAddress}
+                    setDeliveryAddress={setDeliveryAddress}
+                    cashReceived={cashReceived}
+                    setCashReceived={setCashReceived}
                   />
                 }
               />

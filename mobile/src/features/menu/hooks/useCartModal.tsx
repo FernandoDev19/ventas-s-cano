@@ -12,6 +12,7 @@ import { ProductsService } from "../../inventory/services/products.service";
 import { PrinterService } from "@/src/shared/services/printer.service";
 import { OrdersService } from "../../orders/services/orders.service";
 import { SyncService } from "@/src/shared/services/sync.service";
+import { TablesService, TableType } from "../../tables/services/tables.service";
 import {
   buildInvoiceMessage,
   sendInvoiceViaWhatsApp,
@@ -32,6 +33,12 @@ export const useCartModal = (onSaleCreated: () => void) => {
 
   const [clients, setClients] = useState<ClientType[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+
+  const [tables, setTables] = useState<TableType[]>([]);
+  const [orderType, setOrderType] = useState<"comer_aqui" | "para_llevar" | "domicilio">("comer_aqui");
+  const [selectedTableId, setSelectedTableId] = useState<number | null>(null);
+  const [deliveryAddress, setDeliveryAddress] = useState<string>("");
+  const [cashReceived, setCashReceived] = useState<string>("");
 
   const [isDebt, setIsDebt] = useState(false);
   const [note, setNote] = useState("");
@@ -54,25 +61,63 @@ export const useCartModal = (onSaleCreated: () => void) => {
   useEffect(() => {
     if (modalVisible) {
       refreshClients();
+      TablesService.getAll().then(setTables).catch(() => {});
       setAmountDebt(totalPrecio);
     }
   }, [modalVisible, totalPrecio]);
 
-  const buildSale = (): SaleType => ({
-    total: totalPrecio,
-    note,
-    is_debt: isDebt,
-    debt_amount: isDebt ? (amountDebt > 0 ? amountDebt : totalPrecio) : 0,
-    debt_date: isDebt ? debtDate.toISOString().split("T")[0] : null,
-    payment_method: paymentMethod,
-    client_id: selectedClientId,
-  });
+  const buildSale = (): SaleType => {
+    const noteParts: string[] = [];
+
+    if (orderType === "domicilio") {
+      noteParts.push(`🛵 Domi: ${deliveryAddress.trim() || "Sin dirección"}`);
+    } else if (orderType === "comer_aqui") {
+      if (selectedTableId) {
+        const mesa = tables.find((t) => t.id === selectedTableId);
+        noteParts.push(`🍽️ Mesa ${mesa ? mesa.number_mesa : selectedTableId}`);
+      } else {
+        noteParts.push("🍽️ Comer aquí");
+      }
+    } else if (orderType === "para_llevar") {
+      noteParts.push("🛍️ Para llevar");
+    }
+
+    if (note.trim()) {
+      noteParts.push(note.trim());
+    }
+
+    const cleanCash = cashReceived.replace(/[^0-9]/g, "");
+    if (paymentMethod === "cash" && cleanCash) {
+      const numCash = Number(cleanCash);
+      if (numCash >= totalPrecio) {
+        noteParts.push(`(Paga: $${numCash.toLocaleString("es-CO")} - Cambio: $${(numCash - totalPrecio).toLocaleString("es-CO")})`);
+      }
+    }
+
+    return {
+      total: totalPrecio,
+      note: noteParts.join(" | "),
+      is_debt: isDebt,
+      debt_amount: isDebt ? (amountDebt > 0 ? amountDebt : totalPrecio) : 0,
+      debt_date: isDebt ? debtDate.toISOString().split("T")[0] : null,
+      payment_method: paymentMethod,
+      client_id: selectedClientId,
+    };
+  };
 
   const handleCheckout = async (saleParam: SaleType, order: OrderItem[]) => {
     if (isSubmitting) return;
 
     if (!order || order.length === 0) {
       Alert.alert("Orden vacía", "Agrega al menos un producto antes de continuar.");
+      return;
+    }
+
+    if (orderType === "domicilio" && !deliveryAddress.trim()) {
+      Alert.alert(
+        "Dirección requerida",
+        "Por favor escribe la dirección de entrega para el domicilio.",
+      );
       return;
     }
 
@@ -176,10 +221,12 @@ export const useCartModal = (onSaleCreated: () => void) => {
               if (clientObj) clientName = clientObj.name;
             }
 
+            const mesaObj = selectedTableId ? tables.find(t => t.id === selectedTableId) : null;
             const comandaObj = {
               id: createdSale.id,
-              delivery_type: "local",
-              customer_name: clientName || "Caja Local",
+              delivery_type: orderType === "domicilio" ? "domicilio" : "local",
+              delivery_address: orderType === "domicilio" ? deliveryAddress.trim() : "",
+              customer_name: clientName || (orderType === "comer_aqui" && mesaObj ? `Mesa ${mesaObj.number_mesa}` : "Caja Local"),
               note: sale.note,
             };
 
@@ -226,6 +273,10 @@ export const useCartModal = (onSaleCreated: () => void) => {
         setIsDebt(false);
         setAmountDebt(0);
         setNote("");
+        setOrderType("comer_aqui");
+        setSelectedTableId(null);
+        setDeliveryAddress("");
+        setCashReceived("");
         setPaymentMethod("cash");
         setModalVisible(false);
         setSelectedClientId(null);
@@ -300,14 +351,17 @@ export const useCartModal = (onSaleCreated: () => void) => {
             }
           }
 
+          const mesaObj = selectedTableId ? tables.find(t => t.id === selectedTableId) : null;
           const orderId = await OrdersService.createOrderFromMobile({
             client_id: selectedClientId || null,
             customer_name: nombreCliente,
             customer_phone: telefonoCliente,
+            delivery_address: orderType === "domicilio" ? deliveryAddress.trim() : "",
+            table_id: orderType === "comer_aqui" ? (mesaObj?.number_mesa ?? selectedTableId) : null,
             total_price: totalPrecio,
             comments: sale.note || "Pedido desde App Móvil",
             status: "accepted",
-            delivery_type: "local",
+            delivery_type: orderType === "domicilio" ? "domicilio" : (orderType === "para_llevar" ? "para_llevar" : "local"),
             order_items: order.map((item) => ({
               quantity: item.quantity,
               price_at_time:
@@ -321,6 +375,10 @@ export const useCartModal = (onSaleCreated: () => void) => {
 
           if (orderId && createdSale.id) {
             await SalesService.linkToOrder(createdSale.id, orderId);
+          }
+
+          if (orderType === "comer_aqui" && selectedTableId) {
+            TablesService.occupy(selectedTableId).catch(() => {});
           }
 
           await finalizarFlujoVenta();
@@ -418,5 +476,14 @@ export const useCartModal = (onSaleCreated: () => void) => {
     note,
     isSubmitting,
     clearOrder,
+    orderType,
+    setOrderType,
+    tables,
+    selectedTableId,
+    setSelectedTableId,
+    deliveryAddress,
+    setDeliveryAddress,
+    cashReceived,
+    setCashReceived,
   };
 };

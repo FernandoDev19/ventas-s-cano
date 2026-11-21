@@ -55,6 +55,7 @@ export const seeders = {
           stock: 10,
           category_id: polloCategoryId,
           sincronizado: 0,
+          is_visible_menu: 1,
           updated_at: new Date().toISOString(),
         },
         {
@@ -66,6 +67,7 @@ export const seeders = {
           stock: 5,
           category_id: polloCategoryId,
           sincronizado: 0,
+          is_visible_menu: 1,
           updated_at: new Date().toISOString(),
         },
         {
@@ -77,6 +79,7 @@ export const seeders = {
           stock: 15,
           category_id: polloCategoryId,
           sincronizado: 0,
+          is_visible_menu: 1,
           updated_at: new Date().toISOString(),
         },
       ];
