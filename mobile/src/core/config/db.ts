@@ -215,6 +215,30 @@ const DATABASE = {
         }
       }
 
+
+    try {
+      const bad: { id: string }[] = await DATABASE.db.getAllAsync(`
+        SELECT s.id FROM sales s
+        WHERE ABS(
+          (SELECT COALESCE(SUM(price),0) FROM sale_products WHERE sale_id=s.id) +
+          (SELECT COALESCE(SUM(price),0) FROM sale_recipes  WHERE sale_id=s.id) - s.total) < 1
+        AND ABS(
+          (SELECT COALESCE(SUM(price*quantity),0) FROM sale_products WHERE sale_id=s.id) +
+          (SELECT COALESCE(SUM(price*quantity),0) FROM sale_recipes  WHERE sale_id=s.id) - s.total) >= 1
+      `);
+      const now = new Date().toISOString();
+      for (const { id } of bad) {
+        for (const t of ["sale_products", "sale_recipes"]) {
+          await DATABASE.db.runAsync(
+            `UPDATE ${t} SET price = price / quantity, sincronizado = 0, updated_at = ? WHERE sale_id = ? AND quantity > 0`,
+            [now, id],
+          );
+        }
+      }
+    } catch (e) {
+      console.error("Migración precios:", e);
+    }
+
       try {
         const info = (await DATABASE.db.getAllAsync(
           `PRAGMA table_info(sales);`,

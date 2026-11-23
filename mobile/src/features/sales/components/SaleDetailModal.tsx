@@ -31,6 +31,7 @@ import {
   buildInvoiceMessage,
   sendInvoiceViaWhatsApp,
 } from "@/src/shared/helpers/whatsapp.helper";
+import { getPaymentInfo } from "@/src/shared/helpers/sale-note.helper";
 
 type SaleDetailModalProps = {
   visible: boolean;
@@ -67,6 +68,20 @@ type FullSaleType = SaleType & {
   }[];
 };
 
+const PAYMENT_OPTIONS = [
+  { value: "cash", label: "Efectivo", icon: "cash-outline" },
+  { value: "card", label: "Tarjeta", icon: "card-outline" },
+  { value: "Nequi", label: "Nequi", icon: "phone-portrait-outline" },
+  { value: "transferencia", label: "Transf.", icon: "swap-horizontal-outline" },
+] as const;
+
+const normalizePayment = (m?: string) => {
+  const l = (m || "cash").toLowerCase();
+  if (l === "nequi") return "Nequi";
+  if (l === "card" || l === "transferencia") return l;
+  return "cash"; // efectivo, deuda, vacío
+};
+
 export default function SaleDetailModal({
   visible,
   saleId,
@@ -84,6 +99,8 @@ export default function SaleDetailModal({
   const [editedNote, setEditedNote] = useState("");
   const [editedIsDebt, setEditedIsDebt] = useState(false);
   const [editedDebtAmount, setEditedDebtAmount] = useState(0);
+  const [editedPaymentMethod, setEditedPaymentMethod] =
+    useState<string>("cash");
 
   // Selector: "products" | "recipes" | null
   const [selectorMode, setSelectorMode] = useState<
@@ -190,6 +207,7 @@ export default function SaleDetailModal({
     setEditedIsDebt(sale.is_debt || false);
     setEditedDebtAmount(sale.debt_amount || 0);
     setEditedClientId(sale.client_id || null);
+    setEditedPaymentMethod(normalizePayment(sale.payment_method));
     setEditedDebtDate(
       sale.debt_date
         ? new Date(sale.debt_date)
@@ -350,6 +368,7 @@ export default function SaleDetailModal({
           total: editedTotal,
           note: editedNote,
           is_debt: editedIsDebt,
+          payment_method: editedPaymentMethod,
           debt_amount: editedIsDebt ? editedDebtAmount : 0,
           debt_date: editedIsDebt
             ? editedDebtDate.toISOString().split("T")[0]
@@ -1099,6 +1118,68 @@ export default function SaleDetailModal({
                     ))}
                   </View>
 
+                  {!editedIsDebt && (
+                    <>
+                      <Text
+                        style={{
+                          color: "#737373",
+                          fontSize: 11,
+                          textTransform: "uppercase",
+                          letterSpacing: 1,
+                          marginBottom: 8,
+                        }}
+                      >
+                        Método de pago
+                      </Text>
+                      <View
+                        style={{
+                          flexDirection: "row",
+                          flexWrap: "wrap",
+                          gap: 8,
+                          marginBottom: 16,
+                        }}
+                      >
+                        {PAYMENT_OPTIONS.map((o) => {
+                          const active = editedPaymentMethod === o.value;
+                          return (
+                            <Pressable
+                              key={o.value}
+                              onPress={() => setEditedPaymentMethod(o.value)}
+                              style={{
+                                flexDirection: "row",
+                                alignItems: "center",
+                                gap: 6,
+                                paddingHorizontal: 14,
+                                paddingVertical: 10,
+                                borderRadius: 12,
+                                backgroundColor: active
+                                  ? "#ff572222"
+                                  : "#1a1a1a",
+                                borderWidth: 1,
+                                borderColor: active ? "#ff5722" : "#2a2a2a",
+                              }}
+                            >
+                              <Ionicons
+                                name={o.icon}
+                                size={16}
+                                color={active ? "#ff5722" : "#737373"}
+                              />
+                              <Text
+                                style={{
+                                  color: active ? "#fff" : "#737373",
+                                  fontWeight: "700",
+                                  fontSize: 13,
+                                }}
+                              >
+                                {o.label}
+                              </Text>
+                            </Pressable>
+                          );
+                        })}
+                      </View>
+                    </>
+                  )}
+
                   {editedIsDebt && (
                     <>
                       <Text
@@ -1479,6 +1560,18 @@ export default function SaleDetailModal({
                       </View>
                     </View>
                     <View
+  style={{
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  }}
+>
+  <Text style={{ color: "#737373", fontSize: 12 }}>Pago</Text>
+  <Text style={{ color: "#fff", fontSize: 13, fontWeight: "600" }}>
+    {getPaymentInfo(sale.payment_method)?.label ?? "—"}
+  </Text>
+</View>
+                    <View
                       style={{
                         flexDirection: "row",
                         justifyContent: "space-between",
@@ -1700,8 +1793,7 @@ export default function SaleDetailModal({
                                   marginTop: 2,
                                 }}
                               >
-                                {item.quantity}x{" "}
-                                {priceFormat(item.price / item.quantity)}
+                                {item.quantity} x {priceFormat(item.price)} c/u
                               </Text>
                             </View>
                             <Text
@@ -1711,7 +1803,7 @@ export default function SaleDetailModal({
                                 fontWeight: "700",
                               }}
                             >
-                              {priceFormat(item.price)}
+                              {priceFormat(item.price * item.quantity)}
                             </Text>
                           </View>
                         ))}

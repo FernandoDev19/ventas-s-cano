@@ -21,6 +21,27 @@ type CalculatedTotals = Awaited<
   >
 >;
 
+const Row = ({
+  label,
+  value,
+  color = "#fff",
+}: {
+  label: string;
+  value: string;
+  color?: string;
+}) => (
+  <View
+    style={{
+      flexDirection: "row",
+      justifyContent: "space-between",
+      marginBottom: 8,
+    }}
+  >
+    <Text style={{ color: "#737373", fontSize: 12 }}>{label}</Text>
+    <Text style={{ color, fontWeight: "600" }}>{value}</Text>
+  </View>
+);
+
 export default function CashierArchiveScreen() {
   const {
     currentShift,
@@ -54,12 +75,13 @@ export default function CashierArchiveScreen() {
 
     setIsClosing(true);
     try {
+      const expected = totals?.expectedTotal || 0;
       await closeShift(parsed);
       setActualAmount("");
       setShowCloseModal(false);
       Alert.alert(
         "Turno Cerrado",
-        `Diferencia: ${priceFormat(parsed - (totals?.expectedTotal || 0))}`,
+        `Diferencia: ${priceFormat(parsed - expected)}`,
       );
     } finally {
       setIsClosing(false);
@@ -144,45 +166,30 @@ export default function CashierArchiveScreen() {
                 <View
                   style={{
                     marginBottom: 16,
-                    paddingBottom: 16,
+                    paddingBottom: 8,
                     borderBottomWidth: 1,
                     borderBottomColor: "#2a2a2a",
                   }}
                 >
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                      marginBottom: 8,
-                    }}
-                  >
-                    <Text style={{ color: "#737373", fontSize: 12 }}>
-                      Ventas (contado):
-                    </Text>
-                    <Text style={{ color: "#fff", fontWeight: "600" }}>
-                      {priceFormat(totals.salesTotal)}
-                    </Text>
-                  </View>
-                  <View
-                    style={{
-                      flexDirection: "row",
-                      justifyContent: "space-between",
-                      marginBottom: 8,
-                    }}
-                  >
-                    <Text style={{ color: "#737373", fontSize: 12 }}>
-                      Movimientos netos:
-                    </Text>
-                    <Text
-                      style={{
-                        color: totals.movementsNet >= 0 ? "#22c55e" : "#ef4444",
-                        fontWeight: "600",
-                      }}
-                    >
-                      {totals.movementsNet >= 0 ? "+" : "-"}
-                      {priceFormat(Math.abs(totals.movementsNet))}
-                    </Text>
-                  </View>
+                  <Row
+                    label="Ventas en efectivo:"
+                    value={priceFormat(totals.salesTotal)}
+                  />
+                  <Row
+                    label="Movimientos netos:"
+                    value={`${totals.movementsNet >= 0 ? "+" : "-"}${priceFormat(Math.abs(totals.movementsNet))}`}
+                    color={totals.movementsNet >= 0 ? "#22c55e" : "#ef4444"}
+                  />
+                  <Row
+                    label="Gastos:"
+                    value={`-${priceFormat(totals.expensesTotal)}`}
+                    color="#ef4444"
+                  />
+                  <Row
+                    label="Otros medios (no entra a caja):"
+                    value={priceFormat(totals.otherSales)}
+                    color="#737373"
+                  />
                   <View
                     style={{
                       flexDirection: "row",
@@ -199,7 +206,7 @@ export default function CashierArchiveScreen() {
                         fontWeight: "700",
                       }}
                     >
-                      Esperado:
+                      Esperado en caja:
                     </Text>
                     <Text
                       style={{
@@ -258,6 +265,11 @@ export default function CashierArchiveScreen() {
                     style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}
                   >
                     Cerrar
+                  </Text>
+                  <Text
+                    style={{ color: "#a3a3a3", fontSize: 13, marginBottom: 12 }}
+                  >
+                    Esperado: {priceFormat(totals?.expectedTotal || 0)}
                   </Text>
                 </Pressable>
               </View>

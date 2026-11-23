@@ -205,10 +205,10 @@ export const PrinterService = {
         .substring(0, 16)
         .padEnd(16);
 
-      const total =
-        Number(item.price) ||
-        Number(item.product?.price || item.recipe?.selling_price || 0) *
-          item.quantity;
+      const unit = Number(
+        item.price ?? item.product?.price ?? item.recipe?.selling_price ?? 0,
+      );
+      const total = unit * item.quantity;
 
       subtotal += total;
 
@@ -412,7 +412,7 @@ export const PrinterService = {
 
     return cmds;
   },
-  
+
   // ─── CONVERT COMMAND TO RAW ESC/POS BYTES ──────────────
   buildRawEscPos(commands: PrintCommand[]): Uint8Array {
     const buffer: number[] = [];

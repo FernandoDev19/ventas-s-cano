@@ -14,7 +14,7 @@ export const AppBootstrap = () => {
 
 
   useEffect(() => {
-    notificationsConfigurate();
+    // notificationsConfigurate();
 
     const unsubscribeClicks = listenToNotifications();
 

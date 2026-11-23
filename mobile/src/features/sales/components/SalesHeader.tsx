@@ -1,32 +1,81 @@
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import SalesSummaryBar, { FilterId } from "./SalesSummaryBar";
 import { Ionicons } from "@expo/vector-icons";
 import { SaleType } from "../types/sale.type";
+import { SalesScope } from "../hooks/useSales";
 
 type Props = {
-  sales: SaleType[];
+  sales: SaleType[]; // las del alcance actual
+  allSales: SaleType[]; // todas (para fiados pendientes)
   filter: FilterId;
   setFilter: (filter: FilterId) => void;
+  scope: SalesScope;
+  setScope: (scope: SalesScope) => void;
 };
 
-export default function SalesHeader({ sales, filter, setFilter }: Props) {
+const SCOPES: { id: SalesScope; label: string }[] = [
+  { id: "shift", label: "Turno actual" },
+  { id: "history", label: "Historial" },
+];
+
+export default function SalesHeader({
+  sales,
+  allSales,
+  filter,
+  setFilter,
+  scope,
+  setScope,
+}: Props) {
   return (
     <View className="pt-4">
       {/* Title */}
-      <View className="px-4 mb-4 flex-row justify-between items-center">
+      <View className="px-4 mb-3 flex-row justify-between items-center">
         <View>
           <Text className="text-2xl font-extrabold text-white">Ventas</Text>
           <Text className="text-neutral-500 text-sm">
-            {sales.length} venta{sales.length !== 1 ? "s" : ""} registrada
-            {sales.length !== 1 ? "s" : ""}
+            {sales.length} venta{sales.length !== 1 ? "s" : ""}{" "}
+            {scope === "shift" ? "en este turno" : "en el historial"}
           </Text>
         </View>
-        <View className="flex-row items-center gap-2">
-          <Ionicons name="analytics-outline" size={20} color="#ff5722" />
-        </View>
+        <Ionicons name="analytics-outline" size={20} color="#ff5722" />
       </View>
 
-      <SalesSummaryBar filter={filter} setFilter={setFilter} sales={sales} />
+      {/* Selector Turno / Historial */}
+      <View className="flex-row gap-2 px-4 mb-4">
+        {SCOPES.map((s) => {
+          const active = scope === s.id;
+          return (
+            <Pressable
+              key={s.id}
+              onPress={() => setScope(s.id)}
+              className="px-4 py-2 rounded-full"
+              style={{
+                backgroundColor: active ? "#ff5722" : "#1a1a1a",
+                borderWidth: 1,
+                borderColor: active ? "#ff5722" : "#333",
+              }}
+            >
+              <Text
+                style={{
+                  color: active ? "#fff" : "#a3a3a3",
+                  fontWeight: "600",
+                  fontSize: 13,
+                }}
+              >
+                {s.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <SalesSummaryBar
+        filter={filter}
+        setFilter={setFilter}
+        sales={sales}
+        allSales={allSales}
+        totalLabel={scope === "shift" ? "Total turno" : "Total historial"}
+      />
 
       {/* Section label */}
       <View className="px-4 mb-2 flex-row items-center gap-2">
@@ -36,7 +85,7 @@ export default function SalesHeader({ sales, filter, setFilter }: Props) {
             ? "Todas las ventas"
             : filter === "paid"
               ? "Ventas pagadas"
-              : "Ventas fiadas"}
+              : "Fiados pendientes (todos)"}
         </Text>
         <View className="h-px flex-1" style={{ backgroundColor: "#2a2a2a" }} />
       </View>

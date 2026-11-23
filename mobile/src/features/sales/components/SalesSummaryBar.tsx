@@ -18,16 +18,25 @@ type Props = {
     filter: FilterId;
     setFilter: (f: FilterId) => void;
     sales: SaleType[];
+    allSales: SaleType[];        // ← NUEVA
+    totalLabel?: string;         // ← NUEVA
 };
 
 function formatAmount(amount: number): string {
     return `$${amount.toLocaleString("es-CO")}`;
 }
 
-export default function SalesSummaryBar({ filter, setFilter, sales }: Props) {
+export default function SalesSummaryBar({
+    filter,
+    setFilter,
+    sales,
+    allSales,
+    totalLabel = "Total turno",
+}: Props) {
     const totalDay = sales.reduce((sum, s) => sum + s.total, 0);
     const totalPaid = sales.filter((s) => !s.is_debt).reduce((sum, s) => sum + s.total, 0);
-    const totalDebt = sales.filter((s) => s.is_debt).reduce((sum, s) => sum + (s.debt_amount ?? 0), 0);
+    // Por cobrar incluye fiados de cualquier día
+    const totalDebt = allSales.filter((s) => s.is_debt).reduce((sum, s) => sum + (s.debt_amount ?? 0), 0);
 
     return (
         <View className="px-4 mb-4">
@@ -38,9 +47,9 @@ export default function SalesSummaryBar({ filter, setFilter, sales }: Props) {
                     className="flex-1 p-3 rounded-xl"
                     style={{ backgroundColor: "#ff5722" }}
                 >
-                    <Text className="text-white text-[10px] font-semibold uppercase tracking-wider opacity-80">
-                        Total hoy
-                    </Text>
+          <Text className="text-white text-[10px] font-semibold uppercase tracking-wider opacity-80">
+    {totalLabel}
+</Text>
                     <Text className="text-white text-lg font-extrabold mt-0.5">
                         {formatAmount(totalDay)}
                     </Text>

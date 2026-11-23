@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.fernando-cano.sabor_express",
+      "bundleIdentifier": "com.fernando-cano.saborexpress",
       "infoPlist": {
         "UIFileSharingEnabled": true,
         "LSSupportsOpeningDocumentsInPlace": true
@@ -45,14 +45,20 @@
         }
       ],
       "@react-native-community/datetimepicker",
-      ["expo-sqlite", { "enableFTS": false }],
+      [
+        "expo-sqlite",
+        {
+          "enableFTS": false
+        }
+      ],
       [
         "expo-audio",
         {
           "enableBackgroundPlayback": true,
           "enableBackgroundRecording": false
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true,

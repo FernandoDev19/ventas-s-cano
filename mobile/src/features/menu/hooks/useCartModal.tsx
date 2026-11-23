@@ -146,7 +146,7 @@ export const useCartModal = (onSaleCreated: () => void) => {
           return {
             product_id: o.product.id,
             quantity: o.quantity,
-            price: o.product.price * o.quantity,
+            price: o.product.price, 
           };
         })
         .filter(Boolean);
@@ -158,7 +158,7 @@ export const useCartModal = (onSaleCreated: () => void) => {
           return {
             recipe_id: o.recipe.id,
             quantity: o.quantity,
-            price: o.recipe.selling_price * o.quantity,
+            price: o.recipe.selling_price,     
           };
         })
         .filter(Boolean);

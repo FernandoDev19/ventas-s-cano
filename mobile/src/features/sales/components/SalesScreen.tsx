@@ -23,6 +23,9 @@ export default function SalesScreen({
 }: SalesScreenProps) {
   const {
     sales,
+    scopedSales,
+    scope,
+    setScope,
     isLoading,
     filteredSales,
     filter,
@@ -69,7 +72,14 @@ export default function SalesScreen({
           />
         }
         ListHeaderComponent={
-          <SalesHeader sales={sales} filter={filter} setFilter={setFilter} />
+          <SalesHeader
+            sales={scopedSales}
+            allSales={sales}
+            filter={filter}
+            setFilter={setFilter}
+            scope={scope}
+            setScope={setScope}
+          />
         }
         renderItem={({ item }) => (
           <SaleCard
@@ -93,7 +103,9 @@ export default function SalesScreen({
             <Text className="text-neutral-500 text-sm text-center">
               {filter === "debt"
                 ? "¡Genial! No tienes ventas fiadas pendientes"
-                : "Aún no hay ventas registradas"}
+                : scope === "shift"
+                  ? "Sin ventas en este turno. Las anteriores están en Historial."
+                  : "Aún no hay ventas registradas"}
             </Text>
           </View>
         }
