@@ -9,6 +9,8 @@ const TAB_TRANSLATIONS: Record<string, string> = {
   cancelled: "Cancelados",
   menu: "Menú",
   tables: "Mesas",
+  empleados: "Empleados",
+  nomina: "Nómina",
 };
 
 type Props<T> = {
@@ -17,7 +19,11 @@ type Props<T> = {
   onChangeTab: (tab: T) => void;
 };
 
-export default function HeaderTabs<T>({ tabs, activeTab, onChangeTab }: Props<T>) {
+export default function HeaderTabs<T>({
+  tabs,
+  activeTab,
+  onChangeTab,
+}: Props<T>) {
   return (
     <View className="flex-row bg-background border-b border-neutral-800">
       {tabs.map((tab) => (

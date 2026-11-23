@@ -3,6 +3,7 @@ import { SaleType } from "../types/sale.type";
 import { v4 as uuidv4 } from "uuid";
 import { SyncService } from "@/src/shared/services/sync.service";
 import { OrderPro } from "../../orders/types/order.type";
+import { localRangeISO, toLocalDateStr } from "@/src/shared/helpers/date.helper";
 
 export const SalesService = {
   createSale: async (
@@ -337,62 +338,79 @@ export const SalesService = {
     totalPaid: number;
     totalDebt: number;
     salesCount: number;
+    allProducts: { name: string; quantity: number; total: number }[];
+totalUnits: number;
     salesByDay: { dateStr: string; total: number; count: number }[];
     topProducts: { name: string; quantity: number; total: number }[];
     sales: SaleType[];
   }> => {
-    const end = `${endDate}T23:59:59`;
 
-    const [rowTotal, rowPaid, rowDebt, rowCount, byDay, topProducts, salesRaw] =
+    const { startISO, endISO } = localRangeISO(startDate, endDate);
+
+    const [rowTotal, rowPaid, rowDebt, rowCount, topProducts, salesRaw] =
       await Promise.all([
         DATABASE.db.getFirstAsync(
           "SELECT SUM(total) as total FROM sales WHERE (status IS NULL OR status != 'cancelled') AND created_at BETWEEN ? AND ?",
-          [startDate, end],
+          [startISO, endISO],
         ),
         DATABASE.db.getFirstAsync(
           "SELECT SUM(total) as total FROM sales WHERE is_debt = 0 AND (status IS NULL OR status != 'cancelled') AND created_at BETWEEN ? AND ?",
-          [startDate, end],
+          [startISO, endISO],
         ),
         DATABASE.db.getFirstAsync(
           "SELECT SUM(debt_amount) as total FROM sales WHERE is_debt = 1 AND (status IS NULL OR status != 'cancelled') AND created_at BETWEEN ? AND ?",
-          [startDate, end],
+          [startISO, endISO],
         ),
         DATABASE.db.getFirstAsync(
           "SELECT COUNT(*) as count FROM sales WHERE (status IS NULL OR status != 'cancelled') AND created_at BETWEEN ? AND ?",
-          [startDate, end],
+          [startISO, endISO],
         ),
         DATABASE.db.getAllAsync(
-          `SELECT substr(created_at, 1, 10) as dateStr, SUM(total) as total, COUNT(*) as count 
-       FROM sales WHERE (status IS NULL OR status != 'cancelled') AND created_at BETWEEN ? AND ? 
-       GROUP BY substr(created_at, 1, 10) ORDER BY dateStr ASC`,
-          [startDate, end],
-        ),
-        DATABASE.db.getAllAsync(
-          `SELECT p.name, SUM(sp.quantity) as quantity, SUM(sp.quantity * sp.price) as total
+  `SELECT name, SUM(quantity) AS quantity, SUM(total) AS total FROM (
+     SELECT p.name AS name, sp.quantity AS quantity, sp.quantity * sp.price AS total
        FROM sale_products sp
-       JOIN products p ON sp.product_id = p.id
-       JOIN sales s ON sp.sale_id = s.id
-       WHERE (s.status IS NULL OR s.status != 'cancelled') AND s.created_at BETWEEN ? AND ?
-       GROUP BY sp.product_id ORDER BY quantity DESC LIMIT 5`,
-          [startDate, end],
-        ),
+       JOIN products p ON p.id = sp.product_id
+       JOIN sales s ON s.id = sp.sale_id
+      WHERE (s.status IS NULL OR s.status != 'cancelled') AND s.deleted_at IS NULL
+        AND s.created_at BETWEEN ? AND ?
+     UNION ALL
+     SELECT r.name || ' (receta)', sr.quantity, sr.quantity * sr.price
+       FROM sale_recipes sr
+       JOIN recipes r ON r.id = sr.recipe_id
+       JOIN sales s ON s.id = sr.sale_id
+      WHERE (s.status IS NULL OR s.status != 'cancelled') AND s.deleted_at IS NULL
+        AND s.created_at BETWEEN ? AND ?
+   ) GROUP BY name ORDER BY quantity DESC`,
+  [startISO, endISO, startISO, endISO],
+),
         DATABASE.db.getAllAsync(
           `SELECT s.*, c.name as client_name 
            FROM sales s 
            LEFT JOIN clients c ON s.client_id = c.id 
            WHERE (s.status IS NULL OR s.status != 'cancelled') AND s.created_at BETWEEN ? AND ? 
            ORDER BY s.created_at DESC`,
-          [startDate, end],
+          [startISO, endISO],
         ),
       ]);
+
+      const map = new Map<string, { dateStr: string; total: number; count: number }>();
+for (const s of salesRaw as any[]) {
+  const d = toLocalDateStr(s.created_at);
+  const e = map.get(d) ?? { dateStr: d, total: 0, count: 0 };
+  e.total += s.total; e.count += 1; map.set(d, e);
+}
+const salesByDay = [...map.values()].sort((a, b) => a.dateStr.localeCompare(b.dateStr));
+const allItems = (topProducts || []) as any[];
 
     return {
       totalSales: (rowTotal as any)?.total || 0,
       totalPaid: (rowPaid as any)?.total || 0,
       totalDebt: (rowDebt as any)?.total || 0,
       salesCount: (rowCount as any)?.count || 0,
-      salesByDay: (byDay || []) as any[],
-      topProducts: (topProducts || []) as any[],
+      salesByDay: (salesByDay || []) as any[],
+      topProducts: allItems.slice(0, 5),
+allProducts: allItems,
+totalUnits: allItems.reduce((sum, p) => sum + Number(p.quantity), 0),
       sales: (salesRaw || []).map((s: any) => ({
         ...s,
         is_debt: Boolean(s.is_debt),

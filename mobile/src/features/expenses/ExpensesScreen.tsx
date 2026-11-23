@@ -35,6 +35,8 @@ export default function ExpensesScreen() {
     loadData,
     handleDelete,
     filteredExpenses,
+    selectedKind,
+    setSelectedKind,
   } = useExpenses();
 
   if (isLoading) {
@@ -79,6 +81,8 @@ export default function ExpensesScreen() {
                 byCategory={byCategory}
                 selectedCategory={selectedCategory}
                 setSelectedCategory={setSelectedCategory}
+                selectedKind={selectedKind}
+                setSelectedKind={setSelectedKind}
               />
             }
             renderItem={({ item }) => {
@@ -136,6 +140,7 @@ export default function ExpensesScreen() {
             }
             onClose={() => setSelectedExpense(null)}
             onDeleted={() => loadData(true)}
+            onUpdated={() => loadData(true)}
           />
         </View>
       ) : (

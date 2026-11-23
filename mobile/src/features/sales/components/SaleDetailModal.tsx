@@ -32,6 +32,7 @@ import {
   sendInvoiceViaWhatsApp,
 } from "@/src/shared/helpers/whatsapp.helper";
 import { getPaymentInfo } from "@/src/shared/helpers/sale-note.helper";
+import ClientPicker from "../../clients/components/ClientPicker";
 
 type SaleDetailModalProps = {
   visible: boolean;
@@ -113,7 +114,6 @@ export default function SaleDetailModal({
   // Client
   const [clients, setClients] = useState<ClientType[]>([]);
   const [editedClientId, setEditedClientId] = useState<string | null>(null);
-  const [showClientPicker, setShowClientPicker] = useState(false);
 
   // Date
   const [editedDebtDate, setEditedDebtDate] = useState<Date>(() => {
@@ -808,6 +808,7 @@ export default function SaleDetailModal({
             </View>
           ) : sale ? (
             <ScrollView
+            keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
               style={{ marginBottom: 12 }}
             >
@@ -1284,67 +1285,13 @@ export default function SaleDetailModal({
                   >
                     Cliente (Opcional)
                   </Text>
-                  <Pressable
-                    onPress={() => setShowClientPicker(true)}
-                    style={{
-                      height: 56,
-                      backgroundColor: "#1a1a1a",
-                      borderRadius: 14,
-                      borderWidth: 1,
-                      borderColor: "#2a2a2a",
-                      paddingHorizontal: 16,
-                      flexDirection: "row",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      marginBottom: 16,
-                    }}
-                  >
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 8,
-                      }}
-                    >
-                      <Ionicons
-                        name="person-outline"
-                        size={18}
-                        color={editedClientId ? "#ff5722" : "#737373"}
-                      />
-                      <Text
-                        style={{
-                          color: editedClientId ? "#fff" : "#737373",
-                          fontSize: 14,
-                        }}
-                      >
-                        {editedClientId
-                          ? clients.find((c) => c.id === editedClientId)?.name
-                          : "Asignar cliente"}
-                      </Text>
-                    </View>
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 8,
-                      }}
-                    >
-                      {editedClientId && (
-                        <Pressable
-                          hitSlop={8}
-                          onPress={() => setEditedClientId(null)}
-                          style={{ padding: 4 }}
-                        >
-                          <Ionicons
-                            name="close-circle"
-                            size={16}
-                            color="#737373"
-                          />
-                        </Pressable>
-                      )}
-                      <Ionicons name="chevron-down" size={16} color="#555" />
-                    </View>
-                  </Pressable>
+
+                  <ClientPicker
+                    selectedClientId={editedClientId}
+                    setSelectedClientId={(id) => setEditedClientId(id || null)}
+                    clients={clients}
+                    onClientCreated={(c) => setClients((p) => [...p, c])}
+                  />
 
                   {/* Nota */}
                   <Text
@@ -1560,17 +1507,25 @@ export default function SaleDetailModal({
                       </View>
                     </View>
                     <View
-  style={{
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 10,
-  }}
->
-  <Text style={{ color: "#737373", fontSize: 12 }}>Pago</Text>
-  <Text style={{ color: "#fff", fontSize: 13, fontWeight: "600" }}>
-    {getPaymentInfo(sale.payment_method)?.label ?? "—"}
-  </Text>
-</View>
+                      style={{
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        marginBottom: 10,
+                      }}
+                    >
+                      <Text style={{ color: "#737373", fontSize: 12 }}>
+                        Pago
+                      </Text>
+                      <Text
+                        style={{
+                          color: "#fff",
+                          fontSize: 13,
+                          fontWeight: "600",
+                        }}
+                      >
+                        {getPaymentInfo(sale.payment_method)?.label ?? "—"}
+                      </Text>
+                    </View>
                     <View
                       style={{
                         flexDirection: "row",
@@ -2130,113 +2085,6 @@ export default function SaleDetailModal({
 
       {/* Modal selector unificado (productos / recetas) */}
       <SelectorModal />
-
-      {/* Modal selector de clientes */}
-      <Modal
-        visible={showClientPicker}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowClientPicker(false)}
-      >
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: "rgba(0,0,0,0.6)",
-            justifyContent: "flex-end",
-          }}
-        >
-          <View
-            style={{
-              backgroundColor: "#141414",
-              borderTopLeftRadius: 28,
-              borderTopRightRadius: 28,
-              padding: 24,
-              maxHeight: "60%",
-              paddingBottom: 40,
-            }}
-          >
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 16,
-              }}
-            >
-              <Text style={{ color: "#fff", fontSize: 18, fontWeight: "800" }}>
-                Seleccionar Cliente
-              </Text>
-              <Pressable
-                onPress={() => setShowClientPicker(false)}
-                style={{
-                  backgroundColor: "#2a2a2a",
-                  borderRadius: 20,
-                  padding: 8,
-                }}
-              >
-                <Ionicons name="close" size={18} color="#fff" />
-              </Pressable>
-            </View>
-            <FlatList
-              data={clients}
-              keyExtractor={(c) => String(c.id)}
-              renderItem={({ item }) => (
-                <Pressable
-                  onPress={() => {
-                    setEditedClientId(item.id!);
-                    setShowClientPicker(false);
-                  }}
-                  style={{
-                    padding: 14,
-                    borderRadius: 12,
-                    marginBottom: 8,
-                    backgroundColor:
-                      editedClientId === item.id ? "#ff572222" : "#1a1a1a",
-                    borderWidth: 1,
-                    borderColor:
-                      editedClientId === item.id ? "#ff5722" : "#2a2a2a",
-                    flexDirection: "row",
-                    alignItems: "center",
-                    gap: 10,
-                  }}
-                >
-                  <View
-                    style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 18,
-                      backgroundColor: "#ff572233",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <Text style={{ color: "#ff5722", fontWeight: "800" }}>
-                      {item.name[0].toUpperCase()}
-                    </Text>
-                  </View>
-                  <View>
-                    <Text style={{ color: "#fff", fontWeight: "600" }}>
-                      {item.name}
-                    </Text>
-                    {item.phone && (
-                      <Text style={{ color: "#737373", fontSize: 12 }}>
-                        {item.phone}
-                      </Text>
-                    )}
-                  </View>
-                </Pressable>
-              )}
-              ListEmptyComponent={
-                <Text
-                  style={{ color: "#555", textAlign: "center", marginTop: 20 }}
-                >
-                  No hay clientes registrados
-                </Text>
-              }
-            />
-          </View>
-        </View>
-      </Modal>
 
       <ReasonDialog
         visible={showReasonDialog}

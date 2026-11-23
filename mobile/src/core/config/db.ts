@@ -176,7 +176,44 @@ const DATABASE = {
           deleted_at TEXT,
           created_at TEXT
         );
+        CREATE TABLE IF NOT EXISTS suppliers (
+          id TEXT PRIMARY KEY, name TEXT NOT NULL, contact_name TEXT, phone TEXT,
+          products_supplied TEXT, payment_terms_days INTEGER DEFAULT 0, notes TEXT,
+          sincronizado INTEGER DEFAULT 0, updated_at TEXT NOT NULL, deleted_at TEXT
+        );
+        CREATE TABLE IF NOT EXISTS employees (
+          id TEXT PRIMARY KEY, name TEXT NOT NULL, phone TEXT, role TEXT,
+          pay_type TEXT DEFAULT 'mensual',      -- mensual | quincenal | diario
+          base_salary REAL NOT NULL DEFAULT 0, hire_date TEXT,
+          is_active INTEGER DEFAULT 1, notes TEXT,
+          sincronizado INTEGER DEFAULT 0, updated_at TEXT NOT NULL, deleted_at TEXT
+        );
+        CREATE TABLE IF NOT EXISTS payroll_payments (
+          id TEXT PRIMARY KEY, employee_id TEXT NOT NULL, period_start TEXT, period_end TEXT,
+          base_amount REAL NOT NULL, bonuses REAL DEFAULT 0, deductions REAL DEFAULT 0,
+          net_amount REAL NOT NULL, paid_at TEXT NOT NULL, notes TEXT, expense_id TEXT,
+          sincronizado INTEGER DEFAULT 0, updated_at TEXT NOT NULL, deleted_at TEXT,
+          FOREIGN KEY (employee_id) REFERENCES employees (id)
+        );
+        CREATE TABLE IF NOT EXISTS expense_items (
+          id TEXT PRIMARY KEY, expense_id TEXT NOT NULL, product_id TEXT, name TEXT NOT NULL,
+          quantity REAL NOT NULL, unit_cost REAL NOT NULL, add_to_stock INTEGER DEFAULT 0,
+          sincronizado INTEGER DEFAULT 0, updated_at TEXT NOT NULL, deleted_at TEXT,
+          FOREIGN KEY (expense_id) REFERENCES expenses (id)
+        );
       `);
+
+      const addCol = async (table: string, col: string, def: string) => {
+  const info = (await DATABASE.db.getAllAsync(`PRAGMA table_info(${table});`)) as any[];
+  if (!info.some((c) => c.name === col))
+    await DATABASE.db.execAsync(`ALTER TABLE ${table} ADD COLUMN ${col} ${def};`);
+};
+await addCol("expenses", "kind", "TEXT DEFAULT 'operativo'");   // operativo | inversion | nomina
+await addCol("expenses", "supplier_id", "TEXT");
+await addCol("expenses", "payment_method", "TEXT");
+await addCol("expenses", "invoice_number", "TEXT");
+await addCol("expenses", "is_paid", "INTEGER DEFAULT 1");
+await addCol("expenses", "due_date", "TEXT");
 
       // Migración automática: aseguramos que la columna deleted_at existe en todas las tablas
       const tables = [
@@ -192,6 +229,10 @@ const DATABASE = {
         "cashier_shifts",
         "cash_movements",
         "tables",
+        "suppliers",
+        "employees",
+        "payroll_payments",
+        "expense_items"
       ];
       for (const tableName of tables) {
         try {
@@ -215,9 +256,8 @@ const DATABASE = {
         }
       }
 
-
-    try {
-      const bad: { id: string }[] = await DATABASE.db.getAllAsync(`
+      try {
+        const bad: { id: string }[] = await DATABASE.db.getAllAsync(`
         SELECT s.id FROM sales s
         WHERE ABS(
           (SELECT COALESCE(SUM(price),0) FROM sale_products WHERE sale_id=s.id) +
@@ -226,18 +266,18 @@ const DATABASE = {
           (SELECT COALESCE(SUM(price*quantity),0) FROM sale_products WHERE sale_id=s.id) +
           (SELECT COALESCE(SUM(price*quantity),0) FROM sale_recipes  WHERE sale_id=s.id) - s.total) >= 1
       `);
-      const now = new Date().toISOString();
-      for (const { id } of bad) {
-        for (const t of ["sale_products", "sale_recipes"]) {
-          await DATABASE.db.runAsync(
-            `UPDATE ${t} SET price = price / quantity, sincronizado = 0, updated_at = ? WHERE sale_id = ? AND quantity > 0`,
-            [now, id],
-          );
+        const now = new Date().toISOString();
+        for (const { id } of bad) {
+          for (const t of ["sale_products", "sale_recipes"]) {
+            await DATABASE.db.runAsync(
+              `UPDATE ${t} SET price = price / quantity, sincronizado = 0, updated_at = ? WHERE sale_id = ? AND quantity > 0`,
+              [now, id],
+            );
+          }
         }
+      } catch (e) {
+        console.error("Migración precios:", e);
       }
-    } catch (e) {
-      console.error("Migración precios:", e);
-    }
 
       try {
         const info = (await DATABASE.db.getAllAsync(

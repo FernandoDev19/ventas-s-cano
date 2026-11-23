@@ -3,6 +3,7 @@ import { Paths, File } from "expo-file-system";
 import * as Print from "expo-print";
 import * as Sharing from "expo-sharing";
 import * as XLSX from "xlsx";
+import { parseLocalDate } from "../helpers/date.helper";
 
 type ReportData = {
   startDate: string;
@@ -29,11 +30,7 @@ function formatCOP(n: number) {
 }
 
 function formatDate(str: string) {
-  return new Date(str).toLocaleDateString("es-CO", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
+  return parseLocalDate(str).toLocaleDateString("es-CO", { day: "2-digit", month: "long", year: "numeric" });
 }
 
 export const ExportService = {

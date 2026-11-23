@@ -3,7 +3,7 @@ import { getIcon } from "../helpers/getIcon";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { priceFormat } from "@/src/shared/helpers/price-format.helper";
 import { CategoryType } from "../../categories/types/category.type";
-import { ExpenseType } from "../types/expense.type";
+import { ExpenseKind, ExpenseType } from "../types/expense.type";
 
 type Props = {
   categories: CategoryType[];
@@ -12,6 +12,8 @@ type Props = {
   byCategory: { category: string; total: number }[];
   selectedCategory: string | null;
   setSelectedCategory: (id: string | null) => void;
+  selectedKind: "all" | ExpenseKind;
+  setSelectedKind: (id: "all" | ExpenseKind) => void;
 };
 
 export default function ExpensesHeader({
@@ -21,6 +23,8 @@ export default function ExpensesHeader({
   byCategory,
   selectedCategory,
   setSelectedCategory,
+  selectedKind,
+  setSelectedKind
 }: Props) {
   return (
     <View className="pt-4">
@@ -72,6 +76,24 @@ export default function ExpensesHeader({
           </View>
         )}
       </View>
+
+      <View className="flex-row gap-2 px-4 mb-3">
+  {([["all", "Todos"], ["operativo", "Operativo"], ["inversion", "Inversión"], ["nomina", "Nómina"]] as const).map(
+    ([k, label]) => (
+      <Pressable
+        key={k}
+        onPress={() => setSelectedKind(k)}
+        className="px-3 py-1.5 rounded-full"
+        style={{
+          backgroundColor: selectedKind === k ? "#ff5722" : "#1a1a1a",
+          borderWidth: 1, borderColor: selectedKind === k ? "#ff5722" : "#333",
+        }}
+      >
+        <Text style={{ color: selectedKind === k ? "#fff" : "#a3a3a3", fontSize: 12, fontWeight: "600" }}>{label}</Text>
+      </Pressable>
+    ),
+  )}
+</View>
 
       {/* Category filter */}
       <View className="mb-4">

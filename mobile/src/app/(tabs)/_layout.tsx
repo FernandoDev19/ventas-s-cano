@@ -35,6 +35,8 @@ const tabs = [
   { name: "(inventory)/inventory", title: "Inventario", icon: "cube-outline", roles: [] as string[] },
   { name: "(clients)/clients", title: "Clientes", icon: "people-outline", roles: [] as string[] },
   { name: "(reports)/reports", title: "Reportes", icon: "stats-chart", roles: [] as string[] },
+  { name: "(employees)/employees", title: "Empleados", icon: "people-circle-outline", roles: [] as string[] },
+{ name: "(suppliers)/suppliers", title: "Proveedores", icon: "storefront-outline", roles: [] as string[] },
 ];
 
 const audioSource = require("@/assets/sounds/alerta-notificacion.mp3");

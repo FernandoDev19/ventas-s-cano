@@ -1,6 +1,6 @@
-import { priceFormat } from "@/src/shared/helpers/price-format.helper"
-import { Ionicons } from "@expo/vector-icons"
-import { Pressable, Text, View } from "react-native"
+import { priceFormat } from "@/src/shared/helpers/price-format.helper";
+import { Ionicons } from "@expo/vector-icons";
+import { Pressable, Text, View } from "react-native";
 import { getIcon } from "../helpers/getIcon";
 import { ExpenseType } from "../types/expense.type";
 import { CategoryType } from "../../categories/types/category.type";
@@ -25,49 +25,61 @@ type Props = {
   cat: CategoryType | undefined;
   setSelectedExpense: (item: ExpenseType) => void;
   handleDelete: (item: ExpenseType) => void;
-}
+};
 
-export default function ExpenseItem({item, cat, setSelectedExpense, handleDelete}: Props) {
+export default function ExpenseItem({
+  item,
+  cat,
+  setSelectedExpense,
+  handleDelete,
+}: Props) {
   return (
     <Pressable
-              onPress={() => setSelectedExpense(item)}
-              onLongPress={() => handleDelete(item)}
-              className="mx-4 mb-3 p-4 rounded-2xl flex-row items-center gap-3 active:opacity-85"
-              style={{ backgroundColor: "#1a1a1a" }}
-            >
-              {/* Icon */}
-              <View
-                className="w-11 h-11 rounded-xl items-center justify-center"
-                style={{ backgroundColor: "#ff572222" }}
-              >
-                <Ionicons
-                  name={getIcon(cat?.name ?? "")}
-                  size={22}
-                  color="#ff5722"
-                />
-              </View>
+      onPress={() => setSelectedExpense(item)}
+      onLongPress={() => handleDelete(item)}
+      className="mx-4 mb-3 p-4 rounded-2xl flex-row items-center gap-3 active:opacity-85"
+      style={{ backgroundColor: "#1a1a1a" }}
+    >
+      {/* Icon */}
+      <View
+        className="w-11 h-11 rounded-xl items-center justify-center"
+        style={{ backgroundColor: "#ff572222" }}
+      >
+        <Ionicons name={getIcon(cat?.name ?? "")} size={22} color="#ff5722" />
+      </View>
 
-              {/* Info */}
-              <View className="flex-1">
-                <Text
-                  className="text-white font-semibold text-sm"
-                  numberOfLines={1}
-                >
-                  {item.description}
-                </Text>
-                <Text className="text-neutral-500 text-xs mt-0.5">
-                  {formatDateTime(item.date)}
-                  {cat ? ` • ${cat.name.split(" ")[0]}` : ""}
-                </Text>
-              </View>
+      {/* Info */}
+      <View className="flex-1">
+        <Text className="text-white font-semibold text-sm" numberOfLines={1}>
+          {item.description}
+        </Text>
+        <Text className="text-neutral-500 text-xs mt-0.5">
+          {formatDateTime(item.date)}
+          {cat ? ` • ${cat.name.split(" ")[0]}` : ""}
+        </Text>
+        <View style={{ flexDirection: "row", gap: 6, marginTop: 4 }}>
+          {item.kind === "inversion" && (
+            <Text style={{ color: "#a855f7", fontSize: 10, fontWeight: "800" }}>
+              INVERSIÓN
+            </Text>
+          )}
+          {item.kind === "nomina" && (
+            <Text style={{ color: "#3b82f6", fontSize: 10, fontWeight: "800" }}>
+              NÓMINA
+            </Text>
+          )}
+          {item.is_paid === 0 && (
+            <Text style={{ color: "#f59e0b", fontSize: 10, fontWeight: "800" }}>
+              POR PAGAR
+            </Text>
+          )}
+        </View>
+      </View>
 
-              {/* Amount */}
-              <Text
-                className="text-base font-extrabold"
-                style={{ color: "#ff5722" }}
-              >
-                -{priceFormat(item.amount)}
-              </Text>
-            </Pressable>
-  )
+      {/* Amount */}
+      <Text className="text-base font-extrabold" style={{ color: "#ff5722" }}>
+        -{priceFormat(item.amount)}
+      </Text>
+    </Pressable>
+  );
 }

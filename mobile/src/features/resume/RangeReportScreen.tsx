@@ -8,6 +8,7 @@ import ReportsHeader from "./components/ReportsHeader";
 import ReportsPresets from "./components/ReportsPresets";
 import ReportsDateSelector from "./components/ReportsDateSelector";
 import Reports from "./components/reports/Reports";
+import { parseLocalDate, toLocalDateStr } from "@/src/shared/helpers/date.helper";
 
 export default function RangeReportScreen() {
   const {
@@ -50,11 +51,11 @@ export default function RangeReportScreen() {
 
         {showStartPicker && (
           <DateTimePicker
-            value={new Date(startDate)}
+            value={parseLocalDate(startDate)}
             mode="date"
             onChange={(_, date) => {
               setShowStartPicker(false);
-              if (date) setStartDate(date.toISOString().split("T")[0]);
+              if (date) setStartDate(toLocalDateStr(date));
             }}
           />
         )}

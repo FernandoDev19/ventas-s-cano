@@ -56,11 +56,28 @@ export default function MoreTab() {
       roles: ["admin"],
       onPress: () => setPrinterVisible(true),
     },
+    {
+      title: "Empleados y nómina",
+      subtitle: "Pagos y personal",
+      icon: "people-circle-outline",
+      roles: ["admin"],
+      onPress: () => router.push("/(tabs)/(employees)/employees"),
+    },
+    {
+      title: "Proveedores",
+      subtitle: "Contactos y por pagar",
+      icon: "storefront-outline",
+      roles: ["admin"],
+      onPress: () => router.push("/(tabs)/(suppliers)/suppliers"),
+    },
   ];
 
   const handleLogout = () => {
     if (BYPASS_AUTH) {
-      Alert.alert("Modo Administrador", "El inicio de sesión está desactivado.");
+      Alert.alert(
+        "Modo Administrador",
+        "El inicio de sesión está desactivado.",
+      );
       return;
     }
     Alert.alert("Cerrar sesión", "¿Seguro?", [
@@ -78,7 +95,9 @@ export default function MoreTab() {
   return (
     <View style={{ flex: 1, backgroundColor: "#0f0f0f" }}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
-        <Text style={{ color: "#fff", fontSize: 24, fontWeight: "800" }}>Más</Text>
+        <Text style={{ color: "#fff", fontSize: 24, fontWeight: "800" }}>
+          Más
+        </Text>
         <Text style={{ color: "#737373", fontSize: 14, marginBottom: 16 }}>
           Todo lo demás, a un toque
         </Text>
@@ -114,10 +133,14 @@ export default function MoreTab() {
                   <Ionicons name={item.icon} size={22} color="#ff5722" />
                 </View>
                 <View>
-                  <Text style={{ color: "#fff", fontWeight: "800", fontSize: 15 }}>
+                  <Text
+                    style={{ color: "#fff", fontWeight: "800", fontSize: 15 }}
+                  >
                     {item.title}
                   </Text>
-                  <Text style={{ color: "#737373", fontSize: 11, marginTop: 2 }}>
+                  <Text
+                    style={{ color: "#737373", fontSize: 11, marginTop: 2 }}
+                  >
                     {item.subtitle}
                   </Text>
                 </View>
@@ -141,7 +164,9 @@ export default function MoreTab() {
           }}
         >
           <Ionicons name="log-out-outline" size={18} color="#ef4444" />
-          <Text style={{ color: "#ef4444", fontWeight: "700" }}>Cerrar sesión</Text>
+          <Text style={{ color: "#ef4444", fontWeight: "700" }}>
+            Cerrar sesión
+          </Text>
         </Pressable>
       </ScrollView>
 

@@ -38,6 +38,8 @@ export const SyncService = {
         "tables",
         "cashier_shifts",
         "cash_movements",
+        "suppliers",
+        "employees",
       ];
 
       for (const table of tablasParaBajar) {
@@ -52,10 +54,15 @@ export const SyncService = {
       await SyncService.pushTable("sale_products");
       await SyncService.pushTable("sale_recipes");
       await SyncService.pushTable("recipe_ingredients");
+      await SyncService.pushTable("suppliers");
+      await SyncService.pushTable("employees");
       await SyncService.pushTable("expenses");
       await SyncService.pushTable("tables");
       await SyncService.pushTable("cashier_shifts");
       await SyncService.pushTable("cash_movements");
+
+      await SyncService.pushTable("payroll_payments");
+      await SyncService.pushTable("expense_items");
 
       console.log("✅ Sincronización completada exitosamente!");
       if (SYNC_LOG.length > 0) {
