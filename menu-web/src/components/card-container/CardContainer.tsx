@@ -68,7 +68,7 @@ export default function CardContainer({
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 px-4 mb-6">
             {recipesList.map((recipe) => (
-              <ProductCard key={`recipe-${recipe.id}`} item={recipe} />
+              <ProductCard key={`recipe-${recipe.id}`} item={recipe} isPopular={isPopular(recipe)} />
             ))}
           </div>
         </div>
@@ -82,7 +82,7 @@ export default function CardContainer({
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 px-4 mb-6">
             {productsList.map((product) => (
-              <ProductCard key={`product-${product.id}`} item={product} />
+              <ProductCard key={`product-${product.id}`} item={product} isPopular={isPopular(product)} />
             ))}
           </div>
         </div>
