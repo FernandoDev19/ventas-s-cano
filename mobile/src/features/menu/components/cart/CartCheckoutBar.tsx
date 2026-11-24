@@ -1,5 +1,7 @@
+// @theme-migrated
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { priceFormat } from "@/src/shared/helpers/price-format.helper";
+import { C } from "@/src/core/theme/palette";
 
 type Props = {
   total: number;
@@ -20,10 +22,10 @@ export default function CartCheckoutBar({
     <View
       style={{
         borderTopWidth: 1,
-        borderTopColor: "#262626",
+        borderTopColor: C.line,
         paddingTop: 12,
         paddingBottom: 28,
-        backgroundColor: "#171717",
+        backgroundColor: C.card,
       }}
     >
       <View
@@ -35,14 +37,21 @@ export default function CartCheckoutBar({
         }}
       >
         <View style={{ flex: 1, marginRight: 12 }}>
-          <Text style={{ color: "#737373", fontSize: 11, fontWeight: "700", textTransform: "uppercase" }}>
+          <Text
+            style={{
+              color: C.muted,
+              fontSize: 13,
+              fontWeight: "700",
+              textTransform: "uppercase",
+            }}
+          >
             Total · {itemsCount} ítem{itemsCount !== 1 ? "s" : ""}
           </Text>
-          <Text style={{ color: "#a3a3a3", fontSize: 12 }} numberOfLines={1}>
+          <Text style={{ color: C.soft, fontSize: 14 }} numberOfLines={1}>
             {summary}
           </Text>
         </View>
-        <Text style={{ color: "#fff", fontSize: 28, fontWeight: "900" }}>
+        <Text style={{ color: C.text, fontSize: 28, fontWeight: "900" }}>
           {priceFormat(total)}
         </Text>
       </View>
@@ -61,7 +70,7 @@ export default function CartCheckoutBar({
         {isSubmitting ? (
           <ActivityIndicator color="white" />
         ) : (
-          <Text style={{ color: "#fff", fontSize: 18, fontWeight: "900" }}>
+          <Text style={{ color: "#fff", fontSize: 20, fontWeight: "900" }}>
             Confirmar Pedido
           </Text>
         )}

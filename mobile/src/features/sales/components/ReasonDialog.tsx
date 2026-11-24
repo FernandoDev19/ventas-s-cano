@@ -1,3 +1,4 @@
+// @theme-migrated
 import { useState, useEffect } from "react";
 import {
   Modal,
@@ -8,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
+import { C } from "@/src/core/theme/palette";
 
 type Props = {
   visible: boolean;
@@ -79,7 +81,7 @@ export default function ReasonDialog({
             style={{
               width: "100%",
               maxWidth: 400,
-              backgroundColor: "#1a1a1a",
+              backgroundColor: C.card,
               borderRadius: 24,
               borderWidth: 1,
               borderColor: "#2e2e2e",
@@ -94,8 +96,8 @@ export default function ReasonDialog({
             {/* Header */}
             <Text
               style={{
-                color: "#fff",
-                fontSize: 18,
+                color: C.text,
+                fontSize: 20,
                 fontWeight: "800",
                 marginBottom: 8,
               }}
@@ -106,8 +108,8 @@ export default function ReasonDialog({
             {description && (
               <Text
                 style={{
-                  color: "#a3a3a3",
-                  fontSize: 13,
+                  color: C.soft,
+                  fontSize: 15,
                   lineHeight: 18,
                   marginBottom: 16,
                 }}
@@ -124,17 +126,17 @@ export default function ReasonDialog({
                 if (error) setError(null);
               }}
               placeholder={placeholder}
-              placeholderTextColor="#555"
+              placeholderTextColor={C.faint}
               multiline
               numberOfLines={3}
               style={{
-                backgroundColor: "#0f0f0f",
+                backgroundColor: C.bg,
                 borderColor: error ? "#ef4444" : "#2e2e2e",
                 borderWidth: 1,
                 borderRadius: 14,
                 padding: 12,
-                color: "#fff",
-                fontSize: 14,
+                color: C.text,
+                fontSize: 16,
                 minHeight: 80,
                 textAlignVertical: "top",
                 marginBottom: 8,
@@ -145,7 +147,7 @@ export default function ReasonDialog({
               <Text
                 style={{
                   color: "#ef4444",
-                  fontSize: 12,
+                  fontSize: 14,
                   fontWeight: "600",
                   marginBottom: 16,
                   marginLeft: 4,
@@ -167,7 +169,7 @@ export default function ReasonDialog({
                 onPress={onClose}
                 style={{
                   flex: 1,
-                  backgroundColor: "#2a2a2a",
+                  backgroundColor: C.line,
                   paddingVertical: 14,
                   borderRadius: 14,
                   alignItems: "center",
@@ -176,8 +178,8 @@ export default function ReasonDialog({
               >
                 <Text
                   style={{
-                    color: "#fff",
-                    fontSize: 14,
+                    color: C.text,
+                    fontSize: 16,
                     fontWeight: "700",
                   }}
                 >
@@ -199,7 +201,7 @@ export default function ReasonDialog({
                 <Text
                   style={{
                     color: "#fff",
-                    fontSize: 14,
+                    fontSize: 16,
                     fontWeight: "700",
                   }}
                 >

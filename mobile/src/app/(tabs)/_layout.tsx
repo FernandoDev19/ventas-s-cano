@@ -1,4 +1,5 @@
 import { supabase } from "@/src/core/config/supabase";
+import { useTheme } from "@/src/core/theme/ThemeContext";
 import { useUserRole } from "@/src/shared/hooks/useUserRole";
 import { Ionicons } from "@expo/vector-icons";
 import { useAudioPlayer } from "expo-audio";
@@ -43,6 +44,7 @@ const audioSource = require("@/assets/sounds/alerta-notificacion.mp3");
 
 export default function TabLayout() {
   const { role, loading } = useUserRole();
+  const { c, scheme } = useTheme();
   const player = useAudioPlayer(audioSource);
   const router = useRouter();
 
@@ -134,7 +136,7 @@ export default function TabLayout() {
 
   if (loading) {
     return (
-      <View className="flex-1 bg-[#141414] justify-center items-center">
+      <View style={{ flex: 1, backgroundColor: c.bg, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="small" color="#ff5722" />
       </View>
     );
@@ -143,7 +145,13 @@ export default function TabLayout() {
   const rolUsuario = role || "cashier";
 
   return (
-    <Tabs screenOptions={{ headerShown: false }}>
+    <Tabs
+      key={scheme}
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: { backgroundColor: c.card, borderTopColor: c.line },
+      }}
+    >
       {tabs.map((tab) => {
         const visible = tab.roles.includes(rolUsuario);
 
@@ -155,9 +163,11 @@ export default function TabLayout() {
               visible
                 ? {
                     title: tab.title,
+                    tabBarStyle: { backgroundColor: c.card, borderTopColor: c.line },
                     tabBarActiveTintColor: activeColor,
                     tabBarButton: (props) => {
                       const isActive = props["aria-selected"];
+                      const iconColor = isActive ? activeColor : c.muted;
 
                       return (
                         <Pressable
@@ -170,10 +180,10 @@ export default function TabLayout() {
                         >
                           <View
                             style={{ borderRadius: 10 }}
-                            className={`${isActive ? "bg-primary" : ""} flex-col justify-center items-center rounded-lg py-2 w-full`}
+                            className="flex-col justify-center items-center rounded-lg py-2 w-full"
                           >
-                            <Ionicons name={tab.icon as any} size={22} color="white" />
-                            <Text className="text-white text-xs">{tab.title}</Text>
+                            <Ionicons name={tab.icon as any} size={22} color={iconColor} />
+                            <Text style={{ color: iconColor, fontSize: 11, fontWeight: isActive ? "700" : "500" }}>{tab.title}</Text>
                           </View>
                         </Pressable>
                       );

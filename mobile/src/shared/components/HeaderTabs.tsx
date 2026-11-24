@@ -1,3 +1,4 @@
+// @theme-migrated
 import { Text, TouchableOpacity, View } from "react-native";
 
 const TAB_TRANSLATIONS: Record<string, string> = {
@@ -25,7 +26,7 @@ export default function HeaderTabs<T>({
   onChangeTab,
 }: Props<T>) {
   return (
-    <View className="flex-row bg-background border-b border-neutral-800">
+    <View className="flex-row bg-[#f2f2f4] dark:bg-background border-b border-neutral-200 dark:border-neutral-800">
       {tabs.map((tab) => (
         <TouchableOpacity
           key={String(tab)}
@@ -35,8 +36,8 @@ export default function HeaderTabs<T>({
           onPress={() => onChangeTab(tab)}
         >
           <Text
-            className={`font-bold text-xs uppercase tracking-wider ${
-              activeTab === tab ? "text-orange-600" : "text-neutral-400"
+            className={`font-bold text-sm uppercase tracking-wider ${
+              activeTab === tab ? "text-orange-600" : "text-neutral-600 dark:text-neutral-400"
             }`}
           >
             {TAB_TRANSLATIONS[String(tab)] || String(tab)}

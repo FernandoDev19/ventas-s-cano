@@ -1,7 +1,9 @@
+// @theme-migrated
 import { priceFormat } from "@/src/shared/helpers/price-format.helper";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import { formatDate } from "../../helpers/formatDate";
 import { Ionicons } from "@expo/vector-icons";
+import { C } from "@/src/core/theme/palette";
 
 type Props = {
   report: any;
@@ -29,7 +31,7 @@ export default function Reports({
       {isLoading ? (
         <View style={{ alignItems: "center", paddingVertical: 40 }}>
           <ActivityIndicator size="large" color="#ff5722" />
-          <Text style={{ color: "#737373", marginTop: 12 }}>
+          <Text style={{ color: C.muted, marginTop: 12 }}>
             Calculando reporte...
           </Text>
         </View>
@@ -45,8 +47,8 @@ export default function Reports({
               gap: 6,
             }}
           >
-            <Ionicons name="time-outline" size={14} color="#737373" />
-            <Text style={{ color: "#737373", fontSize: 13 }}>
+            <Ionicons name="time-outline" size={14} color={C.muted} />
+            <Text style={{ color: C.muted, fontSize: 15 }}>
               {formatDate(startDate)} — {formatDate(endDate)}
             </Text>
           </View>
@@ -145,7 +147,7 @@ export default function Reports({
               marginHorizontal: 16,
               marginBottom: 12,
               padding: 16,
-              backgroundColor: "#1a1a1a",
+              backgroundColor: C.card,
               borderRadius: 16,
               borderLeftWidth: 4,
               borderLeftColor: "#ff5722",
@@ -153,18 +155,18 @@ export default function Reports({
           >
             <Text
               style={{
-                color: "#737373",
-                fontSize: 11,
+                color: C.muted,
+                fontSize: 13,
                 textTransform: "uppercase",
                 letterSpacing: 1,
               }}
             >
               Total Ventas
             </Text>
-            <Text style={{ color: "#fff", fontSize: 36, fontWeight: "900" }}>
+            <Text style={{ color: C.text, fontSize: 36, fontWeight: "900" }}>
               {priceFormat(report.totalSales)}
             </Text>
-            <Text style={{ color: "#737373", fontSize: 13, marginTop: 4 }}>
+            <Text style={{ color: C.muted, fontSize: 15, marginTop: 4 }}>
               {report.salesCount} venta{report.salesCount !== 1 ? "s" : ""}
             </Text>
           </View>
@@ -191,7 +193,7 @@ export default function Reports({
               <Text
                 style={{
                   color: "#22c55e",
-                  fontSize: 10,
+                  fontSize: 12,
                   textTransform: "uppercase",
                   fontWeight: "700",
                 }}
@@ -201,7 +203,7 @@ export default function Reports({
               <Text
                 style={{
                   color: "#22c55e",
-                  fontSize: 18,
+                  fontSize: 20,
                   fontWeight: "800",
                   marginTop: 4,
                 }}
@@ -223,7 +225,7 @@ export default function Reports({
               <Text
                 style={{
                   color: "#f59e0b",
-                  fontSize: 10,
+                  fontSize: 12,
                   textTransform: "uppercase",
                   fontWeight: "700",
                 }}
@@ -233,7 +235,7 @@ export default function Reports({
               <Text
                 style={{
                   color: "#f59e0b",
-                  fontSize: 18,
+                  fontSize: 20,
                   fontWeight: "800",
                   marginTop: 4,
                 }}
@@ -265,7 +267,7 @@ export default function Reports({
               <Text
                 style={{
                   color: "#ef4444",
-                  fontSize: 10,
+                  fontSize: 12,
                   textTransform: "uppercase",
                   fontWeight: "700",
                 }}
@@ -275,7 +277,7 @@ export default function Reports({
               <Text
                 style={{
                   color: "#ef4444",
-                  fontSize: 18,
+                  fontSize: 20,
                   fontWeight: "800",
                   marginTop: 4,
                 }}
@@ -297,7 +299,7 @@ export default function Reports({
               <Text
                 style={{
                   color: netProfit >= 0 ? "#22c55e" : "#ef4444",
-                  fontSize: 10,
+                  fontSize: 12,
                   textTransform: "uppercase",
                   fontWeight: "700",
                 }}
@@ -307,7 +309,7 @@ export default function Reports({
               <Text
                 style={{
                   color: netProfit >= 0 ? "#22c55e" : "#ef4444",
-                  fontSize: 18,
+                  fontSize: 20,
                   fontWeight: "800",
                   marginTop: 4,
                 }}
@@ -325,17 +327,17 @@ export default function Reports({
                 marginHorizontal: 16,
                 marginBottom: 16,
                 padding: 16,
-                backgroundColor: "#1a1a1a",
+                backgroundColor: C.card,
                 borderRadius: 16,
                 borderWidth: 1,
-                borderColor: "#2a2a2a",
+                borderColor: C.line,
               }}
             >
               <Text
                 style={{
-                  color: "#fff",
+                  color: C.text,
                   fontWeight: "700",
-                  fontSize: 15,
+                  fontSize: 17,
                   marginBottom: 12,
                 }}
               >
@@ -364,15 +366,15 @@ export default function Reports({
                           style={{
                             color: "#ff5722",
                             fontWeight: "700",
-                            fontSize: 12,
+                            fontSize: 14,
                           }}
                         >
                           #{i + 1}
                         </Text>
                         <Text
                           style={{
-                            color: "#fff",
-                            fontSize: 13,
+                            color: C.text,
+                            fontSize: 15,
                             fontWeight: "600",
                           }}
                         >
@@ -382,14 +384,14 @@ export default function Reports({
                       <View style={{ alignItems: "flex-end" }}>
                         <Text
                           style={{
-                            color: "#fff",
-                            fontSize: 13,
+                            color: C.text,
+                            fontSize: 15,
                             fontWeight: "700",
                           }}
                         >
                           {priceFormat(p.total)}
                         </Text>
-                        <Text style={{ color: "#737373", fontSize: 11 }}>
+                        <Text style={{ color: C.muted, fontSize: 13 }}>
                           {p.quantity} uds
                         </Text>
                       </View>
@@ -397,7 +399,7 @@ export default function Reports({
                     <View
                       style={{
                         height: 4,
-                        backgroundColor: "#2a2a2a",
+                        backgroundColor: C.line,
                         borderRadius: 2,
                       }}
                     >
@@ -423,17 +425,17 @@ export default function Reports({
                 marginHorizontal: 16,
                 marginBottom: 16,
                 padding: 16,
-                backgroundColor: "#1a1a1a",
+                backgroundColor: C.card,
                 borderRadius: 16,
                 borderWidth: 1,
-                borderColor: "#2a2a2a",
+                borderColor: C.line,
               }}
             >
               <Text
                 style={{
-                  color: "#fff",
+                  color: C.text,
                   fontWeight: "700",
-                  fontSize: 15,
+                  fontSize: 17,
                   marginBottom: 12,
                 }}
               >
@@ -451,13 +453,13 @@ export default function Reports({
                         marginBottom: 4,
                       }}
                     >
-                      <Text style={{ color: "#a3a3a3", fontSize: 13 }}>
+                      <Text style={{ color: C.soft, fontSize: 15 }}>
                         {cat.category}
                       </Text>
                       <Text
                         style={{
                           color: "#ef4444",
-                          fontSize: 13,
+                          fontSize: 15,
                           fontWeight: "700",
                         }}
                       >
@@ -467,7 +469,7 @@ export default function Reports({
                     <View
                       style={{
                         height: 4,
-                        backgroundColor: "#2a2a2a",
+                        backgroundColor: C.line,
                         borderRadius: 2,
                       }}
                     >
@@ -493,17 +495,17 @@ export default function Reports({
                 marginHorizontal: 16,
                 marginBottom: 16,
                 padding: 16,
-                backgroundColor: "#1a1a1a",
+                backgroundColor: C.card,
                 borderRadius: 16,
                 borderWidth: 1,
-                borderColor: "#2a2a2a",
+                borderColor: C.line,
               }}
             >
               <Text
                 style={{
-                  color: "#fff",
+                  color: C.text,
                   fontWeight: "700",
-                  fontSize: 15,
+                  fontSize: 17,
                   marginBottom: 12,
                 }}
               >
@@ -517,17 +519,17 @@ export default function Reports({
                     justifyContent: "space-between",
                     paddingVertical: 8,
                     borderBottomWidth: 1,
-                    borderBottomColor: "#2a2a2a",
+                    borderBottomColor: C.line,
                   }}
                 >
-                  <Text style={{ color: "#a3a3a3", fontSize: 13 }}>
+                  <Text style={{ color: C.soft, fontSize: 15 }}>
                     {formatDate(day.dateStr)}
                   </Text>
                   <View style={{ alignItems: "flex-end" }}>
-                    <Text style={{ color: "#fff", fontWeight: "700" }}>
+                    <Text style={{ color: C.text, fontWeight: "700" }}>
                       {priceFormat(day.total)}
                     </Text>
-                    <Text style={{ color: "#737373", fontSize: 11 }}>
+                    <Text style={{ color: C.muted, fontSize: 13 }}>
                       {day.count} venta{day.count !== 1 ? "s" : ""}
                     </Text>
                   </View>
@@ -538,8 +540,8 @@ export default function Reports({
         </View>
       ) : (
         <View style={{ alignItems: "center", paddingVertical: 60 }}>
-          <Ionicons name="bar-chart-outline" size={48} color="#333" />
-          <Text style={{ color: "#737373", marginTop: 12, fontSize: 14 }}>
+          <Ionicons name="bar-chart-outline" size={48} color={C.line2} />
+          <Text style={{ color: C.muted, marginTop: 12, fontSize: 16 }}>
             Selecciona un rango para ver el reporte
           </Text>
         </View>

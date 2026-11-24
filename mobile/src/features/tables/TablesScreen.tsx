@@ -1,3 +1,4 @@
+// @theme-migrated
 import {
   View,
   Text,
@@ -11,6 +12,7 @@ import { useTables } from "./hooks/useTables";
 import { Ionicons } from "@expo/vector-icons";
 import { TableType } from "./services/tables.service";
 import HeaderTabs from "@/src/shared/components/HeaderTabs";
+import { C } from "@/src/core/theme/palette";
 
 type Props = {
   onChangeTab: (tab: "menu" | "tables") => void;
@@ -18,13 +20,7 @@ type Props = {
 };
 
 export default function TablesScreen({ onChangeTab, activeGTab }: Props) {
-  const {
-    tables,
-    isLoading,
-    loadTables,
-    occupy,
-    release,
-  } = useTables();
+  const { tables, isLoading, loadTables, occupy, release } = useTables();
 
   if (isLoading) {
     return (
@@ -33,7 +29,7 @@ export default function TablesScreen({ onChangeTab, activeGTab }: Props) {
           flex: 1,
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: "#0f0f0f",
+          backgroundColor: C.bg,
         }}
       >
         <ActivityIndicator size="large" color="#ff5722" />
@@ -63,7 +59,7 @@ export default function TablesScreen({ onChangeTab, activeGTab }: Props) {
             text: "Cancelar",
             style: "cancel",
           },
-        ]
+        ],
       );
     } else if (table.status === "ocupada") {
       Alert.alert(
@@ -82,13 +78,13 @@ export default function TablesScreen({ onChangeTab, activeGTab }: Props) {
             text: "Aún está aquí",
             style: "cancel",
           },
-        ]
+        ],
       );
     }
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#0f0f0f" }}>
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
       {/* Tabs */}
       <HeaderTabs
         tabs={["menu", "tables"]}
@@ -107,12 +103,18 @@ export default function TablesScreen({ onChangeTab, activeGTab }: Props) {
           />
         }
         ListHeaderComponent={
-          <View style={{ paddingHorizontal: 16, paddingVertical: 16, marginBottom: 8 }}>
+          <View
+            style={{
+              paddingHorizontal: 16,
+              paddingVertical: 16,
+              marginBottom: 8,
+            }}
+          >
             {/* Título */}
-            <Text style={{ fontSize: 24, fontWeight: "800", color: "#fff" }}>
+            <Text style={{ fontSize: 24, fontWeight: "800", color: C.text }}>
               Mesas
             </Text>
-            <Text style={{ fontSize: 13, color: "#737373", marginTop: 4 }}>
+            <Text style={{ fontSize: 15, color: C.muted, marginTop: 4 }}>
               {libres} libres · {ocupadas} ocupadas de {tables.length}
             </Text>
 
@@ -129,16 +131,18 @@ export default function TablesScreen({ onChangeTab, activeGTab }: Props) {
                   flex: 1,
                   paddingVertical: 12,
                   paddingHorizontal: 12,
-                  backgroundColor: "#1a1a1a",
+                  backgroundColor: C.card,
                   borderRadius: 10,
                   borderLeftWidth: 3,
                   borderLeftColor: "#22c55e",
                 }}
               >
-                <Text style={{ fontSize: 16, fontWeight: "900", color: "#22c55e" }}>
+                <Text
+                  style={{ fontSize: 18, fontWeight: "900", color: "#22c55e" }}
+                >
                   {libres}
                 </Text>
-                <Text style={{ fontSize: 10, color: "#737373", marginTop: 2 }}>
+                <Text style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>
                   Libres
                 </Text>
               </View>
@@ -148,16 +152,18 @@ export default function TablesScreen({ onChangeTab, activeGTab }: Props) {
                   flex: 1,
                   paddingVertical: 12,
                   paddingHorizontal: 12,
-                  backgroundColor: "#1a1a1a",
+                  backgroundColor: C.card,
                   borderRadius: 10,
                   borderLeftWidth: 3,
                   borderLeftColor: "#3b82f6",
                 }}
               >
-                <Text style={{ fontSize: 16, fontWeight: "900", color: "#3b82f6" }}>
+                <Text
+                  style={{ fontSize: 18, fontWeight: "900", color: "#3b82f6" }}
+                >
                   {ocupadas}
                 </Text>
-                <Text style={{ fontSize: 10, color: "#737373", marginTop: 2 }}>
+                <Text style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>
                   Ocupadas
                 </Text>
               </View>
@@ -167,16 +173,18 @@ export default function TablesScreen({ onChangeTab, activeGTab }: Props) {
                   flex: 1,
                   paddingVertical: 12,
                   paddingHorizontal: 12,
-                  backgroundColor: "#1a1a1a",
+                  backgroundColor: C.card,
                   borderRadius: 10,
                   borderLeftWidth: 3,
                   borderLeftColor: "#ff5722",
                 }}
               >
-                <Text style={{ fontSize: 16, fontWeight: "900", color: "#ff5722" }}>
+                <Text
+                  style={{ fontSize: 18, fontWeight: "900", color: "#ff5722" }}
+                >
                   {tables.length}
                 </Text>
-                <Text style={{ fontSize: 10, color: "#737373", marginTop: 2 }}>
+                <Text style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>
                   Total
                 </Text>
               </View>
@@ -195,12 +203,11 @@ export default function TablesScreen({ onChangeTab, activeGTab }: Props) {
               backgroundColor:
                 item.status === "libre" ? "#22c55e22" : "#3b82f622",
               borderWidth: 2,
-              borderColor:
-                item.status === "libre" ? "#22c55e" : "#3b82f6",
+              borderColor: item.status === "libre" ? "#22c55e" : "#3b82f6",
             }}
           >
             {/* Número de Mesa */}
-            <Text style={{ fontSize: 32, fontWeight: "900", color: "#fff" }}>
+            <Text style={{ fontSize: 32, fontWeight: "900", color: C.text }}>
               {item.number_mesa}
             </Text>
 
@@ -215,7 +222,7 @@ export default function TablesScreen({ onChangeTab, activeGTab }: Props) {
             {/* Estado */}
             <Text
               style={{
-                fontSize: 11,
+                fontSize: 13,
                 fontWeight: "700",
                 color: item.status === "libre" ? "#22c55e" : "#3b82f6",
                 marginTop: 4,
@@ -244,18 +251,18 @@ export default function TablesScreen({ onChangeTab, activeGTab }: Props) {
               paddingVertical: 80,
             }}
           >
-            <Ionicons name="restaurant-outline" size={48} color="#333" />
+            <Ionicons name="restaurant-outline" size={48} color={C.line2} />
             <Text
               style={{
-                color: "#fff",
+                color: C.text,
                 fontWeight: "700",
-                fontSize: 18,
+                fontSize: 20,
                 marginTop: 16,
               }}
             >
               Sin mesas
             </Text>
-            <Text style={{ color: "#737373", fontSize: 12, marginTop: 4 }}>
+            <Text style={{ color: C.muted, fontSize: 14, marginTop: 4 }}>
               Las mesas se cargan al iniciar la app
             </Text>
           </View>

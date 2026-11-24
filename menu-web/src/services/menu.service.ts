@@ -122,6 +122,17 @@ export const MenuService = {
     }
   },
 
+    async getPopularKeys(limit = 6): Promise<string[]> {
+    const { data, error } = await supabase.rpc("get_popular_items", {
+      limit_n: limit,
+    });
+    if (error || !data) return [];
+    return data.map(
+      (r: { item_id: string; is_recipe: boolean }) =>
+        `${r.is_recipe ? "recipe" : "product"}-${r.item_id}`,
+    );
+  },
+
   /**
    * Carga todas las categorías disponibles para armar la barra de pestañas o filtros
    */

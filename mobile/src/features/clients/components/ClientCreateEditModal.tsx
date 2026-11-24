@@ -1,3 +1,4 @@
+// @theme-migrated
 import { Ionicons } from "@expo/vector-icons";
 import {
   ActivityIndicator,
@@ -7,6 +8,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { C } from "@/src/core/theme/palette";
 
 type Props = {
   showCreate: boolean;
@@ -78,7 +80,7 @@ export default function ClientCreateEditModal({
         >
           <View
             style={{
-              backgroundColor: "#141414",
+              backgroundColor: C.sheet,
               borderTopLeftRadius: 28,
               borderTopRightRadius: 28,
               padding: 24,
@@ -93,18 +95,18 @@ export default function ClientCreateEditModal({
                 marginBottom: 24,
               }}
             >
-              <Text style={{ color: "#fff", fontSize: 20, fontWeight: "800" }}>
+              <Text style={{ color: C.text, fontSize: 22, fontWeight: "800" }}>
                 {editingClient ? "Editar Cliente" : "Nuevo Cliente"}
               </Text>
               <Pressable
                 onPress={() => setShowCreate(false)}
                 style={{
-                  backgroundColor: "#2a2a2a",
+                  backgroundColor: C.line,
                   borderRadius: 20,
                   padding: 8,
                 }}
               >
-                <Ionicons name="close" size={20} color="#fff" />
+                <Ionicons name="close" size={20} color={C.text} />
               </Pressable>
             </View>
 
@@ -134,8 +136,8 @@ export default function ClientCreateEditModal({
               <View key={field.label} style={{ marginBottom: 16 }}>
                 <Text
                   style={{
-                    color: "#737373",
-                    fontSize: 11,
+                    color: C.muted,
+                    fontSize: 13,
                     textTransform: "uppercase",
                     letterSpacing: 1,
                     marginBottom: 6,
@@ -145,20 +147,20 @@ export default function ClientCreateEditModal({
                 </Text>
                 <View
                   style={{
-                    backgroundColor: "#1a1a1a",
+                    backgroundColor: C.card,
                     borderRadius: 12,
                     paddingHorizontal: 14,
                     borderWidth: 1,
-                    borderColor: "#2a2a2a",
+                    borderColor: C.line,
                   }}
                 >
                   <TextInput
                     placeholder={field.placeholder}
-                    placeholderTextColor="#555"
+                    placeholderTextColor={C.faint}
                     value={field.value}
                     onChangeText={field.setter}
                     keyboardType={field.keyboard as any}
-                    style={{ color: "#fff", fontSize: 16, height: 46 }}
+                    style={{ color: C.text, fontSize: 18, height: 46 }}
                   />
                 </View>
               </View>
@@ -180,7 +182,7 @@ export default function ClientCreateEditModal({
                 <ActivityIndicator color="#fff" />
               ) : (
                 <Text
-                  style={{ color: "#fff", fontSize: 17, fontWeight: "800" }}
+                  style={{ color: "#fff", fontSize: 19, fontWeight: "800" }}
                 >
                   Guardar
                 </Text>

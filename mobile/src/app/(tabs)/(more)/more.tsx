@@ -5,6 +5,8 @@ import { Alert, Pressable, ScrollView, Text, View } from "react-native";
 import PrinterSettingsModal from "@/src/shared/components/printer/PrinterSettingsModal";
 import { supabase } from "@/src/core/config/supabase";
 import { BYPASS_AUTH, useUserRole } from "@/src/shared/hooks/useUserRole";
+import { ThemeToggle } from "@/src/core/theme/ThemeToggle";
+import { useTheme } from "@/src/core/theme/ThemeContext";
 
 type Item = {
   title: string;
@@ -17,6 +19,7 @@ type Item = {
 export default function MoreTab() {
   const router = useRouter();
   const { role } = useUserRole();
+  const { c } = useTheme();
   const [printerVisible, setPrinterVisible] = useState(false);
   const userRole = role || "cashier";
 
@@ -93,14 +96,18 @@ export default function MoreTab() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#0f0f0f" }}>
+    <View style={{ flex: 1, backgroundColor: c.bg }}>
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
-        <Text style={{ color: "#fff", fontSize: 24, fontWeight: "800" }}>
+        <Text style={{ color: c.text, fontSize: 24, fontWeight: "800" }}>
           Más
         </Text>
-        <Text style={{ color: "#737373", fontSize: 14, marginBottom: 16 }}>
+        <Text style={{ color: c.muted, fontSize: 14, marginBottom: 16 }}>
           Todo lo demás, a un toque
         </Text>
+
+        <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
+          <ThemeToggle />
+        </View>
 
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
           {items
@@ -111,11 +118,11 @@ export default function MoreTab() {
                 onPress={item.onPress}
                 style={{
                   width: "47.5%",
-                  backgroundColor: "#1a1a1a",
+                  backgroundColor: c.card,
                   borderRadius: 18,
                   padding: 16,
                   borderWidth: 1,
-                  borderColor: "#2a2a2a",
+                  borderColor: c.line,
                   minHeight: 120,
                   justifyContent: "space-between",
                 }}
@@ -134,12 +141,12 @@ export default function MoreTab() {
                 </View>
                 <View>
                   <Text
-                    style={{ color: "#fff", fontWeight: "800", fontSize: 15 }}
+                    style={{ color: c.text, fontWeight: "800", fontSize: 15 }}
                   >
                     {item.title}
                   </Text>
                   <Text
-                    style={{ color: "#737373", fontSize: 11, marginTop: 2 }}
+                    style={{ color: c.muted, fontSize: 11, marginTop: 2 }}
                   >
                     {item.subtitle}
                   </Text>

@@ -1,8 +1,10 @@
+// @theme-migrated
 import React from "react";
 import { FlatList, Image, Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { OrderItem } from "@/src/core/context/OrderContext";
 import { priceFormat } from "@/src/shared/helpers/price-format.helper";
+import { C } from "@/src/core/theme/palette";
 
 type Props = {
   order: OrderItem[];
@@ -25,7 +27,7 @@ export default function CartProductsList({
 }: Props) {
   return (
     <FlatList
-    style={{ flex: 1 }}
+      style={{ flex: 1 }}
       data={order}
       keyExtractor={(item, idx) =>
         item.type === "product"
@@ -37,7 +39,10 @@ export default function CartProductsList({
       keyboardShouldPersistTaps="handled"
       ListFooterComponent={ListFooterComponent}
       renderItem={({ item }) => (
-        <View className="flex-row bg-neutral-800 p-4 rounded-2xl items-center justify-between">
+        <View
+          style={{ backgroundColor: C.card, borderWidth: 1, borderColor: C.line }}
+          className="flex-row p-4 rounded-2xl items-center justify-between"
+        >
           <View className="flex-row items-center flex-1 mr-4">
             <Image
               source={
@@ -45,7 +50,8 @@ export default function CartProductsList({
                   ? { uri: getItemImage(item) }
                   : require("@/assets/images/default-food.png")
               }
-              className="w-14 h-14 rounded-xl bg-neutral-700 mr-3"
+              className="w-14 h-14 rounded-xl mr-3"
+              style={{ backgroundColor: C.line }}
               resizeMode="cover"
             />
             <View className="flex-1">
@@ -63,7 +69,7 @@ export default function CartProductsList({
                     <Text
                       style={{
                         color: "#ff5722",
-                        fontSize: 9,
+                        fontSize: 11,
                         fontWeight: "800",
                       }}
                     >
@@ -72,7 +78,8 @@ export default function CartProductsList({
                   </View>
                 )}
                 <Text
-                  className="text-white font-bold text-base flex-1"
+                  style={{ color: C.text }}
+                  className="font-bold text-lg flex-1"
                   numberOfLines={1}
                 >
                   {getItemLabel(item)}
@@ -85,21 +92,27 @@ export default function CartProductsList({
           </View>
 
           {/* Controles de unidades */}
-          <View className="flex-row items-center bg-neutral-900 rounded-xl p-1 gap-2.5">
+          <View
+            style={{ backgroundColor: C.sheet, borderWidth: 1, borderColor: C.line }}
+            className="flex-row items-center rounded-xl p-1 gap-2.5"
+          >
             <Pressable
               onPress={() => handleDecrement(item)}
               className="p-1 active:opacity-60"
             >
-              <Ionicons name="remove-circle-outline" size={24} color="white" />
+              <Ionicons name="remove-circle-outline" size={24} color={C.text} />
             </Pressable>
-            <Text className="text-white font-black text-sm min-w-[14px] text-center">
+            <Text
+              style={{ color: C.text }}
+              className="font-black text-base min-w-[14px] text-center"
+            >
               {item.quantity}
             </Text>
             <Pressable
               onPress={() => handleIncrement(item)}
               className="p-1 active:opacity-60"
             >
-              <Ionicons name="add-circle-outline" size={24} color="white" />
+              <Ionicons name="add-circle-outline" size={24} color={C.text} />
             </Pressable>
           </View>
         </View>

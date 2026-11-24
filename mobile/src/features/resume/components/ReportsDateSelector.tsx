@@ -1,32 +1,40 @@
+// @theme-migrated
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, Text, View } from "react-native";
 import { formatDate } from "../helpers/formatDate";
+import { C } from "@/src/core/theme/palette";
 
 type Props = {
-    startDate: string
-    endDate: string
-    setShowStartPicker: (show: boolean) => void
-    setShowEndPicker: (show: boolean) => void
-    applyCustom: () => void
+  startDate: string;
+  endDate: string;
+  setShowStartPicker: (show: boolean) => void;
+  setShowEndPicker: (show: boolean) => void;
+  applyCustom: () => void;
 };
 
-export default function ReportsDateSelector({ startDate, endDate, setShowStartPicker, setShowEndPicker, applyCustom }: Props) {
+export default function ReportsDateSelector({
+  startDate,
+  endDate,
+  setShowStartPicker,
+  setShowEndPicker,
+  applyCustom,
+}: Props) {
   return (
     <View
       style={{
         marginHorizontal: 16,
         marginBottom: 16,
         padding: 16,
-        backgroundColor: "#1a1a1a",
+        backgroundColor: C.card,
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: "#2a2a2a",
+        borderColor: C.line,
       }}
     >
       <Text
         style={{
-          color: "#737373",
-          fontSize: 11,
+          color: C.muted,
+          fontSize: 13,
           textTransform: "uppercase",
           letterSpacing: 1,
           marginBottom: 12,
@@ -40,7 +48,7 @@ export default function ReportsDateSelector({ startDate, endDate, setShowStartPi
           onPress={() => setShowStartPicker(true)}
           style={{
             flex: 1,
-            backgroundColor: "#2a2a2a",
+            backgroundColor: C.line,
             borderRadius: 10,
             padding: 12,
             flexDirection: "row",
@@ -50,8 +58,8 @@ export default function ReportsDateSelector({ startDate, endDate, setShowStartPi
         >
           <Ionicons name="calendar-outline" size={16} color="#ff5722" />
           <View>
-            <Text style={{ color: "#737373", fontSize: 10 }}>Desde</Text>
-            <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>
+            <Text style={{ color: C.muted, fontSize: 12 }}>Desde</Text>
+            <Text style={{ color: C.text, fontWeight: "600", fontSize: 15 }}>
               {formatDate(startDate)}
             </Text>
           </View>
@@ -62,7 +70,7 @@ export default function ReportsDateSelector({ startDate, endDate, setShowStartPi
           onPress={() => setShowEndPicker(true)}
           style={{
             flex: 1,
-            backgroundColor: "#2a2a2a",
+            backgroundColor: C.line,
             borderRadius: 10,
             padding: 12,
             flexDirection: "row",
@@ -72,8 +80,8 @@ export default function ReportsDateSelector({ startDate, endDate, setShowStartPi
         >
           <Ionicons name="calendar-outline" size={16} color="#ff5722" />
           <View>
-            <Text style={{ color: "#737373", fontSize: 10 }}>Hasta</Text>
-            <Text style={{ color: "#fff", fontWeight: "600", fontSize: 13 }}>
+            <Text style={{ color: C.muted, fontSize: 12 }}>Hasta</Text>
+            <Text style={{ color: C.text, fontWeight: "600", fontSize: 15 }}>
               {formatDate(endDate)}
             </Text>
           </View>

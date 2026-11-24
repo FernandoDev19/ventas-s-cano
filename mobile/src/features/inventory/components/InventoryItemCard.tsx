@@ -1,8 +1,13 @@
+// @theme-migrated
 import { priceFormat } from "@/src/shared/helpers/price-format.helper";
 import { Ionicons } from "@expo/vector-icons";
 import { ActivityIndicator, Image, Pressable, Text, View } from "react-native";
-import { STOCK_CRITICAL_THRESHOLD, STOCK_LOW_THRESHOLD } from "../helpers/stock-status.helper";
+import {
+  STOCK_CRITICAL_THRESHOLD,
+  STOCK_LOW_THRESHOLD,
+} from "../helpers/stock-status.helper";
 import { ProductType } from "../types/product.type";
+import { C } from "@/src/core/theme/palette";
 
 type Props = {
   item: ProductType;
@@ -23,10 +28,10 @@ export default function InventoryItemCard({
     <View
       className="mx-4 mb-3 p-4 rounded-2xl"
       style={{
-        backgroundColor: "#1a1a1a",
+        backgroundColor: C.card,
         borderWidth: 1,
         borderColor:
-          item.stock <= STOCK_CRITICAL_THRESHOLD ? "#ef444433" : "#2a2a2a",
+          item.stock <= STOCK_CRITICAL_THRESHOLD ? "#ef444433" : C.line,
       }}
     >
       {/* Top row */}
@@ -47,10 +52,13 @@ export default function InventoryItemCard({
             resizeMode="cover"
           />
           <View className="flex-1">
-            <Text className="text-white font-bold text-base" numberOfLines={1}>
+            <Text
+              className="text-neutral-900 dark:text-white font-bold text-lg"
+              numberOfLines={1}
+            >
               {item.name}
             </Text>
-            <Text className="text-neutral-500 text-xs mt-0.5">
+            <Text className="text-neutral-500 text-sm mt-0.5">
               {priceFormat(item.price)} / unidad
             </Text>
           </View>
@@ -69,7 +77,7 @@ export default function InventoryItemCard({
           >
             {item.stock}
           </Text>
-          <Text className="text-neutral-600 text-[10px] uppercase">
+          <Text className="text-neutral-600 text-[12px] uppercase">
             unidades
           </Text>
         </View>
@@ -80,7 +88,7 @@ export default function InventoryItemCard({
         className="self-start px-2 py-0.5 rounded-full mb-3"
         style={{ backgroundColor: status.bg }}
       >
-        <Text className="text-[10px] font-bold" style={{ color: status.color }}>
+        <Text className="text-[12px] font-bold" style={{ color: status.color }}>
           {status.label}
         </Text>
       </View>
@@ -90,16 +98,18 @@ export default function InventoryItemCard({
         <Pressable
           onPress={() => openEdit(item)}
           className="flex-row items-center gap-1.5 px-3 py-2 rounded-xl"
-          style={{ backgroundColor: "#2a2a2a" }}
+          style={{ backgroundColor: C.line }}
         >
-          <Ionicons name="pencil-outline" size={14} color="#a3a3a3" />
-          <Text className="text-neutral-400 text-xs font-medium">Editar</Text>
+          <Ionicons name="pencil-outline" size={14} color={C.soft} />
+          <Text className="text-neutral-600 dark:text-neutral-400 text-sm font-medium">
+            Editar
+          </Text>
         </Pressable>
 
         {/* Stock stepper */}
         <View
           className="flex-row items-center gap-0 rounded-xl overflow-hidden"
-          style={{ backgroundColor: "#2a2a2a" }}
+          style={{ backgroundColor: C.line }}
         >
           <Pressable
             onPress={() => handleAdjustStock(item, -1)}
@@ -107,13 +117,15 @@ export default function InventoryItemCard({
             className="px-3 py-2.5 items-center justify-center"
             style={{ opacity: item.stock === 0 ? 0.3 : 1 }}
           >
-            <Ionicons name="remove" size={16} color="#a3a3a3" />
+            <Ionicons name="remove" size={16} color={C.soft} />
           </Pressable>
           <View className="px-3 py-2">
             {isUpdating ? (
               <ActivityIndicator size="small" color="#ff5722" />
             ) : (
-              <Text className="text-white text-xs font-bold">Stock</Text>
+              <Text className="text-neutral-900 dark:text-white text-sm font-bold">
+                Stock
+              </Text>
             )}
           </View>
           <Pressable

@@ -9,6 +9,9 @@
       ],
       "@/components/*": [
         "./src/shared/components/*"
+      ],
+      "../*": [
+        "./src/core/*"
       ]
     },
     "types": ["xlsx"]

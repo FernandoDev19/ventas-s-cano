@@ -1,3 +1,4 @@
+// @theme-migrated
 import React, { useEffect, useRef, useState } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -11,11 +12,18 @@ import {
   OrderKind,
   parseSaleNote,
 } from "@/src/shared/helpers/sale-note.helper";
+import { C } from "@/src/core/theme/palette";
 
 interface CardProps {
   item: OrderPro;
   onAccionEstado: (
-    estado: "pending" | "accepted" | "preparing" | "ready" | "delivered" | "cancelled",
+    estado:
+      | "pending"
+      | "accepted"
+      | "preparing"
+      | "ready"
+      | "delivered"
+      | "cancelled",
   ) => void;
   onChatCliente: () => void;
   onPrintBill: () => void;
@@ -64,7 +72,7 @@ const Btn = ({
     }}
   >
     <Text
-      style={{ color: outline ? bg : "#fff", fontWeight: "800", fontSize: 13 }}
+      style={{ color: outline ? bg : "#fff", fontWeight: "800", fontSize: 15 }}
     >
       {label}
     </Text>
@@ -124,7 +132,7 @@ export const OrderCardKDS = ({
   const address = item.delivery_address || parsed.address;
   const isActive = ACTIVE.includes(item.status);
   const urg = urgency(minutosEnEspera);
-  const barColor = isActive ? urg.color : "#2a2a2a";
+  const barColor = isActive ? urg.color : C.line;
   const clock = parseUTCDate(item.created_at).toLocaleTimeString("es-CO", {
     hour: "2-digit",
     minute: "2-digit",
@@ -133,17 +141,33 @@ export const OrderCardKDS = ({
 
   const renderButtons = () => {
     const reject = (
-      <Btn key="r" label="Rechazar" bg="#ef4444" outline onPress={() => onAccionEstado("cancelled")} />
+      <Btn
+        key="r"
+        label="Rechazar"
+        bg="#ef4444"
+        outline
+        onPress={() => onAccionEstado("cancelled")}
+      />
     );
     const prepare = (
-      <Btn key="p" label="Preparar 🍳" bg="#f97316" onPress={() => onAccionEstado("preparing")} />
+      <Btn
+        key="p"
+        label="Preparar 🍳"
+        bg="#f97316"
+        onPress={() => onAccionEstado("preparing")}
+      />
     );
 
     switch (item.status) {
       case "pending":
         return [
           reject,
-          <Btn key="a" label="Aceptar" bg="#10b981" onPress={() => onAccionEstado("accepted")} />,
+          <Btn
+            key="a"
+            label="Aceptar"
+            bg="#10b981"
+            onPress={() => onAccionEstado("accepted")}
+          />,
         ];
       case "accepted":
         if (isKitchen) return [prepare];
@@ -151,12 +175,22 @@ export const OrderCardKDS = ({
         return [reject];
       case "preparing":
         return [
-          <Btn key="l" label="Pedido listo 🚀" bg="#f59e0b" onPress={() => onAccionEstado("ready")} />,
+          <Btn
+            key="l"
+            label="Pedido listo 🚀"
+            bg="#f59e0b"
+            onPress={() => onAccionEstado("ready")}
+          />,
         ];
       case "ready":
         return [
           !isKitchen && onPrintBill ? (
-            <Btn key="i" label="Imprimir 🖨️" bg="#525252" onPress={onPrintBill} />
+            <Btn
+              key="i"
+              label="Imprimir 🖨️"
+              bg="#525252"
+              onPress={onPrintBill}
+            />
           ) : null,
           <Btn
             key="d"
@@ -183,9 +217,9 @@ export const OrderCardKDS = ({
       style={{
         marginBottom: 14,
         borderRadius: 18,
-        backgroundColor: "#1a1a1a",
+        backgroundColor: C.card,
         borderWidth: 1,
-        borderColor: "#2a2a2a",
+        borderColor: C.line,
         overflow: "hidden",
       }}
     >
@@ -202,8 +236,12 @@ export const OrderCardKDS = ({
           }}
         >
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <InfoChip icon={kindInfo.icon} label={kindLabel} color={kindInfo.color} />
-            <Text style={{ color: "#737373", fontSize: 12, fontWeight: "700" }}>
+            <InfoChip
+              icon={kindInfo.icon}
+              label={kindLabel}
+              color={kindInfo.color}
+            />
+            <Text style={{ color: C.muted, fontSize: 14, fontWeight: "700" }}>
               #{String(item.id).slice(0, 6).toUpperCase()}
             </Text>
           </View>
@@ -221,12 +259,14 @@ export const OrderCardKDS = ({
               }}
             >
               <Ionicons name="time-outline" size={12} color={urg.color} />
-              <Text style={{ color: urg.color, fontSize: 11, fontWeight: "800" }}>
+              <Text
+                style={{ color: urg.color, fontSize: 13, fontWeight: "800" }}
+              >
                 {minutosEnEspera} min · {urg.label}
               </Text>
             </View>
           ) : (
-            <Text style={{ color: "#737373", fontSize: 12 }}>{clock}</Text>
+            <Text style={{ color: C.muted, fontSize: 14 }}>{clock}</Text>
           )}
         </View>
 
@@ -240,11 +280,14 @@ export const OrderCardKDS = ({
           }}
         >
           <View style={{ flex: 1 }}>
-            <Text style={{ color: "#fff", fontSize: 17, fontWeight: "800" }} numberOfLines={1}>
+            <Text
+              style={{ color: C.text, fontSize: 19, fontWeight: "800" }}
+              numberOfLines={1}
+            >
               {item.customer_name}
             </Text>
             {!!item.customer_phone && (
-              <Text style={{ color: "#737373", fontSize: 12, marginTop: 1 }}>
+              <Text style={{ color: C.muted, fontSize: 14, marginTop: 1 }}>
                 {item.customer_phone}
               </Text>
             )}
@@ -268,9 +311,18 @@ export const OrderCardKDS = ({
 
         {/* Dirección */}
         {!!address && (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 8 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 6,
+              marginBottom: 8,
+            }}
+          >
             <Ionicons name="location-outline" size={14} color="#a855f7" />
-            <Text style={{ color: "#a3a3a3", fontSize: 12, flex: 1 }}>{address}</Text>
+            <Text style={{ color: C.soft, fontSize: 14, flex: 1 }}>
+              {address}
+            </Text>
           </View>
         )}
 
@@ -288,8 +340,12 @@ export const OrderCardKDS = ({
               marginBottom: 8,
             }}
           >
-            <Ionicons name="chatbubble-ellipses-outline" size={14} color="#f59e0b" />
-            <Text style={{ color: "#fbbf24", fontSize: 12, flex: 1 }}>
+            <Ionicons
+              name="chatbubble-ellipses-outline"
+              size={14}
+              color="#f59e0b"
+            />
+            <Text style={{ color: C.warnText, fontSize: 14, flex: 1 }}>
               {parsed.userNote}
             </Text>
           </View>
@@ -308,7 +364,12 @@ export const OrderCardKDS = ({
           {item.order_items.map((d) => (
             <View
               key={d.id}
-              style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 4 }}
+              style={{
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 10,
+                paddingVertical: 4,
+              }}
             >
               <View
                 style={{
@@ -320,15 +381,24 @@ export const OrderCardKDS = ({
                   alignItems: "center",
                 }}
               >
-                <Text style={{ color: "#ff5722", fontWeight: "900", fontSize: 13 }}>
+                <Text
+                  style={{ color: "#ff5722", fontWeight: "900", fontSize: 15 }}
+                >
                   {d.quantity}x
                 </Text>
               </View>
-              <Text style={{ flex: 1, color: "#fff", fontSize: 14, fontWeight: "600" }}>
+              <Text
+                style={{
+                  flex: 1,
+                  color: C.text,
+                  fontSize: 16,
+                  fontWeight: "600",
+                }}
+              >
                 {d.products?.name || d.recipes?.name || "Producto"}
               </Text>
               {!isKitchen && (
-                <Text style={{ color: "#737373", fontSize: 12 }}>
+                <Text style={{ color: C.muted, fontSize: 14 }}>
                   {priceFormat(d.price_at_time * d.quantity)}
                 </Text>
               )}
@@ -347,16 +417,23 @@ export const OrderCardKDS = ({
             }}
           >
             <View>
-              <Text style={{ color: "#737373", fontSize: 10, fontWeight: "700", textTransform: "uppercase" }}>
+              <Text
+                style={{
+                  color: C.muted,
+                  fontSize: 12,
+                  fontWeight: "700",
+                  textTransform: "uppercase",
+                }}
+              >
                 Total
               </Text>
               {parsed.paid && (
-                <Text style={{ color: "#737373", fontSize: 11 }}>
+                <Text style={{ color: C.muted, fontSize: 13 }}>
                   Paga {parsed.paid} · Cambio {parsed.change}
                 </Text>
               )}
             </View>
-            <Text style={{ color: "#fff", fontSize: 22, fontWeight: "900" }}>
+            <Text style={{ color: C.text, fontSize: 24, fontWeight: "900" }}>
               {priceFormat(Number(item.total_price))}
             </Text>
           </View>
@@ -364,7 +441,13 @@ export const OrderCardKDS = ({
 
         {/* Acciones */}
         {buttons.length > 0 && (
-          <View style={{ flexDirection: "row", gap: 8, marginTop: isKitchen ? 8 : 0 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              gap: 8,
+              marginTop: isKitchen ? 8 : 0,
+            }}
+          >
             {buttons}
           </View>
         )}

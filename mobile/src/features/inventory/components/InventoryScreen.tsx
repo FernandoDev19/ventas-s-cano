@@ -1,3 +1,4 @@
+// @theme-migrated
 import Button from "@/src/shared/components/ui/Button";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -14,6 +15,7 @@ import EditProductModal from "./EditProductModal";
 import HeaderTabs from "@/src/shared/components/HeaderTabs";
 import ProductsInventoryHeader from "./ProductsInventoryHeader";
 import InventoryItemCard from "./InventoryItemCard";
+import { C } from "@/src/core/theme/palette";
 
 type Props = {
   activeTab: "productos" | "recetas";
@@ -48,10 +50,10 @@ export default function InventoryScreen({ activeTab, onChangeTab }: Props) {
     return (
       <View
         className="flex-1 items-center justify-center"
-        style={{ backgroundColor: "#0f0f0f" }}
+        style={{ backgroundColor: C.bg }}
       >
         <ActivityIndicator size="large" color="#ff5722" />
-        <Text className="text-neutral-500 mt-3 text-sm">
+        <Text className="text-neutral-500 mt-3 text-base">
           Cargando inventario...
         </Text>
       </View>
@@ -59,7 +61,7 @@ export default function InventoryScreen({ activeTab, onChangeTab }: Props) {
   }
 
   return (
-    <View className="flex-1 bg-background">
+    <View className="flex-1 bg-[#f2f2f4] dark:bg-background">
       <HeaderTabs
         tabs={["productos", "recetas"]}
         activeTab={activeTab}
@@ -105,14 +107,14 @@ export default function InventoryScreen({ activeTab, onChangeTab }: Props) {
           <View className="items-center justify-center py-20 px-8">
             <View
               className="w-20 h-20 rounded-full items-center justify-center mb-4"
-              style={{ backgroundColor: "#1a1a1a" }}
+              style={{ backgroundColor: C.card }}
             >
               <Ionicons name="cube-outline" size={36} color="#444" />
             </View>
-            <Text className="text-white font-bold text-lg text-center mb-1">
+            <Text className="text-neutral-900 dark:text-white font-bold text-xl text-center mb-1">
               Sin productos
             </Text>
-            <Text className="text-neutral-500 text-sm text-center">
+            <Text className="text-neutral-500 text-base text-center">
               {searchQuery
                 ? `No se encontraron resultados para "${searchQuery}"`
                 : "No hay productos en el inventario"}
@@ -125,7 +127,7 @@ export default function InventoryScreen({ activeTab, onChangeTab }: Props) {
 
       {/* FAB */}
       <Button onPress={() => setShowCreate(true)} circle>
-        <Ionicons name="add" size={28} color="#fff" />
+        <Ionicons name="add" size={28} color={C.text} />
       </Button>
 
       <CreateProductModal

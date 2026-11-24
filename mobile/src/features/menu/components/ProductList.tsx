@@ -1,3 +1,4 @@
+// @theme-migrated
 import {
   ActivityIndicator,
   FlatList,
@@ -10,6 +11,7 @@ import MenuHeader from "./MenuHeader";
 import MenuProductCard from "./MenuProductCard";
 import { useProductList } from "../hooks/useProductList";
 import CartModal from "./cart/CartModal";
+import { C } from "@/src/core/theme/palette";
 
 type Props = {
   categories: Partial<CategoryType>[];
@@ -36,7 +38,7 @@ const ProductList = ({ categories, filter, setFilter }: Props) => {
           flex: 1,
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: "#0f0f0f",
+          backgroundColor: C.bg,
         }}
       >
         <ActivityIndicator size="large" color="#ff5722" />
@@ -81,7 +83,7 @@ const ProductList = ({ categories, filter, setFilter }: Props) => {
           columnWrapperStyle={{ gap: 16 }}
           ListEmptyComponent={
             <View className="flex-1 items-center justify-center">
-              <Text className="text-white text-center w-full text-2xl">
+              <Text className="text-neutral-900 dark:text-white text-center w-full text-2xl">
                 No hay productos
               </Text>
             </View>

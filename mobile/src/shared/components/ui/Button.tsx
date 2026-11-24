@@ -1,3 +1,4 @@
+// @theme-migrated
 import "../../../global.css";
 import { Pressable, Text } from "react-native";
 
@@ -39,7 +40,7 @@ export default function Button({
         outline:
             "bg-transparent border border-neutral-light active:bg-neutral-light",
         danger: "bg-danger active:bg-danger-light",
-        filter: `${active ? "bg-primary" : "bg-neutral-800 border border-primary"} !rounded-full w-max`,
+        filter: `${active ? "bg-primary" : "bg-neutral-200 dark:bg-neutral-800 border border-primary"} !rounded-full w-max`,
     };
 
     return (
@@ -56,9 +57,9 @@ export default function Button({
 
                 return (
                     <Text
-                        className={`text-xl font-black text-center text-nowrap ${
+                        className={`text-2xl font-black text-center text-nowrap ${
                             isWhiteText
-                                ? "text-white"
+                                ? "text-neutral-900 dark:text-white"
                                 : "text-primary opacity-70"
                         }`}
                     >

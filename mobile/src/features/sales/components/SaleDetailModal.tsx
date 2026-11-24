@@ -1,3 +1,4 @@
+// @theme-migrated
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -33,6 +34,7 @@ import {
 } from "@/src/shared/helpers/whatsapp.helper";
 import { getPaymentInfo } from "@/src/shared/helpers/sale-note.helper";
 import ClientPicker from "../../clients/components/ClientPicker";
+import { C } from "@/src/core/theme/palette";
 
 type SaleDetailModalProps = {
   visible: boolean;
@@ -183,26 +185,44 @@ export default function SaleDetailModal({
   const startEditing = async () => {
     if (!sale) return;
 
-    // Mapear productos y recetas al tipo unificado EditableItem
-    const mappedProducts: EditableItem[] = sale.products.map((p) => ({
-      item_id: p.product_id,
-      item_name: p.product_name,
-      item_image: p.product_image,
-      quantity: p.quantity,
-      price: p.price, // precio total del item (quantity * unitPrice)
-      is_recipe: false,
-    }));
+    // Mapear y consolidar productos y recetas al tipo unificado EditableItem
+    const productsMap = new Map<string, EditableItem>();
+    for (const p of sale.products || []) {
+      const existing = productsMap.get(p.product_id);
+      if (existing) {
+        existing.quantity += p.quantity;
+        existing.price += p.price;
+      } else {
+        productsMap.set(p.product_id, {
+          item_id: p.product_id,
+          item_name: p.product_name,
+          item_image: p.product_image,
+          quantity: p.quantity,
+          price: p.price,
+          is_recipe: false,
+        });
+      }
+    }
 
-    const mappedRecipes: EditableItem[] = sale.recipes.map((r) => ({
-      item_id: r.recipe_id,
-      item_name: r.recipe_name,
-      item_image: r.recipe_image,
-      quantity: r.quantity,
-      price: r.price, // precio total del item
-      is_recipe: true,
-    }));
+    const recipesMap = new Map<string, EditableItem>();
+    for (const r of sale.recipes || []) {
+      const existing = recipesMap.get(r.recipe_id);
+      if (existing) {
+        existing.quantity += r.quantity;
+        existing.price += r.price;
+      } else {
+        recipesMap.set(r.recipe_id, {
+          item_id: r.recipe_id,
+          item_name: r.recipe_name,
+          item_image: r.recipe_image,
+          quantity: r.quantity,
+          price: r.price,
+          is_recipe: true,
+        });
+      }
+    }
 
-    setEditedItems([...mappedProducts, ...mappedRecipes]);
+    setEditedItems([...productsMap.values(), ...recipesMap.values()]);
     setEditedNote(sale.note || "");
     setEditedIsDebt(sale.is_debt || false);
     setEditedDebtAmount(sale.debt_amount || 0);
@@ -485,7 +505,7 @@ export default function SaleDetailModal({
         >
           <View
             style={{
-              backgroundColor: "#141414",
+              backgroundColor: C.sheet,
               borderTopLeftRadius: 28,
               borderTopRightRadius: 28,
               padding: 24,
@@ -512,11 +532,11 @@ export default function SaleDetailModal({
                     paddingHorizontal: 14,
                     paddingVertical: 8,
                     borderRadius: 20,
-                    backgroundColor: isProductMode ? "#ff5722" : "#2a2a2a",
+                    backgroundColor: isProductMode ? "#ff5722" : C.line,
                   }}
                 >
                   <Text
-                    style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}
+                    style={{ color: C.text, fontWeight: "700", fontSize: 15 }}
                   >
                     Productos
                   </Text>
@@ -530,11 +550,11 @@ export default function SaleDetailModal({
                     paddingHorizontal: 14,
                     paddingVertical: 8,
                     borderRadius: 20,
-                    backgroundColor: !isProductMode ? "#ff5722" : "#2a2a2a",
+                    backgroundColor: !isProductMode ? "#ff5722" : C.line,
                   }}
                 >
                   <Text
-                    style={{ color: "#fff", fontWeight: "700", fontSize: 13 }}
+                    style={{ color: C.text, fontWeight: "700", fontSize: 15 }}
                   >
                     🍽 Recetas
                   </Text>
@@ -543,12 +563,12 @@ export default function SaleDetailModal({
               <Pressable
                 onPress={() => setSelectorMode(null)}
                 style={{
-                  backgroundColor: "#2a2a2a",
+                  backgroundColor: C.line,
                   borderRadius: 20,
                   padding: 8,
                 }}
               >
-                <Ionicons name="close" size={18} color="#fff" />
+                <Ionicons name="close" size={18} color={C.text} />
               </Pressable>
             </View>
 
@@ -557,18 +577,18 @@ export default function SaleDetailModal({
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                backgroundColor: "#1a1a1a",
+                backgroundColor: C.card,
                 borderRadius: 12,
                 paddingHorizontal: 12,
                 borderWidth: 1,
-                borderColor: "#2a2a2a",
+                borderColor: C.line,
                 marginBottom: 16,
               }}
             >
               <Ionicons
                 name="search-outline"
                 size={18}
-                color="#737373"
+                color={C.muted}
                 style={{ marginRight: 8 }}
               />
               <TextInput
@@ -577,11 +597,11 @@ export default function SaleDetailModal({
                 placeholder={
                   isProductMode ? "Buscar producto..." : "Buscar receta..."
                 }
-                placeholderTextColor="#555"
+                placeholderTextColor={C.faint}
                 style={{
                   flex: 1,
-                  color: "#fff",
-                  fontSize: 14,
+                  color: C.text,
+                  fontSize: 16,
                   paddingVertical: 10,
                 }}
               />
@@ -613,9 +633,9 @@ export default function SaleDetailModal({
                       padding: 12,
                       borderRadius: 14,
                       marginBottom: 8,
-                      backgroundColor: "#1a1a1a",
+                      backgroundColor: C.card,
                       borderWidth: 1,
-                      borderColor: inCart ? "#ff5722" : "#2a2a2a",
+                      borderColor: inCart ? "#ff5722" : C.line,
                       flexDirection: "row",
                       alignItems: "center",
                       gap: 12,
@@ -633,15 +653,15 @@ export default function SaleDetailModal({
                     <View style={{ flex: 1 }}>
                       <Text
                         style={{
-                          color: "#fff",
+                          color: C.text,
                           fontWeight: "600",
-                          fontSize: 14,
+                          fontSize: 16,
                         }}
                       >
                         {name}
                       </Text>
                       <Text
-                        style={{ color: "#737373", fontSize: 12, marginTop: 2 }}
+                        style={{ color: C.muted, fontSize: 14, marginTop: 2 }}
                       >
                         {priceFormat(price)}
                         {stock !== null ? ` · Stock: ${stock}` : ""}
@@ -659,7 +679,7 @@ export default function SaleDetailModal({
                           style={{
                             color: "#ff5722",
                             fontWeight: "800",
-                            fontSize: 13,
+                            fontSize: 15,
                           }}
                         >
                           ×{inCart.quantity}
@@ -670,7 +690,7 @@ export default function SaleDetailModal({
                       <Ionicons
                         name="add-circle-outline"
                         size={24}
-                        color="#737373"
+                        color={C.muted}
                       />
                     )}
                   </Pressable>
@@ -678,7 +698,7 @@ export default function SaleDetailModal({
               }}
               ListEmptyComponent={
                 <Text
-                  style={{ color: "#555", textAlign: "center", marginTop: 20 }}
+                  style={{ color: C.faint, textAlign: "center", marginTop: 20 }}
                 >
                   No se encontraron {isProductMode ? "productos" : "recetas"}
                 </Text>
@@ -706,7 +726,7 @@ export default function SaleDetailModal({
       >
         <View
           style={{
-            backgroundColor: "#141414",
+            backgroundColor: C.sheet,
             borderTopLeftRadius: 28,
             borderTopRightRadius: 28,
             padding: 24,
@@ -727,7 +747,7 @@ export default function SaleDetailModal({
               <Text
                 style={{
                   color: "#ff5722",
-                  fontSize: 11,
+                  fontSize: 13,
                   fontWeight: "700",
                   textTransform: "uppercase",
                   letterSpacing: 1,
@@ -742,7 +762,7 @@ export default function SaleDetailModal({
                 }}
               >
                 <Text
-                  style={{ color: "#fff", fontSize: 20, fontWeight: "800" }}
+                  style={{ color: C.text, fontSize: 22, fontWeight: "800" }}
                 >
                   {saleId ? `#${String(saleId).slice(0, 8)}...` : ""}
                 </Text>
@@ -754,7 +774,7 @@ export default function SaleDetailModal({
                   <Pressable
                     onPress={startEditing}
                     style={{
-                      backgroundColor: "#1a1a1a",
+                      backgroundColor: C.card,
                       borderRadius: 20,
                       padding: 10,
                       borderWidth: 1,
@@ -767,11 +787,11 @@ export default function SaleDetailModal({
                     onPress={handleDeletePress}
                     disabled={isDeleting}
                     style={{
-                      backgroundColor: "#2a0a0a",
+                      backgroundColor: C.dangerBg,
                       borderRadius: 20,
                       padding: 10,
                       borderWidth: 1,
-                      borderColor: "#5a1a1a",
+                      borderColor: C.dangerLine,
                     }}
                   >
                     {isDeleting ? (
@@ -789,12 +809,12 @@ export default function SaleDetailModal({
               <Pressable
                 onPress={isEditing ? cancelEditing : onClose}
                 style={{
-                  backgroundColor: "#2a2a2a",
+                  backgroundColor: C.line,
                   borderRadius: 20,
                   padding: 10,
                 }}
               >
-                <Ionicons name="close" size={20} color="#fff" />
+                <Ionicons name="close" size={20} color={C.text} />
               </Pressable>
             </View>
           </View>
@@ -802,13 +822,13 @@ export default function SaleDetailModal({
           {isLoading ? (
             <View style={{ paddingVertical: 60, alignItems: "center" }}>
               <ActivityIndicator size="large" color="#ff5722" />
-              <Text style={{ color: "#737373", marginTop: 12, fontSize: 13 }}>
+              <Text style={{ color: C.muted, marginTop: 12, fontSize: 15 }}>
                 Cargando...
               </Text>
             </View>
           ) : sale ? (
             <ScrollView
-            keyboardShouldPersistTaps="handled"
+              keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
               style={{ marginBottom: 12 }}
             >
@@ -825,8 +845,8 @@ export default function SaleDetailModal({
                   >
                     <Text
                       style={{
-                        color: "#737373",
-                        fontSize: 11,
+                        color: C.muted,
+                        fontSize: 13,
                         textTransform: "uppercase",
                         letterSpacing: 1,
                       }}
@@ -858,7 +878,7 @@ export default function SaleDetailModal({
                         <Text
                           style={{
                             color: "#ff5722",
-                            fontSize: 12,
+                            fontSize: 14,
                             fontWeight: "700",
                           }}
                         >
@@ -888,7 +908,7 @@ export default function SaleDetailModal({
                         <Text
                           style={{
                             color: "#ff5722",
-                            fontSize: 12,
+                            fontSize: 14,
                             fontWeight: "700",
                           }}
                         >
@@ -900,16 +920,16 @@ export default function SaleDetailModal({
 
                   {/* Lista unificada de ítems editables */}
                   <View style={{ gap: 8, marginBottom: 16 }}>
-                    {editedItems.map((item) => (
+                    {editedItems.map((item, idx) => (
                       <View
-                        key={`${item.is_recipe ? "r" : "p"}-${item.item_id}`}
+                        key={`${item.is_recipe ? "r" : "p"}-${item.item_id}-${idx}`}
                         style={{
                           flexDirection: "row",
-                          backgroundColor: "#1a1a1a",
+                          backgroundColor: C.card,
                           borderRadius: 14,
                           padding: 10,
                           borderWidth: 1,
-                          borderColor: item.is_recipe ? "#ff572244" : "#2a2a2a",
+                          borderColor: item.is_recipe ? "#ff572244" : C.line,
                           alignItems: "center",
                         }}
                       >
@@ -947,7 +967,7 @@ export default function SaleDetailModal({
                                 <Text
                                   style={{
                                     color: "#ff5722",
-                                    fontSize: 9,
+                                    fontSize: 11,
                                     fontWeight: "800",
                                   }}
                                 >
@@ -957,8 +977,8 @@ export default function SaleDetailModal({
                             )}
                             <Text
                               style={{
-                                color: "#fff",
-                                fontSize: 14,
+                                color: C.text,
+                                fontSize: 16,
                                 fontWeight: "600",
                                 flex: 1,
                               }}
@@ -969,8 +989,8 @@ export default function SaleDetailModal({
                           </View>
                           <Text
                             style={{
-                              color: "#737373",
-                              fontSize: 11,
+                              color: C.muted,
+                              fontSize: 13,
                               marginTop: 2,
                             }}
                           >
@@ -982,7 +1002,7 @@ export default function SaleDetailModal({
                           style={{
                             flexDirection: "row",
                             alignItems: "center",
-                            backgroundColor: "#0f0f0f",
+                            backgroundColor: C.bg,
                             borderRadius: 10,
                             padding: 4,
                             gap: 10,
@@ -998,14 +1018,14 @@ export default function SaleDetailModal({
                             <Ionicons
                               name="remove-circle-outline"
                               size={20}
-                              color="#fff"
+                              color={C.text}
                             />
                           </Pressable>
                           <Text
                             style={{
-                              color: "#fff",
+                              color: C.text,
                               fontWeight: "800",
-                              fontSize: 13,
+                              fontSize: 15,
                               minWidth: 16,
                               textAlign: "center",
                             }}
@@ -1021,7 +1041,7 @@ export default function SaleDetailModal({
                             <Ionicons
                               name="add-circle-outline"
                               size={20}
-                              color="#fff"
+                              color={C.text}
                             />
                           </Pressable>
                         </View>
@@ -1042,12 +1062,12 @@ export default function SaleDetailModal({
                     {editedItems.length === 0 && (
                       <View
                         style={{
-                          backgroundColor: "#1a1a1a",
+                          backgroundColor: C.card,
                           borderRadius: 14,
                           padding: 20,
                           alignItems: "center",
                           borderWidth: 1,
-                          borderColor: "#2a2a2a",
+                          borderColor: C.line,
                           borderStyle: "dashed",
                         }}
                       >
@@ -1057,7 +1077,7 @@ export default function SaleDetailModal({
                           color="#444"
                         />
                         <Text
-                          style={{ color: "#555", fontSize: 12, marginTop: 8 }}
+                          style={{ color: C.faint, fontSize: 14, marginTop: 8 }}
                         >
                           Sin ítems. Agrega productos o recetas.
                         </Text>
@@ -1068,8 +1088,8 @@ export default function SaleDetailModal({
                   {/* Tipo de Pago */}
                   <Text
                     style={{
-                      color: "#737373",
-                      fontSize: 11,
+                      color: C.muted,
+                      fontSize: 13,
                       textTransform: "uppercase",
                       letterSpacing: 1,
                       marginBottom: 8,
@@ -1097,20 +1117,18 @@ export default function SaleDetailModal({
                           borderRadius: 12,
                           alignItems: "center",
                           backgroundColor:
-                            editedIsDebt === opt.value
-                              ? "#ff572222"
-                              : "#1a1a1a",
+                            editedIsDebt === opt.value ? "#ff572222" : C.card,
                           borderWidth: 1,
                           borderColor:
-                            editedIsDebt === opt.value ? "#ff5722" : "#2a2a2a",
+                            editedIsDebt === opt.value ? "#ff5722" : C.line,
                         }}
                       >
                         <Text
                           style={{
                             color:
-                              editedIsDebt === opt.value ? "#fff" : "#737373",
+                              editedIsDebt === opt.value ? "#fff" : C.muted,
                             fontWeight: "700",
-                            fontSize: 13,
+                            fontSize: 15,
                           }}
                         >
                           {opt.label}
@@ -1123,8 +1141,8 @@ export default function SaleDetailModal({
                     <>
                       <Text
                         style={{
-                          color: "#737373",
-                          fontSize: 11,
+                          color: C.muted,
+                          fontSize: 13,
                           textTransform: "uppercase",
                           letterSpacing: 1,
                           marginBottom: 8,
@@ -1153,23 +1171,21 @@ export default function SaleDetailModal({
                                 paddingHorizontal: 14,
                                 paddingVertical: 10,
                                 borderRadius: 12,
-                                backgroundColor: active
-                                  ? "#ff572222"
-                                  : "#1a1a1a",
+                                backgroundColor: active ? "#ff572222" : C.card,
                                 borderWidth: 1,
-                                borderColor: active ? "#ff5722" : "#2a2a2a",
+                                borderColor: active ? "#ff5722" : C.line,
                               }}
                             >
                               <Ionicons
                                 name={o.icon}
                                 size={16}
-                                color={active ? "#ff5722" : "#737373"}
+                                color={active ? "#ff5722" : C.muted}
                               />
                               <Text
                                 style={{
-                                  color: active ? "#fff" : "#737373",
+                                  color: active ? "#fff" : C.muted,
                                   fontWeight: "700",
-                                  fontSize: 13,
+                                  fontSize: 15,
                                 }}
                               >
                                 {o.label}
@@ -1185,8 +1201,8 @@ export default function SaleDetailModal({
                     <>
                       <Text
                         style={{
-                          color: "#737373",
-                          fontSize: 11,
+                          color: C.muted,
+                          fontSize: 13,
                           textTransform: "uppercase",
                           letterSpacing: 1,
                           marginBottom: 8,
@@ -1204,20 +1220,20 @@ export default function SaleDetailModal({
                           );
                         }}
                         style={{
-                          backgroundColor: "#1a1a1a",
-                          borderColor: "#2a2a2a",
+                          backgroundColor: C.card,
+                          borderColor: C.line,
                           borderWidth: 1,
                           borderRadius: 12,
                           padding: 12,
-                          color: "#fff",
-                          fontSize: 14,
+                          color: C.text,
+                          fontSize: 16,
                           marginBottom: 16,
                         }}
                       />
                       <Text
                         style={{
-                          color: "#737373",
-                          fontSize: 11,
+                          color: C.muted,
+                          fontSize: 13,
                           textTransform: "uppercase",
                           letterSpacing: 1,
                           marginBottom: 8,
@@ -1229,10 +1245,10 @@ export default function SaleDetailModal({
                         onPress={() => setShowDatePicker(true)}
                         style={{
                           height: 56,
-                          backgroundColor: "#1a1a1a",
+                          backgroundColor: C.card,
                           borderRadius: 12,
                           borderWidth: 1,
-                          borderColor: "#2a2a2a",
+                          borderColor: C.line,
                           paddingHorizontal: 16,
                           flexDirection: "row",
                           alignItems: "center",
@@ -1242,8 +1258,8 @@ export default function SaleDetailModal({
                       >
                         <Text
                           style={{
-                            color: "#fff",
-                            fontSize: 14,
+                            color: C.text,
+                            fontSize: 16,
                             fontWeight: "700",
                           }}
                         >
@@ -1276,8 +1292,8 @@ export default function SaleDetailModal({
                   {/* Cliente */}
                   <Text
                     style={{
-                      color: "#737373",
-                      fontSize: 11,
+                      color: C.muted,
+                      fontSize: 13,
                       textTransform: "uppercase",
                       letterSpacing: 1,
                       marginBottom: 8,
@@ -1296,8 +1312,8 @@ export default function SaleDetailModal({
                   {/* Nota */}
                   <Text
                     style={{
-                      color: "#737373",
-                      fontSize: 11,
+                      color: C.muted,
+                      fontSize: 13,
                       textTransform: "uppercase",
                       letterSpacing: 1,
                       marginBottom: 8,
@@ -1309,17 +1325,17 @@ export default function SaleDetailModal({
                     value={editedNote}
                     onChangeText={setEditedNote}
                     placeholder="Nota descriptiva..."
-                    placeholderTextColor="#555"
+                    placeholderTextColor={C.faint}
                     multiline
                     numberOfLines={3}
                     style={{
-                      backgroundColor: "#1a1a1a",
-                      borderColor: "#2a2a2a",
+                      backgroundColor: C.card,
+                      borderColor: C.line,
                       borderWidth: 1,
                       borderRadius: 14,
                       padding: 12,
-                      color: "#fff",
-                      fontSize: 14,
+                      color: C.text,
+                      fontSize: 16,
                       minHeight: 60,
                       textAlignVertical: "top",
                       marginBottom: 20,
@@ -1329,11 +1345,11 @@ export default function SaleDetailModal({
                   {/* Total */}
                   <View
                     style={{
-                      backgroundColor: "#1a1a1a",
+                      backgroundColor: C.card,
                       borderRadius: 16,
                       padding: 16,
                       borderWidth: 1,
-                      borderColor: "#2a2a2a",
+                      borderColor: C.line,
                       marginBottom: 24,
                     }}
                   >
@@ -1346,8 +1362,8 @@ export default function SaleDetailModal({
                     >
                       <Text
                         style={{
-                          color: "#a3a3a3",
-                          fontSize: 14,
+                          color: C.soft,
+                          fontSize: 16,
                           fontWeight: "600",
                         }}
                       >
@@ -1355,8 +1371,8 @@ export default function SaleDetailModal({
                       </Text>
                       <Text
                         style={{
-                          color: "#fff",
-                          fontSize: 22,
+                          color: C.text,
+                          fontSize: 24,
                           fontWeight: "800",
                         }}
                       >
@@ -1371,7 +1387,7 @@ export default function SaleDetailModal({
                       onPress={cancelEditing}
                       style={{
                         flex: 1,
-                        backgroundColor: "#2a2a2a",
+                        backgroundColor: C.line,
                         paddingVertical: 16,
                         borderRadius: 16,
                         alignItems: "center",
@@ -1379,8 +1395,8 @@ export default function SaleDetailModal({
                     >
                       <Text
                         style={{
-                          color: "#fff",
-                          fontSize: 15,
+                          color: C.text,
+                          fontSize: 17,
                           fontWeight: "700",
                         }}
                       >
@@ -1400,7 +1416,7 @@ export default function SaleDetailModal({
                       <Text
                         style={{
                           color: "#fff",
-                          fontSize: 15,
+                          fontSize: 17,
                           fontWeight: "800",
                         }}
                       >
@@ -1414,11 +1430,11 @@ export default function SaleDetailModal({
                   {/* ── VIEW MODE ── */}
                   <View
                     style={{
-                      backgroundColor: "#1a1a1a",
+                      backgroundColor: C.card,
                       borderRadius: 16,
                       padding: 16,
                       borderWidth: 1,
-                      borderColor: "#2a2a2a",
+                      borderColor: C.line,
                       marginBottom: 16,
                     }}
                   >
@@ -1430,16 +1446,16 @@ export default function SaleDetailModal({
                           marginBottom: 10,
                           paddingBottom: 10,
                           borderBottomWidth: 1,
-                          borderBottomColor: "#2a2a2a",
+                          borderBottomColor: C.line,
                         }}
                       >
-                        <Text style={{ color: "#737373", fontSize: 12 }}>
+                        <Text style={{ color: C.muted, fontSize: 14 }}>
                           Cliente
                         </Text>
                         <Text
                           style={{
-                            color: "#fff",
-                            fontSize: 13,
+                            color: C.text,
+                            fontSize: 15,
                             fontWeight: "700",
                           }}
                         >
@@ -1454,7 +1470,7 @@ export default function SaleDetailModal({
                         marginBottom: 10,
                       }}
                     >
-                      <Text style={{ color: "#737373", fontSize: 12 }}>
+                      <Text style={{ color: C.muted, fontSize: 14 }}>
                         Estado
                       </Text>
                       <View
@@ -1494,7 +1510,7 @@ export default function SaleDetailModal({
                                 : sale.is_debt
                                   ? "#f59e0b"
                                   : "#22c55e",
-                            fontSize: 11,
+                            fontSize: 13,
                             fontWeight: "700",
                           }}
                         >
@@ -1513,13 +1529,11 @@ export default function SaleDetailModal({
                         marginBottom: 10,
                       }}
                     >
-                      <Text style={{ color: "#737373", fontSize: 12 }}>
-                        Pago
-                      </Text>
+                      <Text style={{ color: C.muted, fontSize: 14 }}>Pago</Text>
                       <Text
                         style={{
-                          color: "#fff",
-                          fontSize: 13,
+                          color: C.text,
+                          fontSize: 15,
                           fontWeight: "600",
                         }}
                       >
@@ -1533,13 +1547,13 @@ export default function SaleDetailModal({
                         marginBottom: 10,
                       }}
                     >
-                      <Text style={{ color: "#737373", fontSize: 12 }}>
+                      <Text style={{ color: C.muted, fontSize: 14 }}>
                         Fecha
                       </Text>
                       <Text
                         style={{
-                          color: "#fff",
-                          fontSize: 13,
+                          color: C.text,
+                          fontSize: 15,
                           fontWeight: "600",
                         }}
                       >
@@ -1562,13 +1576,11 @@ export default function SaleDetailModal({
                         marginBottom: 10,
                       }}
                     >
-                      <Text style={{ color: "#737373", fontSize: 12 }}>
-                        Hora
-                      </Text>
+                      <Text style={{ color: C.muted, fontSize: 14 }}>Hora</Text>
                       <Text
                         style={{
-                          color: "#fff",
-                          fontSize: 13,
+                          color: C.text,
+                          fontSize: 15,
                           fontWeight: "600",
                         }}
                       >
@@ -1592,16 +1604,16 @@ export default function SaleDetailModal({
                           marginTop: 4,
                           paddingTop: 8,
                           borderTopWidth: 1,
-                          borderTopColor: "#2a2a2a",
+                          borderTopColor: C.line,
                         }}
                       >
-                        <Text style={{ color: "#f59e0b", fontSize: 12 }}>
+                        <Text style={{ color: "#f59e0b", fontSize: 14 }}>
                           Vence
                         </Text>
                         <Text
                           style={{
                             color: "#f59e0b",
-                            fontSize: 13,
+                            fontSize: 15,
                             fontWeight: "700",
                           }}
                         >
@@ -1617,8 +1629,8 @@ export default function SaleDetailModal({
                   {/* Productos */}
                   <Text
                     style={{
-                      color: "#737373",
-                      fontSize: 11,
+                      color: C.muted,
+                      fontSize: 13,
                       textTransform: "uppercase",
                       letterSpacing: 1,
                       marginBottom: 8,
@@ -1627,16 +1639,16 @@ export default function SaleDetailModal({
                     Productos Vendidos
                   </Text>
                   <View style={{ gap: 8, marginBottom: 16 }}>
-                    {sale.products?.map((item) => (
+                    {sale.products?.map((item, idx) => (
                       <View
-                        key={item.id}
+                        key={item.id ? `${item.id}-${idx}` : `p-${item.product_id}-${idx}`}
                         style={{
                           flexDirection: "row",
-                          backgroundColor: "#1a1a1a",
+                          backgroundColor: C.card,
                           borderRadius: 14,
                           padding: 10,
                           borderWidth: 1,
-                          borderColor: "#2a2a2a",
+                          borderColor: C.line,
                           alignItems: "center",
                         }}
                       >
@@ -1657,8 +1669,8 @@ export default function SaleDetailModal({
                         <View style={{ flex: 1, marginRight: 8 }}>
                           <Text
                             style={{
-                              color: "#fff",
-                              fontSize: 14,
+                              color: C.text,
+                              fontSize: 16,
                               fontWeight: "600",
                             }}
                             numberOfLines={1}
@@ -1667,8 +1679,8 @@ export default function SaleDetailModal({
                           </Text>
                           <Text
                             style={{
-                              color: "#737373",
-                              fontSize: 11,
+                              color: C.muted,
+                              fontSize: 13,
                               marginTop: 2,
                             }}
                           >
@@ -1677,8 +1689,8 @@ export default function SaleDetailModal({
                         </View>
                         <Text
                           style={{
-                            color: "#fff",
-                            fontSize: 14,
+                            color: C.text,
+                            fontSize: 16,
                             fontWeight: "700",
                           }}
                         >
@@ -1693,8 +1705,8 @@ export default function SaleDetailModal({
                     <>
                       <Text
                         style={{
-                          color: "#737373",
-                          fontSize: 11,
+                          color: C.muted,
+                          fontSize: 13,
                           textTransform: "uppercase",
                           letterSpacing: 1,
                           marginBottom: 8,
@@ -1703,12 +1715,12 @@ export default function SaleDetailModal({
                         Recetas Vendidas
                       </Text>
                       <View style={{ gap: 8, marginBottom: 16 }}>
-                        {sale.recipes.map((item) => (
+                        {sale.recipes.map((item, idx) => (
                           <View
-                            key={item.id}
+                            key={item.id ? `${item.id}-${idx}` : `r-${item.recipe_id}-${idx}`}
                             style={{
                               flexDirection: "row",
-                              backgroundColor: "#1a1a1a",
+                              backgroundColor: C.card,
                               borderRadius: 14,
                               padding: 10,
                               borderWidth: 1,
@@ -1733,8 +1745,8 @@ export default function SaleDetailModal({
                             <View style={{ flex: 1, marginRight: 8 }}>
                               <Text
                                 style={{
-                                  color: "#fff",
-                                  fontSize: 14,
+                                  color: C.text,
+                                  fontSize: 16,
                                   fontWeight: "600",
                                 }}
                                 numberOfLines={1}
@@ -1743,8 +1755,8 @@ export default function SaleDetailModal({
                               </Text>
                               <Text
                                 style={{
-                                  color: "#737373",
-                                  fontSize: 11,
+                                  color: C.muted,
+                                  fontSize: 13,
                                   marginTop: 2,
                                 }}
                               >
@@ -1754,7 +1766,7 @@ export default function SaleDetailModal({
                             <Text
                               style={{
                                 color: "#ff5722",
-                                fontSize: 14,
+                                fontSize: 16,
                                 fontWeight: "700",
                               }}
                             >
@@ -1769,8 +1781,8 @@ export default function SaleDetailModal({
                   {/* Nota */}
                   <Text
                     style={{
-                      color: "#737373",
-                      fontSize: 11,
+                      color: C.muted,
+                      fontSize: 13,
                       textTransform: "uppercase",
                       letterSpacing: 1,
                       marginBottom: 8,
@@ -1780,18 +1792,18 @@ export default function SaleDetailModal({
                   </Text>
                   <View
                     style={{
-                      backgroundColor: "#1a1a1a",
+                      backgroundColor: C.card,
                       borderRadius: 14,
                       padding: 14,
                       borderWidth: 1,
-                      borderColor: "#2a2a2a",
+                      borderColor: C.line,
                       marginBottom: 20,
                     }}
                   >
                     <Text
                       style={{
-                        color: sale.note ? "#fff" : "#555",
-                        fontSize: 13,
+                        color: sale.note ? "#fff" : C.faint,
+                        fontSize: 15,
                         fontStyle: sale.note ? "normal" : "italic",
                       }}
                     >
@@ -1803,8 +1815,8 @@ export default function SaleDetailModal({
                     <>
                       <Text
                         style={{
-                          color: "#737373",
-                          fontSize: 11,
+                          color: C.muted,
+                          fontSize: 13,
                           textTransform: "uppercase",
                           letterSpacing: 1,
                           marginBottom: 8,
@@ -1814,7 +1826,7 @@ export default function SaleDetailModal({
                       </Text>
                       <View
                         style={{
-                          backgroundColor: "#1a1a1a",
+                          backgroundColor: C.card,
                           borderRadius: 14,
                           padding: 14,
                           borderWidth: 1,
@@ -1822,7 +1834,7 @@ export default function SaleDetailModal({
                           marginBottom: 20,
                         }}
                       >
-                        <Text style={{ color: "#ff5722", fontSize: 13 }}>
+                        <Text style={{ color: "#ff5722", fontSize: 15 }}>
                           {sale.edit_reason}
                         </Text>
                       </View>
@@ -1833,8 +1845,8 @@ export default function SaleDetailModal({
                     <>
                       <Text
                         style={{
-                          color: "#737373",
-                          fontSize: 11,
+                          color: C.muted,
+                          fontSize: 13,
                           textTransform: "uppercase",
                           letterSpacing: 1,
                           marginBottom: 8,
@@ -1844,7 +1856,7 @@ export default function SaleDetailModal({
                       </Text>
                       <View
                         style={{
-                          backgroundColor: "#2a0a0a",
+                          backgroundColor: C.dangerBg,
                           borderRadius: 14,
                           padding: 14,
                           borderWidth: 1,
@@ -1855,7 +1867,7 @@ export default function SaleDetailModal({
                         <Text
                           style={{
                             color: "#ef4444",
-                            fontSize: 13,
+                            fontSize: 15,
                             fontWeight: "600",
                           }}
                         >
@@ -1868,11 +1880,11 @@ export default function SaleDetailModal({
                   {/* Totales */}
                   <View
                     style={{
-                      backgroundColor: "#1a1a1a",
+                      backgroundColor: C.card,
                       borderRadius: 16,
                       padding: 16,
                       borderWidth: 1,
-                      borderColor: "#2a2a2a",
+                      borderColor: C.line,
                       marginBottom: 24,
                     }}
                   >
@@ -1885,8 +1897,8 @@ export default function SaleDetailModal({
                     >
                       <Text
                         style={{
-                          color: "#a3a3a3",
-                          fontSize: 14,
+                          color: C.soft,
+                          fontSize: 16,
                           fontWeight: "600",
                         }}
                       >
@@ -1894,8 +1906,8 @@ export default function SaleDetailModal({
                       </Text>
                       <Text
                         style={{
-                          color: "#fff",
-                          fontSize: 22,
+                          color: C.text,
+                          fontSize: 24,
                           fontWeight: "800",
                         }}
                       >
@@ -1911,13 +1923,13 @@ export default function SaleDetailModal({
                           marginTop: 8,
                           paddingTop: 8,
                           borderTopWidth: 1,
-                          borderTopColor: "#2a2a2a",
+                          borderTopColor: C.line,
                         }}
                       >
                         <Text
                           style={{
                             color: "#f59e0b",
-                            fontSize: 13,
+                            fontSize: 15,
                             fontWeight: "600",
                           }}
                         >
@@ -1926,7 +1938,7 @@ export default function SaleDetailModal({
                         <Text
                           style={{
                             color: "#f59e0b",
-                            fontSize: 18,
+                            fontSize: 20,
                             fontWeight: "800",
                           }}
                         >
@@ -1962,7 +1974,7 @@ export default function SaleDetailModal({
                           <Text
                             style={{
                               color: "#fff",
-                              fontSize: 16,
+                              fontSize: 18,
                               fontWeight: "800",
                             }}
                           >
@@ -1978,7 +1990,7 @@ export default function SaleDetailModal({
                       <Pressable
                         onPress={handleReprintTicket}
                         style={{
-                          backgroundColor: "#1a1a1a",
+                          backgroundColor: C.card,
                           paddingVertical: 16,
                           borderRadius: 16,
                           alignItems: "center",
@@ -1998,7 +2010,7 @@ export default function SaleDetailModal({
                         <Text
                           style={{
                             color: "#ff5722",
-                            fontSize: 16,
+                            fontSize: 18,
                             fontWeight: "800",
                           }}
                         >
@@ -2047,7 +2059,7 @@ export default function SaleDetailModal({
                           );
                         }}
                         style={{
-                          backgroundColor: "#1a1a1a",
+                          backgroundColor: C.card,
                           paddingVertical: 16,
                           borderRadius: 16,
                           alignItems: "center",
@@ -2067,7 +2079,7 @@ export default function SaleDetailModal({
                         <Text
                           style={{
                             color: "#25D366",
-                            fontSize: 16,
+                            fontSize: 18,
                             fontWeight: "800",
                           }}
                         >

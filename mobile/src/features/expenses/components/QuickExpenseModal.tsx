@@ -1,3 +1,4 @@
+// @theme-migrated
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import {
@@ -16,6 +17,7 @@ import ExpensesService from "../services/expense.service";
 import { CategoriesService } from "../../categories/services/categories.service";
 import { CategoryType } from "../../categories/types/category.type";
 import { getIcon } from "../helpers/getIcon";
+import { C } from "@/src/core/theme/palette";
 
 type Props = {
   visible: boolean;
@@ -26,7 +28,11 @@ type Props = {
 const QUICK_AMOUNTS = [5000, 10000, 20000, 50000];
 
 /** Gasto en 2 toques: monto + categoría. La descripción es opcional. */
-export default function QuickExpenseModal({ visible, onClose, onSaved }: Props) {
+export default function QuickExpenseModal({
+  visible,
+  onClose,
+  onSaved,
+}: Props) {
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [categories, setCategories] = useState<CategoryType[]>([]);
@@ -68,15 +74,26 @@ export default function QuickExpenseModal({ visible, onClose, onSaved }: Props) 
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
+    >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <View style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" }}>
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "rgba(0,0,0,0.6)",
+            justifyContent: "flex-end",
+          }}
+        >
           <View
             style={{
-              backgroundColor: "#141414",
+              backgroundColor: C.sheet,
               borderTopLeftRadius: 28,
               borderTopRightRadius: 28,
               padding: 24,
@@ -91,14 +108,18 @@ export default function QuickExpenseModal({ visible, onClose, onSaved }: Props) 
                 marginBottom: 16,
               }}
             >
-              <Text style={{ color: "#fff", fontSize: 20, fontWeight: "800" }}>
+              <Text style={{ color: C.text, fontSize: 22, fontWeight: "800" }}>
                 Gasto rápido
               </Text>
               <Pressable
                 onPress={onClose}
-                style={{ backgroundColor: "#2a2a2a", borderRadius: 20, padding: 8 }}
+                style={{
+                  backgroundColor: C.line,
+                  borderRadius: 20,
+                  padding: 8,
+                }}
               >
-                <Ionicons name="close" size={20} color="#fff" />
+                <Ionicons name="close" size={20} color={C.text} />
               </Pressable>
             </View>
 
@@ -107,25 +128,29 @@ export default function QuickExpenseModal({ visible, onClose, onSaved }: Props) 
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                backgroundColor: "#1a1a1a",
+                backgroundColor: C.card,
                 borderRadius: 16,
                 borderWidth: 1,
-                borderColor: amount ? "#ff5722" : "#2a2a2a",
+                borderColor: amount ? "#ff5722" : C.line,
                 paddingHorizontal: 16,
                 marginBottom: 10,
               }}
             >
-              <Text style={{ color: "#ff5722", fontSize: 28, fontWeight: "900" }}>$</Text>
+              <Text
+                style={{ color: "#ff5722", fontSize: 28, fontWeight: "900" }}
+              >
+                $
+              </Text>
               <TextInput
                 autoFocus
                 keyboardType="numeric"
                 placeholder="0"
-                placeholderTextColor="#555"
+                placeholderTextColor={C.faint}
                 value={amount}
                 onChangeText={setAmount}
                 style={{
                   flex: 1,
-                  color: "#fff",
+                  color: C.text,
                   fontSize: 32,
                   fontWeight: "900",
                   height: 64,
@@ -145,10 +170,12 @@ export default function QuickExpenseModal({ visible, onClose, onSaved }: Props) 
                     paddingVertical: 8,
                     borderRadius: 10,
                     alignItems: "center",
-                    backgroundColor: "#262626",
+                    backgroundColor: C.line,
                   }}
                 >
-                  <Text style={{ color: "#a3a3a3", fontWeight: "700", fontSize: 12 }}>
+                  <Text
+                    style={{ color: C.soft, fontWeight: "700", fontSize: 14 }}
+                  >
                     {v / 1000}k
                   </Text>
                 </Pressable>
@@ -174,21 +201,21 @@ export default function QuickExpenseModal({ visible, onClose, onSaved }: Props) 
                       paddingHorizontal: 14,
                       paddingVertical: 10,
                       borderRadius: 999,
-                      backgroundColor: active ? "#ff5722" : "#1a1a1a",
+                      backgroundColor: active ? "#ff5722" : C.card,
                       borderWidth: 1,
-                      borderColor: active ? "#ff5722" : "#333",
+                      borderColor: active ? "#ff5722" : C.line2,
                     }}
                   >
                     <Ionicons
                       name={getIcon(cat.name)}
                       size={14}
-                      color={active ? "#fff" : "#a3a3a3"}
+                      color={active ? "#fff" : C.soft}
                     />
                     <Text
                       style={{
-                        color: active ? "#fff" : "#a3a3a3",
+                        color: active ? "#fff" : C.soft,
                         fontWeight: "600",
-                        fontSize: 13,
+                        fontSize: 15,
                       }}
                     >
                       {cat.name.split(" ")[0]}
@@ -200,15 +227,15 @@ export default function QuickExpenseModal({ visible, onClose, onSaved }: Props) 
 
             <TextInput
               placeholder="Descripción (opcional)"
-              placeholderTextColor="#555"
+              placeholderTextColor={C.faint}
               value={description}
               onChangeText={setDescription}
               style={{
-                backgroundColor: "#1a1a1a",
+                backgroundColor: C.card,
                 borderRadius: 12,
                 borderWidth: 1,
-                borderColor: "#2a2a2a",
-                color: "#fff",
+                borderColor: C.line,
+                color: C.text,
                 paddingHorizontal: 14,
                 height: 46,
                 marginBottom: 16,
@@ -229,7 +256,9 @@ export default function QuickExpenseModal({ visible, onClose, onSaved }: Props) 
               {isSaving ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={{ color: "#fff", fontSize: 17, fontWeight: "800" }}>
+                <Text
+                  style={{ color: "#fff", fontSize: 19, fontWeight: "800" }}
+                >
                   Guardar gasto
                 </Text>
               )}

@@ -1,9 +1,16 @@
+// @theme-migrated
 import { useEffect, useState } from "react";
 import { Alert, Pressable, Switch, Text, View } from "react-native";
 import DateField from "@/src/shared/components/ui/DateField";
 import FormField from "@/src/shared/components/ui/FormField";
 import SheetModal, { SheetButton } from "@/src/shared/components/ui/SheetModal";
-import { EmployeeForm, EmployeeType, PAY_TYPE_LABEL, PayType } from "../types/employee.type";
+import {
+  EmployeeForm,
+  EmployeeType,
+  PAY_TYPE_LABEL,
+  PayType,
+} from "../types/employee.type";
+import { C } from "@/src/core/theme/palette";
 
 type Props = {
   visible: boolean;
@@ -14,7 +21,12 @@ type Props = {
 
 const PAY_TYPES: PayType[] = ["mensual", "quincenal", "diario"];
 
-export default function EmployeeModal({ visible, employee, onClose, onSave }: Props) {
+export default function EmployeeModal({
+  visible,
+  employee,
+  onClose,
+  onSave,
+}: Props) {
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
   const [phone, setPhone] = useState("");
@@ -39,13 +51,21 @@ export default function EmployeeModal({ visible, employee, onClose, onSave }: Pr
 
   const submit = async () => {
     const base = Number(salary.replace(/[^0-9]/g, ""));
-    if (!name.trim()) return Alert.alert("Falta nombre", "Ingresa el nombre del empleado.");
-    if (!base) return Alert.alert("Pago inválido", "Ingresa el pago base mayor a 0.");
+    if (!name.trim())
+      return Alert.alert("Falta nombre", "Ingresa el nombre del empleado.");
+    if (!base)
+      return Alert.alert("Pago inválido", "Ingresa el pago base mayor a 0.");
     setSaving(true);
     try {
       await onSave({
-        name: name.trim(), role: role.trim(), phone: phone.trim(), pay_type: payType,
-        base_salary: base, hire_date: hireDate, is_active: active ? 1 : 0, notes: notes.trim(),
+        name: name.trim(),
+        role: role.trim(),
+        phone: phone.trim(),
+        pay_type: payType,
+        base_salary: base,
+        hire_date: hireDate,
+        is_active: active ? 1 : 0,
+        notes: notes.trim(),
       });
       onClose();
     } catch (e) {
@@ -57,12 +77,40 @@ export default function EmployeeModal({ visible, employee, onClose, onSave }: Pr
   };
 
   return (
-    <SheetModal visible={visible} onClose={onClose} eyebrow={employee ? "Editar" : "Nuevo"} title={employee ? employee.name : "Empleado"}>
-      <FormField label="Nombre *" value={name} onChangeText={setName} placeholder="Ej. María Gómez" />
-      <FormField label="Cargo" value={role} onChangeText={setRole} placeholder="Cocinera, mesero, domiciliario..." />
-      <FormField label="Teléfono" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+    <SheetModal
+      visible={visible}
+      onClose={onClose}
+      eyebrow={employee ? "Editar" : "Nuevo"}
+      title={employee ? employee.name : "Empleado"}
+    >
+      <FormField
+        label="Nombre *"
+        value={name}
+        onChangeText={setName}
+        placeholder="Ej. María Gómez"
+      />
+      <FormField
+        label="Cargo"
+        value={role}
+        onChangeText={setRole}
+        placeholder="Cocinera, mesero, domiciliario..."
+      />
+      <FormField
+        label="Teléfono"
+        value={phone}
+        onChangeText={setPhone}
+        keyboardType="phone-pad"
+      />
 
-      <Text style={{ color: "#737373", fontSize: 11, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
+      <Text
+        style={{
+          color: C.muted,
+          fontSize: 13,
+          textTransform: "uppercase",
+          letterSpacing: 1,
+          marginBottom: 6,
+        }}
+      >
         Se le paga
       </Text>
       <View style={{ flexDirection: "row", gap: 8, marginBottom: 16 }}>
@@ -73,11 +121,24 @@ export default function EmployeeModal({ visible, employee, onClose, onSave }: Pr
               key={t}
               onPress={() => setPayType(t)}
               style={{
-                flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: "center",
-                backgroundColor: a ? "#ff572220" : "#1a1a1a", borderWidth: 1.5, borderColor: a ? "#ff5722" : "#2a2a2a",
+                flex: 1,
+                paddingVertical: 12,
+                borderRadius: 12,
+                alignItems: "center",
+                backgroundColor: a ? "#ff572220" : C.card,
+                borderWidth: 1.5,
+                borderColor: a ? "#ff5722" : C.line,
               }}
             >
-              <Text style={{ color: a ? "#fff" : "#a3a3a3", fontWeight: "700", textTransform: "capitalize" }}>{t}</Text>
+              <Text
+                style={{
+                  color: a ? "#fff" : C.soft,
+                  fontWeight: "700",
+                  textTransform: "capitalize",
+                }}
+              >
+                {t}
+              </Text>
             </Pressable>
           );
         })}
@@ -85,17 +146,41 @@ export default function EmployeeModal({ visible, employee, onClose, onSave }: Pr
 
       <FormField
         label={`Pago base por ${PAY_TYPE_LABEL[payType]} *`}
-        prefix="$" value={salary} onChangeText={setSalary} keyboardType="numeric" placeholder="0"
+        prefix="$"
+        value={salary}
+        onChangeText={setSalary}
+        keyboardType="numeric"
+        placeholder="0"
       />
-      <DateField label="Fecha de ingreso" value={hireDate} onChange={setHireDate} />
-      <FormField label="Notas" value={notes} onChangeText={setNotes} placeholder="Horario, observaciones..." />
+      <DateField
+        label="Fecha de ingreso"
+        value={hireDate}
+        onChange={setHireDate}
+      />
+      <FormField
+        label="Notas"
+        value={notes}
+        onChangeText={setNotes}
+        placeholder="Horario, observaciones..."
+      />
 
       {employee && (
-        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <Text style={{ color: "#fff", fontWeight: "600" }}>Empleado activo</Text>
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 12,
+          }}
+        >
+          <Text style={{ color: C.text, fontWeight: "600" }}>
+            Empleado activo
+          </Text>
           <Switch
-            value={active} onValueChange={setActive}
-            trackColor={{ false: "#2a2a2a", true: "#ff572233" }} thumbColor={active ? "#ff5722" : "#a3a3a3"}
+            value={active}
+            onValueChange={setActive}
+            trackColor={{ false: C.line, true: "#ff572233" }}
+            thumbColor={active ? "#ff5722" : C.soft}
           />
         </View>
       )}

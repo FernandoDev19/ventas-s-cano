@@ -23,6 +23,8 @@ export default function App() {
     openCart,
     totalPrice,
     fetchMenu,
+    popularItems,
+    popularKeys,
   } = useMenu();
 
   return (
@@ -88,7 +90,7 @@ export default function App() {
       </div>
 
       {/* Barra de Categorías */}
-      <nav className="flex gap-2 overflow-x-auto pb-3 mb-6 border-b border-gold/15 scrollbar-none">
+      <nav className="sticky top-0 z-30 bg-background flex gap-2 overflow-x-auto py-3 mb-6 border-b border-gold/15 scrollbar-none">
         <button
           onClick={() => {
             setSelectedCategory("all");
@@ -125,9 +127,14 @@ export default function App() {
       <div className="flex flex-col lg:flex-row gap-8 items-start">
         <div className="flex-1 w-full">
           {loading ? (
-            <p className="text-center py-12 font-medium text-muted animate-pulse">
-              Buscando la sazón...
-            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 px-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="h-64 rounded-xl bg-[#181818] border border-gold/10 animate-pulse"
+                />
+              ))}
+            </div>
           ) : filteredItems.length === 0 ? (
             <div className="text-center py-16 text-muted">
               <span className="text-3xl block mb-2">🍽️</span>
@@ -139,7 +146,11 @@ export default function App() {
               </p>
             </div>
           ) : (
-            <CardContainer items={filteredItems} />
+            <CardContainer
+              items={filteredItems}
+              popularItems={popularItems}
+              popularKeys={popularKeys}
+            />
           )}
         </div>
 

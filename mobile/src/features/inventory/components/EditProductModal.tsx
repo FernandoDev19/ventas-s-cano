@@ -1,3 +1,4 @@
+// @theme-migrated
 import { useEffect, useState } from "react";
 import { CategoryType } from "../../categories/types/category.type";
 import { ProductType } from "../types/product.type";
@@ -20,6 +21,7 @@ import { useFiles } from "@/src/shared/hooks/useFiles";
 import { SupabaseStorageService } from "@/src/shared/services/supabase-storage.service";
 import { v4 as uuidv4 } from "uuid";
 import CategoriesModal from "../../categories/components/CategoriesModal";
+import { C } from "@/src/core/theme/palette";
 
 type EditProductModalProps = {
   visible: boolean;
@@ -141,7 +143,7 @@ export default function EditProductModal({
         stock: parseInt(stock) || 0,
         category_id: categoryId,
         image_url: finalImageUrl || "",
-        is_visible_menu: isVisibleMenu ? 1 : 0
+        is_visible_menu: isVisibleMenu ? 1 : 0,
       });
 
       onUpdated();
@@ -214,7 +216,7 @@ export default function EditProductModal({
         >
           <View
             style={{
-              backgroundColor: "#141414",
+              backgroundColor: C.sheet,
               borderTopLeftRadius: 28,
               borderTopRightRadius: 28,
               padding: 24,
@@ -234,7 +236,7 @@ export default function EditProductModal({
                 <Text
                   style={{
                     color: "#ff5722",
-                    fontSize: 11,
+                    fontSize: 13,
                     fontWeight: "700",
                     textTransform: "uppercase",
                     letterSpacing: 1,
@@ -243,7 +245,7 @@ export default function EditProductModal({
                   Editar
                 </Text>
                 <Text
-                  style={{ color: "#fff", fontSize: 20, fontWeight: "800" }}
+                  style={{ color: C.text, fontSize: 22, fontWeight: "800" }}
                   numberOfLines={1}
                 >
                   {product.name}
@@ -255,11 +257,11 @@ export default function EditProductModal({
                   onPress={handleDelete}
                   disabled={isDeleting}
                   style={{
-                    backgroundColor: "#2a0a0a",
+                    backgroundColor: C.dangerBg,
                     borderRadius: 20,
                     padding: 8,
                     borderWidth: 1,
-                    borderColor: "#5a1a1a",
+                    borderColor: C.dangerLine,
                   }}
                 >
                   {isDeleting ? (
@@ -272,12 +274,12 @@ export default function EditProductModal({
                 <Pressable
                   onPress={handleClose}
                   style={{
-                    backgroundColor: "#2a2a2a",
+                    backgroundColor: C.line,
                     borderRadius: 20,
                     padding: 8,
                   }}
                 >
-                  <Ionicons name="close" size={20} color="#fff" />
+                  <Ionicons name="close" size={20} color={C.text} />
                 </Pressable>
               </View>
             </View>
@@ -292,9 +294,9 @@ export default function EditProductModal({
                     width: 90,
                     height: 90,
                     borderRadius: 16,
-                    backgroundColor: "#1a1a1a",
+                    backgroundColor: C.card,
                     borderWidth: 2,
-                    borderColor: imageUri ? "#ff5722" : "#2a2a2a",
+                    borderColor: imageUri ? "#ff5722" : C.line,
                     borderStyle: imageUri ? "solid" : "dashed",
                     alignItems: "center",
                     justifyContent: "center",
@@ -324,14 +326,18 @@ export default function EditProductModal({
                         <Ionicons
                           name="camera-outline"
                           size={14}
-                          color="#fff"
+                          color={C.text}
                         />
                       </View>
                     </>
                   ) : (
                     <View style={{ alignItems: "center", gap: 4 }}>
-                      <Ionicons name="camera-outline" size={28} color="#555" />
-                      <Text style={{ color: "#555", fontSize: 10 }}>Foto</Text>
+                      <Ionicons
+                        name="camera-outline"
+                        size={28}
+                        color={C.faint}
+                      />
+                      <Text style={{ color: C.faint, fontSize: 12 }}>Foto</Text>
                     </View>
                   )}
                 </Pressable>
@@ -340,14 +346,14 @@ export default function EditProductModal({
                     onPress={() => setImageUri(null)}
                     style={{ marginTop: 6 }}
                   >
-                    <Text style={{ color: "#555", fontSize: 11 }}>
+                    <Text style={{ color: C.faint, fontSize: 13 }}>
                       Quitar imagen
                     </Text>
                   </Pressable>
                 )}
                 {isUploadingImage && (
                   <Text
-                    style={{ color: "#ff5722", fontSize: 11, marginTop: 6 }}
+                    style={{ color: "#ff5722", fontSize: 13, marginTop: 6 }}
                   >
                     Subiendo imagen...
                   </Text>
@@ -357,8 +363,8 @@ export default function EditProductModal({
               {/* Nombre */}
               <Text
                 style={{
-                  color: "#737373",
-                  fontSize: 11,
+                  color: C.muted,
+                  fontSize: 13,
                   textTransform: "uppercase",
                   letterSpacing: 1,
                   marginBottom: 6,
@@ -368,21 +374,21 @@ export default function EditProductModal({
               </Text>
               <View
                 style={{
-                  backgroundColor: "#1a1a1a",
+                  backgroundColor: C.card,
                   borderRadius: 12,
                   paddingHorizontal: 14,
                   paddingVertical: 4,
                   marginBottom: 16,
                   borderWidth: 1,
-                  borderColor: "#2a2a2a",
+                  borderColor: C.line,
                 }}
               >
                 <TextInput
                   placeholder="Nombre del producto"
-                  placeholderTextColor="#555"
+                  placeholderTextColor={C.faint}
                   value={name}
                   onChangeText={setName}
-                  style={{ color: "#fff", fontSize: 16, height: 46 }}
+                  style={{ color: C.text, fontSize: 18, height: 46 }}
                 />
               </View>
 
@@ -391,8 +397,8 @@ export default function EditProductModal({
                 <View style={{ flex: 1 }}>
                   <Text
                     style={{
-                      color: "#737373",
-                      fontSize: 11,
+                      color: C.muted,
+                      fontSize: 13,
                       textTransform: "uppercase",
                       letterSpacing: 1,
                       marginBottom: 6,
@@ -402,12 +408,12 @@ export default function EditProductModal({
                   </Text>
                   <View
                     style={{
-                      backgroundColor: "#1a1a1a",
+                      backgroundColor: C.card,
                       borderRadius: 12,
                       paddingHorizontal: 14,
                       paddingVertical: 4,
                       borderWidth: 1,
-                      borderColor: "#2a2a2a",
+                      borderColor: C.line,
                       flexDirection: "row",
                       alignItems: "center",
                     }}
@@ -415,7 +421,7 @@ export default function EditProductModal({
                     <Text
                       style={{
                         color: "#ff5722",
-                        fontSize: 16,
+                        fontSize: 18,
                         fontWeight: "800",
                         marginRight: 4,
                       }}
@@ -424,13 +430,13 @@ export default function EditProductModal({
                     </Text>
                     <TextInput
                       placeholder="0"
-                      placeholderTextColor="#555"
+                      placeholderTextColor={C.faint}
                       value={price}
                       onChangeText={setPrice}
                       keyboardType="numeric"
                       style={{
-                        color: "#fff",
-                        fontSize: 16,
+                        color: C.text,
+                        fontSize: 18,
                         flex: 1,
                         height: 46,
                       }}
@@ -440,8 +446,8 @@ export default function EditProductModal({
                 <View style={{ flex: 1 }}>
                   <Text
                     style={{
-                      color: "#737373",
-                      fontSize: 11,
+                      color: C.muted,
+                      fontSize: 13,
                       textTransform: "uppercase",
                       letterSpacing: 1,
                       marginBottom: 6,
@@ -451,21 +457,21 @@ export default function EditProductModal({
                   </Text>
                   <View
                     style={{
-                      backgroundColor: "#1a1a1a",
+                      backgroundColor: C.card,
                       borderRadius: 12,
                       paddingHorizontal: 14,
                       paddingVertical: 4,
                       borderWidth: 1,
-                      borderColor: "#2a2a2a",
+                      borderColor: C.line,
                     }}
                   >
                     <TextInput
                       placeholder="0"
-                      placeholderTextColor="#555"
+                      placeholderTextColor={C.faint}
                       value={stock}
                       onChangeText={setStock}
                       keyboardType="numeric"
-                      style={{ color: "#fff", fontSize: 16, height: 46 }}
+                      style={{ color: C.text, fontSize: 18, height: 46 }}
                     />
                   </View>
                 </View>
@@ -478,18 +484,18 @@ export default function EditProductModal({
                   className={`flex-row items-center gap-2 p-3 rounded-2xl ${
                     isVisibleMenu
                       ? "bg-orange-500/20 border border-orange-500/30"
-                      : "bg-[#1a1a1a] border border-[#2a2a2a]"
+                      : "bg-white dark:bg-[#1a1a1a] border border-neutral-200 dark:border-[#2a2a2a]"
                   }`}
                 >
                   <Ionicons
                     name={isVisibleMenu ? "eye" : "eye-off"}
                     size={18}
-                    color={isVisibleMenu ? "#ff5722" : "#737373"}
+                    color={isVisibleMenu ? "#ff5722" : C.muted}
                   />
                   <Text
                     style={{
-                      color: isVisibleMenu ? "#fff" : "#737373",
-                      fontSize: 15,
+                      color: isVisibleMenu ? "#fff" : C.muted,
+                      fontSize: 17,
                     }}
                   >
                     Visible en el menú
@@ -501,18 +507,18 @@ export default function EditProductModal({
                   className={`flex-row items-center gap-2 p-3 rounded-2xl ${
                     !isVisibleMenu
                       ? "bg-orange-500/20 border border-orange-500/30"
-                      : "bg-[#1a1a1a] border border-[#2a2a2a]"
+                      : "bg-white dark:bg-[#1a1a1a] border border-neutral-200 dark:border-[#2a2a2a]"
                   }`}
                 >
                   <Ionicons
                     name={!isVisibleMenu ? "eye-off" : "eye"}
                     size={18}
-                    color={!isVisibleMenu ? "#ff5722" : "#737373"}
+                    color={!isVisibleMenu ? "#ff5722" : C.muted}
                   />
                   <Text
                     style={{
-                      color: !isVisibleMenu ? "#fff" : "#737373",
-                      fontSize: 15,
+                      color: !isVisibleMenu ? "#fff" : C.muted,
+                      fontSize: 17,
                     }}
                   >
                     No visible en el menú
@@ -523,8 +529,8 @@ export default function EditProductModal({
               {/* Categoría */}
               <Text
                 style={{
-                  color: "#737373",
-                  fontSize: 11,
+                  color: C.muted,
+                  fontSize: 13,
                   textTransform: "uppercase",
                   letterSpacing: 1,
                   marginBottom: 10,
@@ -534,7 +540,7 @@ export default function EditProductModal({
               </Text>
               <Pressable
                 onPress={() => setIsCategoriesModalOpen(true)}
-                className="h-16 bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl px-4 flex-row items-center gap-2 mb-6"
+                className="h-16 bg-white dark:bg-[#1a1a1a] border border-neutral-200 dark:border-[#2a2a2a] rounded-2xl px-4 flex-row items-center gap-2 mb-6"
               >
                 <View
                   style={{
@@ -546,12 +552,12 @@ export default function EditProductModal({
                   <Ionicons
                     name="folder-outline"
                     size={18}
-                    color={categoryId ? "#ff5722" : "#737373"}
+                    color={categoryId ? "#ff5722" : C.muted}
                   />
                   <Text
                     style={{
-                      color: categoryId ? "#fff" : "#737373",
-                      fontSize: 15,
+                      color: categoryId ? "#fff" : C.muted,
+                      fontSize: 17,
                     }}
                   >
                     {categoryId
@@ -559,7 +565,7 @@ export default function EditProductModal({
                       : "Selecciona una categoría"}
                   </Text>
                 </View>
-                <Ionicons name="chevron-down" size={16} color="#555" />
+                <Ionicons name="chevron-down" size={16} color={C.faint} />
               </Pressable>
 
               <CategoriesModal
@@ -591,7 +597,7 @@ export default function EditProductModal({
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <Text
-                    style={{ color: "#fff", fontSize: 17, fontWeight: "800" }}
+                    style={{ color: "#fff", fontSize: 19, fontWeight: "800" }}
                   >
                     Guardar Cambios
                   </Text>

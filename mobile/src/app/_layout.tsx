@@ -1,7 +1,7 @@
 import "react-native-get-random-values";
 import "../global.css";
 import Header from "@/src/core/layouts/Header";
-import { DarkTheme, ThemeProvider } from "@react-navigation/native";
+import { DarkTheme, ThemeProvider, DefaultTheme } from "@react-navigation/native";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { OrderProvider } from "../core/context/OrderContext";
@@ -11,6 +11,32 @@ import VirtualPrinterModal from "@/src/shared/components/printer/VirtualPrinterM
 import { useEffect, useState } from "react";
 import { supabase } from "../core/config/supabase";
 import { useUserRole, BYPASS_AUTH } from "@/src/shared/hooks/useUserRole";
+import { AppThemeProvider, useTheme } from "../core/theme/ThemeContext";
+import { palettes } from "../core/theme/palette";
+
+const navLightTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: "#ff5722",
+    background: palettes.light.bg,
+    card: palettes.light.card,
+    text: palettes.light.text,
+    border: palettes.light.line,
+  },
+};
+
+const navDarkTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    primary: "#ff5722",
+    background: palettes.dark.bg,
+    card: palettes.dark.card,
+    text: palettes.dark.text,
+    border: palettes.dark.line,
+  },
+};
 
 function AuthProtector({ children }: { children: React.ReactNode }) {
   const segments = useSegments();
@@ -119,10 +145,26 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={DarkTheme}>
+    <AppThemeProvider>
+      <Inner />
+    </AppThemeProvider>
+  );
+}
+
+function Inner() {
+  const { scheme, c } = useTheme();
+  return (
+    <ThemeProvider value={scheme === "dark" ? navDarkTheme : navLightTheme}>
       <OrderProvider>
         <AuthProtector>
-          <Stack screenOptions={{ headerShown: false }} initialRouteName="(tabs)">
+          <Stack
+            key={scheme}
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: c.bg },
+            }}
+            initialRouteName="(tabs)"
+          >
             <Stack.Screen
               name="(tabs)"
               options={{ header: () => <Header />, headerShown: true }}
@@ -131,7 +173,7 @@ export default function RootLayout() {
           </Stack>
         </AuthProtector>
         <VirtualPrinterModal />
-        <StatusBar style="auto" />
+        <StatusBar style={scheme === "dark" ? "light" : "dark"} />
       </OrderProvider>
     </ThemeProvider>
   );

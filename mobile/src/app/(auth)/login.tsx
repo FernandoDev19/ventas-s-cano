@@ -1,3 +1,4 @@
+// @theme-migrated
 import React, { useCallback, useEffect, useState } from "react";
 import {
   View,
@@ -14,6 +15,7 @@ import { useRouter } from "expo-router";
 import { supabase } from "@/src/core/config/supabase";
 import { BYPASS_AUTH } from "@/src/shared/hooks/useUserRole";
 import "@/src/global.css";
+import { C } from "@/src/core/theme/palette";
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -92,9 +94,9 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={{ flex: 1, backgroundColor: "#0f0f0f" }}
+      style={{ flex: 1, backgroundColor: C.bg }}
     >
-      <View className="flex-1 bg-background justify-center px-6 py-8">
+      <View className="flex-1 bg-[#f2f2f4] dark:bg-background justify-center px-6 py-8">
         <View
           style={{
             width: "100%",
@@ -113,7 +115,7 @@ export default function LoginScreen() {
             <Text
               style={{
                 color: "#ff5722",
-                fontSize: 11,
+                fontSize: 13,
                 fontWeight: "700",
                 textTransform: "uppercase",
                 letterSpacing: 1.5,
@@ -130,8 +132,8 @@ export default function LoginScreen() {
             <View style={{ gap: 8 }}>
               <Text
                 style={{
-                  color: "#737373",
-                  fontSize: 11,
+                  color: C.muted,
+                  fontSize: 13,
                   fontWeight: "700",
                   textTransform: "uppercase",
                   letterSpacing: 1,
@@ -143,7 +145,7 @@ export default function LoginScreen() {
                 value={email}
                 onChangeText={setEmail}
                 placeholder="admin@saborespress.com"
-                placeholderTextColor="#555"
+                placeholderTextColor={C.faint}
                 autoCapitalize="none"
                 keyboardType="email-address"
                 editable={!loading}
@@ -153,10 +155,10 @@ export default function LoginScreen() {
                   paddingHorizontal: 16,
                   borderRadius: 12,
                   borderWidth: 1,
-                  borderColor: email ? "#ff5722" : "#2a2a2a",
-                  backgroundColor: "#1a1a1a",
-                  color: "#fff",
-                  fontSize: 16,
+                  borderColor: email ? "#ff5722" : C.line,
+                  backgroundColor: C.card,
+                  color: C.text,
+                  fontSize: 18,
                   fontWeight: "500",
                 }}
               />
@@ -166,8 +168,8 @@ export default function LoginScreen() {
             <View style={{ gap: 8 }}>
               <Text
                 style={{
-                  color: "#737373",
-                  fontSize: 11,
+                  color: C.muted,
+                  fontSize: 13,
                   fontWeight: "700",
                   textTransform: "uppercase",
                   letterSpacing: 1,
@@ -179,7 +181,7 @@ export default function LoginScreen() {
                 value={password}
                 onChangeText={setPassword}
                 placeholder="••••••••••"
-                placeholderTextColor="#555"
+                placeholderTextColor={C.faint}
                 secureTextEntry
                 autoCapitalize="none"
                 editable={!loading}
@@ -189,10 +191,10 @@ export default function LoginScreen() {
                   paddingHorizontal: 16,
                   borderRadius: 12,
                   borderWidth: 1,
-                  borderColor: password ? "#ff5722" : "#2a2a2a",
-                  backgroundColor: "#1a1a1a",
-                  color: "#fff",
-                  fontSize: 16,
+                  borderColor: password ? "#ff5722" : C.line,
+                  backgroundColor: C.card,
+                  color: C.text,
+                  fontSize: 18,
                   fontWeight: "500",
                 }}
               />
@@ -221,7 +223,7 @@ export default function LoginScreen() {
                 style={{
                   color: "#fff",
                   fontWeight: "800",
-                  fontSize: 15,
+                  fontSize: 17,
                   textTransform: "uppercase",
                   letterSpacing: 0.5,
                 }}
@@ -234,7 +236,7 @@ export default function LoginScreen() {
           {/* Footer Info */}
           <View
             style={{
-              backgroundColor: "#1a1a1a",
+              backgroundColor: C.card,
               borderRadius: 12,
               borderLeftWidth: 3,
               borderLeftColor: "#ff5722",
@@ -244,8 +246,8 @@ export default function LoginScreen() {
           >
             <Text
               style={{
-                color: "#a3a3a3",
-                fontSize: 12,
+                color: C.soft,
+                fontSize: 14,
                 lineHeight: 18,
               }}
             >

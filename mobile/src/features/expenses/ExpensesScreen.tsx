@@ -1,3 +1,4 @@
+// @theme-migrated
 import Button from "@/src/shared/components/ui/Button";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -15,6 +16,8 @@ import ExpenseItem from "./components/ExpenseItem";
 import HeaderTabs from "@/src/shared/components/HeaderTabs";
 import { useState } from "react";
 import CashierArchiveScreen from "../cashier/CashierArchiveScreen";
+import { C } from "@/src/core/theme/palette";
+import { ExportDataService } from "@/src/shared/services/expor-data.service";
 
 export default function ExpensesScreen() {
   const [activeTab, setActiveTab] = useState<"gastos" | "arqueo">("gastos");
@@ -43,10 +46,10 @@ export default function ExpensesScreen() {
     return (
       <View
         className="flex-1 items-center justify-center"
-        style={{ backgroundColor: "#0f0f0f" }}
+        style={{ backgroundColor: C.bg }}
       >
         <ActivityIndicator size="large" color="#ff5722" />
-        <Text className="text-neutral-500 mt-3 text-sm">
+        <Text className="text-neutral-500 mt-3 text-base">
           Cargando gastos...
         </Text>
       </View>
@@ -54,7 +57,7 @@ export default function ExpensesScreen() {
   }
 
   return (
-    <View className="flex-1 bg-background">
+    <View className="flex-1 bg-[#f2f2f4] dark:bg-background">
       <HeaderTabs
         tabs={["gastos", "arqueo"]}
         activeTab={activeTab}
@@ -83,6 +86,7 @@ export default function ExpensesScreen() {
                 setSelectedCategory={setSelectedCategory}
                 selectedKind={selectedKind}
                 setSelectedKind={setSelectedKind}
+                onExport={() => ExportDataService.expenses(filteredExpenses, categories)}
               />
             }
             renderItem={({ item }) => {
@@ -100,14 +104,14 @@ export default function ExpensesScreen() {
               <View className="items-center justify-center py-20 px-8">
                 <View
                   className="w-20 h-20 rounded-full items-center justify-center mb-4"
-                  style={{ backgroundColor: "#1a1a1a" }}
+                  style={{ backgroundColor: C.card }}
                 >
                   <Ionicons name="wallet-outline" size={36} color="#444" />
                 </View>
-                <Text className="text-white font-bold text-lg text-center mb-1">
+                <Text className="text-neutral-900 dark:text-white font-bold text-xl text-center mb-1">
                   Sin gastos
                 </Text>
-                <Text className="text-neutral-500 text-sm text-center">
+                <Text className="text-neutral-500 text-base text-center">
                   No hay gastos registrados
                   {selectedCategory !== null ? " en esta categoría" : ""}
                 </Text>
@@ -118,7 +122,7 @@ export default function ExpensesScreen() {
           />
 
           <Button onPress={() => setShowCreate(true)} circle>
-            <Ionicons name="add" size={28} color="#fff" />
+            <Ionicons name="add" size={28} color={C.text} />
           </Button>
 
           <CreateExpenseModal

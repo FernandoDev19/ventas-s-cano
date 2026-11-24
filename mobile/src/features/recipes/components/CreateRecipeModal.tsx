@@ -1,3 +1,4 @@
+// @theme-migrated
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -22,6 +23,7 @@ import { useFiles } from "@/src/shared/hooks/useFiles";
 import { SupabaseStorageService } from "@/src/shared/services/supabase-storage.service";
 import { v4 as uuidv4 } from "uuid";
 import CategoriesModal from "../../categories/components/CategoriesModal";
+import { C, lazy } from "@/src/core/theme/palette";
 
 type Props = {
   visible: boolean;
@@ -239,7 +241,7 @@ export default function CreateRecipeModal({
         >
           <View
             style={{
-              backgroundColor: "#141414",
+              backgroundColor: C.sheet,
               borderTopLeftRadius: 28,
               borderTopRightRadius: 28,
               padding: 24,
@@ -260,7 +262,7 @@ export default function CreateRecipeModal({
                 <Text
                   style={{
                     color: "#ff5722",
-                    fontSize: 10,
+                    fontSize: 12,
                     fontWeight: "800",
                     textTransform: "uppercase",
                     letterSpacing: 1,
@@ -270,8 +272,8 @@ export default function CreateRecipeModal({
                 </Text>
                 <Text
                   style={{
-                    color: "#fff",
-                    fontSize: 22,
+                    color: C.text,
+                    fontSize: 24,
                     fontWeight: "900",
                   }}
                 >
@@ -281,12 +283,12 @@ export default function CreateRecipeModal({
               <Pressable
                 onPress={handleClose}
                 style={{
-                  backgroundColor: "#2a2a2a",
+                  backgroundColor: C.line,
                   borderRadius: 20,
                   padding: 8,
                 }}
               >
-                <Ionicons name="close" size={20} color="#fff" />
+                <Ionicons name="close" size={20} color={C.text} />
               </Pressable>
             </View>
 
@@ -300,9 +302,9 @@ export default function CreateRecipeModal({
                     width: 100,
                     height: 100,
                     borderRadius: 18,
-                    backgroundColor: "#1a1a1a",
+                    backgroundColor: C.card,
                     borderWidth: 2,
-                    borderColor: imageUri ? "#ff5722" : "#2a2a2a",
+                    borderColor: imageUri ? "#ff5722" : C.line,
                     borderStyle: imageUri ? "solid" : "dashed",
                     alignItems: "center",
                     justifyContent: "center",
@@ -321,9 +323,9 @@ export default function CreateRecipeModal({
                       <Ionicons
                         name="restaurant-outline"
                         size={32}
-                        color="#555"
+                        color={C.faint}
                       />
-                      <Text style={{ color: "#555", fontSize: 10 }}>Foto</Text>
+                      <Text style={{ color: C.faint, fontSize: 12 }}>Foto</Text>
                     </View>
                   )}
                 </Pressable>
@@ -332,14 +334,14 @@ export default function CreateRecipeModal({
                     onPress={() => setImageUri(null)}
                     style={{ marginTop: 6 }}
                   >
-                    <Text style={{ color: "#555", fontSize: 11 }}>
+                    <Text style={{ color: C.faint, fontSize: 13 }}>
                       Quitar imagen
                     </Text>
                   </Pressable>
                 )}
                 {isUploadingImage && (
                   <Text
-                    style={{ color: "#ff5722", fontSize: 11, marginTop: 6 }}
+                    style={{ color: "#ff5722", fontSize: 13, marginTop: 6 }}
                   >
                     Subiendo imagen...
                   </Text>
@@ -351,7 +353,7 @@ export default function CreateRecipeModal({
               <View style={styles.inputWrapper}>
                 <TextInput
                   placeholder="Ej. Combo Pollo Entero"
-                  placeholderTextColor="#555"
+                  placeholderTextColor={C.faint}
                   value={name}
                   onChangeText={setName}
                   style={styles.input}
@@ -363,7 +365,7 @@ export default function CreateRecipeModal({
               <View style={[styles.inputWrapper, { marginBottom: 16 }]}>
                 <TextInput
                   placeholder="Ej. Incluye papas y bebida"
-                  placeholderTextColor="#555"
+                  placeholderTextColor={C.faint}
                   value={description}
                   onChangeText={setDescription}
                   style={styles.input}
@@ -387,7 +389,7 @@ export default function CreateRecipeModal({
                 <Text
                   style={{
                     color: "#ff5722",
-                    fontSize: 18,
+                    fontSize: 20,
                     fontWeight: "900",
                     marginRight: 6,
                   }}
@@ -396,7 +398,7 @@ export default function CreateRecipeModal({
                 </Text>
                 <TextInput
                   placeholder="0"
-                  placeholderTextColor="#555"
+                  placeholderTextColor={C.faint}
                   value={price}
                   onChangeText={setPrice}
                   keyboardType="numeric"
@@ -408,7 +410,7 @@ export default function CreateRecipeModal({
               <Text style={styles.label}>Categoría</Text>
               <Pressable
                 onPress={() => setIsCategoriesModalOpen(true)}
-                className="h-16 bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl px-4 flex-row items-center gap-2 mb-6"
+                className="h-16 bg-white dark:bg-[#1a1a1a] border border-neutral-200 dark:border-[#2a2a2a] rounded-2xl px-4 flex-row items-center gap-2 mb-6"
               >
                 <View
                   style={{
@@ -420,12 +422,12 @@ export default function CreateRecipeModal({
                   <Ionicons
                     name="folder-outline"
                     size={18}
-                    color={categoryId ? "#ff5722" : "#737373"}
+                    color={categoryId ? "#ff5722" : C.muted}
                   />
                   <Text
                     style={{
-                      color: categoryId ? "#fff" : "#737373",
-                      fontSize: 15,
+                      color: categoryId ? "#fff" : C.muted,
+                      fontSize: 17,
                     }}
                   >
                     {categoryId
@@ -433,7 +435,7 @@ export default function CreateRecipeModal({
                       : "Selecciona una categoría"}
                   </Text>
                 </View>
-                <Ionicons name="chevron-down" size={16} color="#555" />
+                <Ionicons name="chevron-down" size={16} color={C.faint} />
               </Pressable>
 
               <CategoriesModal
@@ -475,7 +477,7 @@ export default function CreateRecipeModal({
                   <Text
                     style={{
                       color: "#ff5722",
-                      fontSize: 12,
+                      fontSize: 14,
                       fontWeight: "700",
                     }}
                   >
@@ -487,18 +489,18 @@ export default function CreateRecipeModal({
               {ingredients.length === 0 ? (
                 <View
                   style={{
-                    backgroundColor: "#1a1a1a",
+                    backgroundColor: C.card,
                     borderRadius: 14,
                     padding: 20,
                     alignItems: "center",
                     marginBottom: 20,
                     borderWidth: 1,
-                    borderColor: "#2a2a2a",
+                    borderColor: C.line,
                     borderStyle: "dashed",
                   }}
                 >
                   <Ionicons name="basket-outline" size={28} color="#444" />
-                  <Text style={{ color: "#555", fontSize: 12, marginTop: 8 }}>
+                  <Text style={{ color: C.faint, fontSize: 14, marginTop: 8 }}>
                     Sin ingredientes. Agrega productos del inventario.
                   </Text>
                 </View>
@@ -509,11 +511,11 @@ export default function CreateRecipeModal({
                       key={ing.product_id}
                       style={{
                         flexDirection: "row",
-                        backgroundColor: "#1a1a1a",
+                        backgroundColor: C.card,
                         borderRadius: 14,
                         padding: 12,
                         borderWidth: 1,
-                        borderColor: "#2a2a2a",
+                        borderColor: C.line,
                         alignItems: "center",
                       }}
                     >
@@ -533,8 +535,8 @@ export default function CreateRecipeModal({
                       />
                       <Text
                         style={{
-                          color: "#fff",
-                          fontSize: 13,
+                          color: C.text,
+                          fontSize: 15,
                           fontWeight: "600",
                           flex: 1,
                         }}
@@ -547,7 +549,7 @@ export default function CreateRecipeModal({
                         style={{
                           flexDirection: "row",
                           alignItems: "center",
-                          backgroundColor: "#0f0f0f",
+                          backgroundColor: C.bg,
                           borderRadius: 10,
                           padding: 4,
                           gap: 8,
@@ -561,14 +563,14 @@ export default function CreateRecipeModal({
                           <Ionicons
                             name="remove-circle-outline"
                             size={20}
-                            color="#fff"
+                            color={C.text}
                           />
                         </Pressable>
                         <Text
                           style={{
-                            color: "#fff",
+                            color: C.text,
                             fontWeight: "800",
-                            fontSize: 13,
+                            fontSize: 15,
                             minWidth: 16,
                             textAlign: "center",
                           }}
@@ -582,7 +584,7 @@ export default function CreateRecipeModal({
                           <Ionicons
                             name="add-circle-outline"
                             size={20}
-                            color="#fff"
+                            color={C.text}
                           />
                         </Pressable>
                       </View>
@@ -622,7 +624,7 @@ export default function CreateRecipeModal({
                   <ActivityIndicator color="#fff" />
                 ) : (
                   <Text
-                    style={{ color: "#fff", fontSize: 17, fontWeight: "800" }}
+                    style={{ color: "#fff", fontSize: 19, fontWeight: "800" }}
                   >
                     {isEditing ? "Guardar Cambios" : "Crear Receta"}
                   </Text>
@@ -645,7 +647,7 @@ export default function CreateRecipeModal({
               >
                 <View
                   style={{
-                    backgroundColor: "#1a1a1a",
+                    backgroundColor: C.card,
                     borderTopLeftRadius: 28,
                     borderTopRightRadius: 28,
                     padding: 20,
@@ -663,8 +665,8 @@ export default function CreateRecipeModal({
                   >
                     <Text
                       style={{
-                        color: "#fff",
-                        fontSize: 18,
+                        color: C.text,
+                        fontSize: 20,
                         fontWeight: "800",
                       }}
                     >
@@ -673,12 +675,12 @@ export default function CreateRecipeModal({
                     <Pressable
                       onPress={() => setShowIngredientPicker(false)}
                       style={{
-                        backgroundColor: "#2a2a2a",
+                        backgroundColor: C.line,
                         borderRadius: 20,
                         padding: 8,
                       }}
                     >
-                      <Ionicons name="close" size={18} color="#fff" />
+                      <Ionicons name="close" size={18} color={C.text} />
                     </Pressable>
                   </View>
                   <ScrollView showsVerticalScrollIndicator={false}>
@@ -690,7 +692,7 @@ export default function CreateRecipeModal({
                           style={{
                             flexDirection: "row",
                             alignItems: "center",
-                            backgroundColor: "#141414",
+                            backgroundColor: C.sheet,
                             borderRadius: 12,
                             padding: 12,
                             borderWidth: 1,
@@ -698,7 +700,7 @@ export default function CreateRecipeModal({
                               (i) => i.product_id === prod.id,
                             )
                               ? "#ff5722"
-                              : "#2a2a2a",
+                              : C.line,
                             gap: 12,
                           }}
                         >
@@ -718,17 +720,17 @@ export default function CreateRecipeModal({
                           <View style={{ flex: 1 }}>
                             <Text
                               style={{
-                                color: "#fff",
+                                color: C.text,
                                 fontWeight: "600",
-                                fontSize: 14,
+                                fontSize: 16,
                               }}
                             >
                               {prod.name}
                             </Text>
                             <Text
                               style={{
-                                color: "#737373",
-                                fontSize: 11,
+                                color: C.muted,
+                                fontSize: 13,
                                 marginTop: 2,
                               }}
                             >
@@ -758,26 +760,26 @@ export default function CreateRecipeModal({
   );
 }
 
-const styles = {
+const styles = lazy(() => ({
   label: {
-    color: "#737373",
-    fontSize: 11,
+    color: C.muted,
+    fontSize: 13,
     textTransform: "uppercase" as const,
     letterSpacing: 1,
     marginBottom: 6,
   },
   inputWrapper: {
-    backgroundColor: "#1a1a1a",
+    backgroundColor: C.card,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 4,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: "#2a2a2a",
+    borderColor: C.line,
   },
   input: {
-    color: "#fff",
-    fontSize: 16,
+    color: C.text,
+    fontSize: 18,
     height: 46,
   },
-};
+}));

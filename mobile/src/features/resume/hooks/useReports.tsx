@@ -5,6 +5,10 @@ import { ExportService } from "@/src/shared/services/export.service";
 import { Alert } from "react-native";
 import { PrinterService } from "@/src/shared/services/printer.service";
 
+import { toLocalDateStr } from "@/src/shared/helpers/date.helper";
+import { useFocusEffect } from "expo-router";
+import { formatDate } from "../helpers/formatDate";
+
 export const PRESETS = [
   {
     label: "Hoy",
@@ -31,28 +35,24 @@ export const PRESETS = [
   },
 ];
 
-function today() {
-  return new Date().toISOString().split("T")[0];
-}
-function daysAgo(n: number) {
+const today = () => toLocalDateStr();
+const daysAgo = (n: number) => {
   const d = new Date();
   d.setDate(d.getDate() - n);
-  return d.toISOString().split("T")[0];
-}
-function firstOfMonth() {
+  return toLocalDateStr(d);
+};
+const firstOfMonth = () => {
   const d = new Date();
-  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split("T")[0];
-}
-function firstOfLastMonth() {
+  return toLocalDateStr(new Date(d.getFullYear(), d.getMonth(), 1));
+};
+const firstOfLastMonth = () => {
   const d = new Date();
-  return new Date(d.getFullYear(), d.getMonth() - 1, 1)
-    .toISOString()
-    .split("T")[0];
-}
-function lastOfLastMonth() {
+  return toLocalDateStr(new Date(d.getFullYear(), d.getMonth() - 1, 1));
+};
+const lastOfLastMonth = () => {
   const d = new Date();
-  return new Date(d.getFullYear(), d.getMonth(), 0).toISOString().split("T")[0];
-}
+  return toLocalDateStr(new Date(d.getFullYear(), d.getMonth(), 0));
+};
 
 export const useReports = () => {
   const [startDate, setStartDate] = useState(firstOfMonth());
@@ -91,9 +91,20 @@ export const useReports = () => {
     loadReport(startDate, endDate);
   };
 
+  useFocusEffect(
+    useCallback(() => {
+      const preset = PRESETS.find((p) => p.label === activePreset);
+      if (!preset) return; // rango personalizado: se genera con el botón
+      const { start, end } = preset.getDates();
+      setStartDate(start);
+      setEndDate(end);
+      loadReport(start, end);
+    }, [activePreset, loadReport]),
+  );
+
   const [isExporting, setIsExporting] = useState<"pdf" | "excel" | null>(null);
 
-  const handlePrintReport = async () => {
+const handlePrintReport = async () => {
   try {
     if (!report) {
       Alert.alert("Aviso", "No hay datos para imprimir en este rango.");
@@ -102,32 +113,46 @@ export const useReports = () => {
 
     const cajaConfig = await PrinterService.getConfig("caja");
     if (!cajaConfig.enabled) {
-      Alert.alert("Pilas", "La impresora de caja está apagada.");
+      Alert.alert("Aviso", "La impresora de caja está apagada.");
       return;
     }
 
-    // Armas un objeto masticable para el servicio de impresión
+    // Lo realmente cobrado por cada venta, separado en efectivo vs otros medios
+    let cash = 0;
+    let transfer = 0;
+    for (const s of report.sales ?? []) {
+      const method = String(s.payment_method ?? "cash").toLowerCase();
+      if (method === "deuda") continue;
+      const paid = s.total - (s.is_debt ? (s.debt_amount ?? 0) : 0);
+      if (method === "cash" || method === "efectivo") cash += paid;
+      else transfer += paid;
+    }
+
     const reportPrintData = {
       title: "REPORTE DE VENTAS / CIERRE",
-      dateRange: `${startDate} al ${endDate}`,
-      totalOrders: report.total_orders || 0,
-      netProfit: netProfit,
-      averageTicket: report.total_orders ? (netProfit / report.total_orders) : 0,
+      dateRange: `${formatDate(startDate)} al ${formatDate(endDate)}`,
+      totalOrders: report.salesCount || 0,
+      averageTicket: report.salesCount
+        ? Math.round(report.totalSales / report.salesCount)
+        : 0,
       methods: {
-        cash: report.total_cash || 0,
-        transfer: report.total_transfer || 0,
-        debt: report.total_debt || 0,
+        cash,
+        transfer,
+        debt: report.totalDebt || 0,
       },
-      topProducts: report.top_products || [], 
+      netProfit,
+      topProducts: report.topProducts || [],
     };
 
-    // Creas este nuevo método en tu PrinterService para que estructure el texto
     const ticketCmds = PrinterService.generateReportTicket(reportPrintData);
     await PrinterService.print("caja", ticketCmds);
 
-    Alert.alert("¡Firme!", "Reporte enviado a la impresora.");
+    Alert.alert("Listo", "Reporte enviado a la impresora.");
   } catch (error) {
-    Alert.alert("Error", "No se pudo imprimir el reporte: " + (error as Error).message);
+    Alert.alert(
+      "Error",
+      "No se pudo imprimir el reporte: " + (error as Error).message,
+    );
   }
 };
 
@@ -168,6 +193,6 @@ export const useReports = () => {
     setEndDate,
     handleExport,
     isExporting,
-    handlePrintReport
+    handlePrintReport,
   };
 };

@@ -1,3 +1,4 @@
+// @theme-migrated
 import { useState } from "react";
 import {
   Modal,
@@ -9,18 +10,25 @@ import {
   Alert,
 } from "react-native";
 import { CashierShiftStatusType } from "../types/shift.type";
+import { C } from "@/src/core/theme/palette";
 
 type Props = {
   visible: boolean;
   onClose: () => void;
-  onOpen: (balance: number, notes?: string) => Promise<{
-    id: string;
-    opening_date: string;
-    opening_time: string;
-    opening_balance: number;
-    status: CashierShiftStatusType;
-    notes: string | undefined;
-} | undefined>;
+  onOpen: (
+    balance: number,
+    notes?: string,
+  ) => Promise<
+    | {
+        id: string;
+        opening_date: string;
+        opening_time: string;
+        opening_balance: number;
+        status: CashierShiftStatusType;
+        notes: string | undefined;
+      }
+    | undefined
+  >;
 };
 
 export default function OpenShiftModal({ visible, onClose, onOpen }: Props) {
@@ -59,20 +67,27 @@ export default function OpenShiftModal({ visible, onClose, onOpen }: Props) {
       >
         <View
           style={{
-            backgroundColor: "#141414",
+            backgroundColor: C.sheet,
             borderRadius: 24,
             padding: 24,
             width: "100%",
           }}
         >
-          <Text style={{ color: "#fff", fontSize: 20, fontWeight: "800", marginBottom: 16 }}>
+          <Text
+            style={{
+              color: C.text,
+              fontSize: 22,
+              fontWeight: "800",
+              marginBottom: 16,
+            }}
+          >
             Abrir Turno
           </Text>
 
           <Text
             style={{
-              color: "#737373",
-              fontSize: 11,
+              color: C.muted,
+              fontSize: 13,
               textTransform: "uppercase",
               letterSpacing: 1,
               marginBottom: 6,
@@ -82,33 +97,40 @@ export default function OpenShiftModal({ visible, onClose, onOpen }: Props) {
           </Text>
           <View
             style={{
-              backgroundColor: "#1a1a1a",
+              backgroundColor: C.card,
               borderRadius: 12,
               paddingHorizontal: 14,
               marginBottom: 16,
               borderWidth: 1,
-              borderColor: "#2a2a2a",
+              borderColor: C.line,
               flexDirection: "row",
               alignItems: "center",
             }}
           >
-            <Text style={{ color: "#ff5722", fontSize: 16, fontWeight: "800", marginRight: 4 }}>
+            <Text
+              style={{
+                color: "#ff5722",
+                fontSize: 18,
+                fontWeight: "800",
+                marginRight: 4,
+              }}
+            >
               $
             </Text>
             <TextInput
               placeholder="0"
-              placeholderTextColor="#555"
+              placeholderTextColor={C.faint}
               value={balance}
               onChangeText={setBalance}
               keyboardType="numeric"
-              style={{ color: "#fff", fontSize: 16, flex: 1, height: 46 }}
+              style={{ color: C.text, fontSize: 18, flex: 1, height: 46 }}
             />
           </View>
 
           <Text
             style={{
-              color: "#737373",
-              fontSize: 11,
+              color: C.muted,
+              fontSize: 13,
               textTransform: "uppercase",
               letterSpacing: 1,
               marginBottom: 6,
@@ -118,20 +140,20 @@ export default function OpenShiftModal({ visible, onClose, onOpen }: Props) {
           </Text>
           <View
             style={{
-              backgroundColor: "#1a1a1a",
+              backgroundColor: C.card,
               borderRadius: 12,
               paddingHorizontal: 14,
               marginBottom: 20,
               borderWidth: 1,
-              borderColor: "#2a2a2a",
+              borderColor: C.line,
             }}
           >
             <TextInput
               placeholder="Ej. Efectivo + cheques"
-              placeholderTextColor="#555"
+              placeholderTextColor={C.faint}
               value={notes}
               onChangeText={setNotes}
-              style={{ color: "#fff", fontSize: 14, height: 46 }}
+              style={{ color: C.text, fontSize: 16, height: 46 }}
             />
           </View>
 
@@ -141,14 +163,14 @@ export default function OpenShiftModal({ visible, onClose, onOpen }: Props) {
               disabled={isLoading}
               style={{
                 flex: 1,
-                backgroundColor: "#2a2a2a",
+                backgroundColor: C.line,
                 paddingVertical: 14,
                 borderRadius: 12,
                 alignItems: "center",
                 opacity: isLoading ? 0.5 : 1,
               }}
             >
-              <Text style={{ color: "#fff", fontWeight: "700" }}>Cancelar</Text>
+              <Text style={{ color: C.text, fontWeight: "700" }}>Cancelar</Text>
             </Pressable>
             <Pressable
               onPress={handleOpen}

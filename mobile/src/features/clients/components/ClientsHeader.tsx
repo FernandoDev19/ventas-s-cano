@@ -1,5 +1,9 @@
+// @theme-migrated
 import { priceFormat } from "@/src/shared/helpers/price-format.helper";
 import { Text, View } from "react-native";
+import { C } from "@/src/core/theme/palette";
+import ExportButton from "@/src/shared/components/ui/ExportButton";
+import { ExportDataService } from "@/src/shared/services/expor-data.service";
 
 type Props = {
   clients: any[];
@@ -10,13 +14,16 @@ type Props = {
 export default function ClientsHeader({ clients, debtors, totalDebt }: Props) {
   return (
     <View style={{ paddingTop: 16 }}>
-      <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
-        <Text style={{ color: "#fff", fontSize: 24, fontWeight: "800" }}>
-          Clientes
-        </Text>
-        <Text style={{ color: "#737373", fontSize: 14 }}>
-          {clients.length} registrados · {debtors.length} con deuda
-        </Text>
+      <View className="px-4 mb-4 flex-row justify-between items-center">
+        <View>
+          <Text style={{ color: C.text, fontSize: 24, fontWeight: "800" }}>
+            Clientes
+          </Text>
+          <Text style={{ color: C.muted, fontSize: 16 }}>
+            {clients.length} registrados · {debtors.length} con deuda
+          </Text>
+        </View>
+        <ExportButton onExport={ExportDataService.clientsAndDebts} />
       </View>
 
       {/* Resumen deuda total */}
@@ -26,7 +33,7 @@ export default function ClientsHeader({ clients, debtors, totalDebt }: Props) {
             marginHorizontal: 16,
             marginBottom: 16,
             padding: 16,
-            backgroundColor: "#1a1a1a",
+            backgroundColor: C.card,
             borderRadius: 16,
             borderLeftWidth: 4,
             borderLeftColor: "#f59e0b",
@@ -34,8 +41,8 @@ export default function ClientsHeader({ clients, debtors, totalDebt }: Props) {
         >
           <Text
             style={{
-              color: "#737373",
-              fontSize: 11,
+              color: C.muted,
+              fontSize: 13,
               textTransform: "uppercase",
               letterSpacing: 1,
             }}
@@ -52,14 +59,14 @@ export default function ClientsHeader({ clients, debtors, totalDebt }: Props) {
           >
             {priceFormat(totalDebt)}
           </Text>
-          <Text style={{ color: "#555", fontSize: 12, marginTop: 2 }}>
+          <Text style={{ color: C.faint, fontSize: 14, marginTop: 2 }}>
             {debtors.length} cliente{debtors.length !== 1 ? "s" : ""} deben
           </Text>
         </View>
       )}
 
       <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
-        <Text style={{ color: "#fff", fontWeight: "700", fontSize: 15 }}>
+        <Text style={{ color: C.text, fontWeight: "700", fontSize: 17 }}>
           Lista de Clientes
         </Text>
       </View>

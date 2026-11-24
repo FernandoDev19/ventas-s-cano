@@ -1,5 +1,7 @@
+// @theme-migrated
 import { Ionicons } from "@expo/vector-icons";
 import { Alert, Pressable, Text, View } from "react-native";
+import { C } from "@/src/core/theme/palette";
 
 type Props = {
   setModalVisible: (visible: boolean) => void;
@@ -30,15 +32,18 @@ export default function CartHeader({
   return (
     <View className="flex-row items-center justify-between mb-4">
       <View className="flex-row items-center gap-2">
-        <Text className="text-2xl font-black text-white">Mi Orden</Text>
-        <Text className="text-primary font-bold text-lg">({totalItems})</Text>
+        <Text style={{ color: C.text }} className="text-2xl font-black">
+          Mi Orden
+        </Text>
+        <Text className="text-primary font-bold text-xl">({totalItems})</Text>
       </View>
 
       <View className="flex-row items-center gap-2">
         {onClearOrder && totalItems > 0 && (
           <Pressable
             onPress={handleClear}
-            className="p-2 bg-neutral-800 rounded-full active:opacity-70"
+            style={{ backgroundColor: C.line }}
+            className="p-2 rounded-full active:opacity-70"
             hitSlop={8}
           >
             <Ionicons name="trash-outline" size={20} color="#ef4444" />
@@ -46,10 +51,11 @@ export default function CartHeader({
         )}
         <Pressable
           onPress={() => setModalVisible(false)}
-          className="p-2 bg-neutral-800 rounded-full active:opacity-70"
+          style={{ backgroundColor: C.line }}
+          className="p-2 rounded-full active:opacity-70"
           hitSlop={8}
         >
-          <Ionicons name="close" size={22} color="white" />
+          <Ionicons name="close" size={22} color={C.text} />
         </Pressable>
       </View>
     </View>

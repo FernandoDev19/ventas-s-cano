@@ -1,5 +1,7 @@
+// @theme-migrated
 import { Ionicons } from "@expo/vector-icons";
 import { Text, View } from "react-native";
+import { C } from "@/src/core/theme/palette";
 
 type Props = {
   search?: string;
@@ -20,7 +22,7 @@ export default function RecipesListEmpty({ search }: Props) {
           width: 80,
           height: 80,
           borderRadius: 40,
-          backgroundColor: "#1a1a1a",
+          backgroundColor: C.card,
           alignItems: "center",
           justifyContent: "center",
           marginBottom: 16,
@@ -30,8 +32,8 @@ export default function RecipesListEmpty({ search }: Props) {
       </View>
       <Text
         style={{
-          color: "#fff",
-          fontSize: 18,
+          color: C.text,
+          fontSize: 20,
           fontWeight: "800",
           textAlign: "center",
           marginBottom: 8,
@@ -39,7 +41,7 @@ export default function RecipesListEmpty({ search }: Props) {
       >
         {search ? `Sin resultados para "${search}"` : "No hay recetas creadas"}
       </Text>
-      <Text style={{ color: "#737373", fontSize: 13, textAlign: "center" }}>
+      <Text style={{ color: C.muted, fontSize: 15, textAlign: "center" }}>
         {search
           ? "Prueba con otro nombre"
           : "Crea tu primera receta con el botón +"}

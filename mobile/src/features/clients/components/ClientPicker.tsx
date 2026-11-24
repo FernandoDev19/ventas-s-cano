@@ -1,3 +1,4 @@
+// @theme-migrated
 import { Ionicons } from "@expo/vector-icons";
 import { useMemo, useState } from "react";
 import {
@@ -10,6 +11,7 @@ import {
 } from "react-native";
 import { ClientType } from "../types/client.type";
 import { ClientsService } from "../services/clients.service";
+import { C } from "@/src/core/theme/palette";
 
 type Props = {
   selectedClientId: string | null;
@@ -81,7 +83,10 @@ export default function ClientPicker({
 
   if (selected) {
     return (
-      <View className="mb-4 h-16 bg-neutral-800 rounded-lg px-4 flex-row items-center justify-between">
+      <View
+        style={{ backgroundColor: C.card, borderWidth: 1, borderColor: C.line }}
+        className="mb-4 h-16 rounded-lg px-4 flex-row items-center justify-between"
+      >
         <View
           style={{
             flexDirection: "row",
@@ -91,12 +96,12 @@ export default function ClientPicker({
           }}
         >
           <Ionicons name="person" size={18} color="#ff5722" />
-          <Text style={{ color: "#fff", fontSize: 15 }} numberOfLines={1}>
+          <Text style={{ color: C.text, fontSize: 17 }} numberOfLines={1}>
             {selected.name}
           </Text>
         </View>
         <Pressable onPress={() => setSelectedClientId("")} hitSlop={8}>
-          <Ionicons name="close-circle" size={20} color="#737373" />
+          <Ionicons name="close-circle" size={20} color={C.muted} />
         </Pressable>
       </View>
     );
@@ -104,16 +109,19 @@ export default function ClientPicker({
 
   return (
     <View className="mb-4">
-      <View className="h-16 bg-neutral-800 rounded-lg px-4 flex-row items-center gap-2">
-        <Ionicons name="search-outline" size={18} color="#737373" />
+      <View
+        style={{ backgroundColor: C.card, borderWidth: 1, borderColor: C.line }}
+        className="h-16 rounded-lg px-4 flex-row items-center gap-2"
+      >
+        <Ionicons name="search-outline" size={18} color={C.muted} />
         <TextInput
           value={query}
           onChangeText={setQuery}
           onFocus={() => setFocused(true)}
           onBlur={() => setTimeout(() => setFocused(false), 150)}
           placeholder="Buscar o crear cliente (opcional)"
-          placeholderTextColor="#737373"
-          style={{ flex: 1, color: "#fff", fontSize: 15 }}
+          placeholderTextColor={C.muted}
+          style={{ flex: 1, color: C.text, fontSize: 17 }}
         />
       </View>
 
@@ -121,10 +129,10 @@ export default function ClientPicker({
         <View
           style={{
             marginTop: 6,
-            backgroundColor: "#141414",
+            backgroundColor: C.sheet,
             borderRadius: 12,
             borderWidth: 1,
-            borderColor: "#2a2a2a",
+            borderColor: C.line,
             overflow: "hidden",
           }}
         >
@@ -135,14 +143,12 @@ export default function ClientPicker({
               style={{
                 padding: 12,
                 borderBottomWidth: 1,
-                borderBottomColor: "#222",
+                borderBottomColor: C.line,
               }}
             >
-              <Text style={{ color: "#fff", fontWeight: "600" }}>{c.name}</Text>
+              <Text style={{ color: C.text, fontWeight: "600" }}>{c.name}</Text>
               {!!c.phone && (
-                <Text style={{ color: "#737373", fontSize: 12 }}>
-                  {c.phone}
-                </Text>
+                <Text style={{ color: C.muted, fontSize: 14 }}>{c.phone}</Text>
               )}
             </Pressable>
           ))}
@@ -169,7 +175,7 @@ export default function ClientPicker({
             </Pressable>
           )}
           {!matches.length && !canCreate && (
-            <Text style={{ color: "#555", padding: 12 }}>Sin clientes</Text>
+            <Text style={{ color: C.faint, padding: 12 }}>Sin clientes</Text>
           )}
         </View>
       )}

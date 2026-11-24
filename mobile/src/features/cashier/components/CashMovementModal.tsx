@@ -1,3 +1,4 @@
+// @theme-migrated
 import { useState } from "react";
 import {
   Modal,
@@ -8,11 +9,17 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { CashMovement } from "../types/shift.type";
+import { C } from "@/src/core/theme/palette";
 
 type Props = {
   visible: boolean;
   onClose: () => void;
-  onAdd: (type: "entry" | "exit", description: string, amount: number, notes?: string) => Promise<CashMovement | undefined>;
+  onAdd: (
+    type: "entry" | "exit",
+    description: string,
+    amount: number,
+    notes?: string,
+  ) => Promise<CashMovement | undefined>;
 };
 
 export default function CashMovementModal({ visible, onClose, onAdd }: Props) {
@@ -57,21 +64,28 @@ export default function CashMovementModal({ visible, onClose, onAdd }: Props) {
       >
         <View
           style={{
-            backgroundColor: "#141414",
+            backgroundColor: C.sheet,
             borderTopLeftRadius: 28,
             borderTopRightRadius: 28,
             padding: 24,
           }}
         >
-          <Text style={{ color: "#fff", fontSize: 20, fontWeight: "800", marginBottom: 16 }}>
+          <Text
+            style={{
+              color: C.text,
+              fontSize: 22,
+              fontWeight: "800",
+              marginBottom: 16,
+            }}
+          >
             Movimiento de Caja
           </Text>
 
           {/* Tipo */}
           <Text
             style={{
-              color: "#737373",
-              fontSize: 11,
+              color: C.muted,
+              fontSize: 13,
               textTransform: "uppercase",
               letterSpacing: 1,
               marginBottom: 10,
@@ -86,17 +100,17 @@ export default function CashMovementModal({ visible, onClose, onAdd }: Props) {
                 flex: 1,
                 paddingVertical: 10,
                 borderRadius: 10,
-                backgroundColor: type === "exit" ? "#ef4444" : "#1a1a1a",
+                backgroundColor: type === "exit" ? "#ef4444" : C.card,
                 borderWidth: 1,
-                borderColor: type === "exit" ? "#ef4444" : "#2a2a2a",
+                borderColor: type === "exit" ? "#ef4444" : C.line,
                 alignItems: "center",
               }}
             >
               <Text
                 style={{
-                  color: type === "exit" ? "#fff" : "#737373",
+                  color: type === "exit" ? "#fff" : C.muted,
                   fontWeight: "700",
-                  fontSize: 12,
+                  fontSize: 14,
                 }}
               >
                 ↓ Salida
@@ -108,17 +122,17 @@ export default function CashMovementModal({ visible, onClose, onAdd }: Props) {
                 flex: 1,
                 paddingVertical: 10,
                 borderRadius: 10,
-                backgroundColor: type === "entry" ? "#22c55e" : "#1a1a1a",
+                backgroundColor: type === "entry" ? "#22c55e" : C.card,
                 borderWidth: 1,
-                borderColor: type === "entry" ? "#22c55e" : "#2a2a2a",
+                borderColor: type === "entry" ? "#22c55e" : C.line,
                 alignItems: "center",
               }}
             >
               <Text
                 style={{
-                  color: type === "entry" ? "#fff" : "#737373",
+                  color: type === "entry" ? "#fff" : C.muted,
                   fontWeight: "700",
-                  fontSize: 12,
+                  fontSize: 14,
                 }}
               >
                 ↑ Entrada
@@ -129,8 +143,8 @@ export default function CashMovementModal({ visible, onClose, onAdd }: Props) {
           {/* Descripción */}
           <Text
             style={{
-              color: "#737373",
-              fontSize: 11,
+              color: C.muted,
+              fontSize: 13,
               textTransform: "uppercase",
               letterSpacing: 1,
               marginBottom: 6,
@@ -140,28 +154,28 @@ export default function CashMovementModal({ visible, onClose, onAdd }: Props) {
           </Text>
           <View
             style={{
-              backgroundColor: "#1a1a1a",
+              backgroundColor: C.card,
               borderRadius: 12,
               paddingHorizontal: 14,
               marginBottom: 16,
               borderWidth: 1,
-              borderColor: "#2a2a2a",
+              borderColor: C.line,
             }}
           >
             <TextInput
               placeholder="Ej. Compra de hielo"
-              placeholderTextColor="#555"
+              placeholderTextColor={C.faint}
               value={description}
               onChangeText={setDescription}
-              style={{ color: "#fff", fontSize: 14, height: 46 }}
+              style={{ color: C.text, fontSize: 16, height: 46 }}
             />
           </View>
 
           {/* Monto */}
           <Text
             style={{
-              color: "#737373",
-              fontSize: 11,
+              color: C.muted,
+              fontSize: 13,
               textTransform: "uppercase",
               letterSpacing: 1,
               marginBottom: 6,
@@ -171,34 +185,41 @@ export default function CashMovementModal({ visible, onClose, onAdd }: Props) {
           </Text>
           <View
             style={{
-              backgroundColor: "#1a1a1a",
+              backgroundColor: C.card,
               borderRadius: 12,
               paddingHorizontal: 14,
               marginBottom: 16,
               borderWidth: 1,
-              borderColor: "#2a2a2a",
+              borderColor: C.line,
               flexDirection: "row",
               alignItems: "center",
             }}
           >
-            <Text style={{ color: "#ff5722", fontSize: 16, fontWeight: "800", marginRight: 4 }}>
+            <Text
+              style={{
+                color: "#ff5722",
+                fontSize: 18,
+                fontWeight: "800",
+                marginRight: 4,
+              }}
+            >
               $
             </Text>
             <TextInput
               placeholder="0"
-              placeholderTextColor="#555"
+              placeholderTextColor={C.faint}
               value={amount}
               onChangeText={setAmount}
               keyboardType="numeric"
-              style={{ color: "#fff", fontSize: 14, flex: 1, height: 46 }}
+              style={{ color: C.text, fontSize: 16, flex: 1, height: 46 }}
             />
           </View>
 
           {/* Notas */}
           <Text
             style={{
-              color: "#737373",
-              fontSize: 11,
+              color: C.muted,
+              fontSize: 13,
               textTransform: "uppercase",
               letterSpacing: 1,
               marginBottom: 6,
@@ -208,20 +229,20 @@ export default function CashMovementModal({ visible, onClose, onAdd }: Props) {
           </Text>
           <View
             style={{
-              backgroundColor: "#1a1a1a",
+              backgroundColor: C.card,
               borderRadius: 12,
               paddingHorizontal: 14,
               marginBottom: 20,
               borderWidth: 1,
-              borderColor: "#2a2a2a",
+              borderColor: C.line,
             }}
           >
             <TextInput
               placeholder="Detalles adicionales..."
-              placeholderTextColor="#555"
+              placeholderTextColor={C.faint}
               value={notes}
               onChangeText={setNotes}
-              style={{ color: "#fff", fontSize: 14, height: 46 }}
+              style={{ color: C.text, fontSize: 16, height: 46 }}
             />
           </View>
 
@@ -231,14 +252,14 @@ export default function CashMovementModal({ visible, onClose, onAdd }: Props) {
               disabled={isLoading}
               style={{
                 flex: 1,
-                backgroundColor: "#2a2a2a",
+                backgroundColor: C.line,
                 paddingVertical: 14,
                 borderRadius: 12,
                 alignItems: "center",
                 opacity: isLoading ? 0.5 : 1,
               }}
             >
-              <Text style={{ color: "#fff", fontWeight: "700" }}>Cancelar</Text>
+              <Text style={{ color: C.text, fontWeight: "700" }}>Cancelar</Text>
             </Pressable>
             <Pressable
               onPress={handleAdd}
@@ -255,7 +276,9 @@ export default function CashMovementModal({ visible, onClose, onAdd }: Props) {
               {isLoading ? (
                 <ActivityIndicator color="#fff" />
               ) : (
-                <Text style={{ color: "#fff", fontWeight: "800" }}>Registrar</Text>
+                <Text style={{ color: "#fff", fontWeight: "800" }}>
+                  Registrar
+                </Text>
               )}
             </Pressable>
           </View>

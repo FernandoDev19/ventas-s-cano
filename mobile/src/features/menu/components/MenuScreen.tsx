@@ -1,3 +1,4 @@
+// @theme-migrated
 import ProductList from "@/src/features/menu/components/ProductList";
 import { useMenu } from "@/src/features/menu/hooks/useMenu";
 import QrCode from "./qr-code/QrCode";
@@ -16,13 +17,13 @@ const MenuScreen = ({ onChangeTab, activeTab }: Props) => {
 
   if (loading) {
     return (
-      <View className="flex-1 bg-[#141414] justify-center items-center">
+      <View className="flex-1 bg-white dark:bg-[#141414] justify-center items-center">
         <ActivityIndicator size="small" color="#ff5722" />
       </View>
     );
   }
   return (
-    <View className="flex-1 bg-background">
+    <View className="flex-1 bg-[#f2f2f4] dark:bg-background">
       {role !== "kitchen" && (
         <HeaderTabs
           tabs={["menu", "tables"]}

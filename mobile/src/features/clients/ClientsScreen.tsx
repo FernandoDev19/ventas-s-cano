@@ -1,8 +1,10 @@
+// @theme-migrated
 import { ActivityIndicator, View } from "react-native";
 import { useClients } from "./hooks/useClients";
 import { useClientsForm } from "./hooks/useClientsForm";
 import ClientCreateEditModal from "./components/ClientCreateEditModal";
 import ClientsList from "./components/ClientsList";
+import { C } from "@/src/core/theme/palette";
 
 export default function ClientsScreen() {
   const {
@@ -39,7 +41,7 @@ export default function ClientsScreen() {
           flex: 1,
           alignItems: "center",
           justifyContent: "center",
-          backgroundColor: "#0f0f0f",
+          backgroundColor: C.bg,
         }}
       >
         <ActivityIndicator size="large" color="#ff5722" />
@@ -47,7 +49,7 @@ export default function ClientsScreen() {
     );
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#0f0f0f" }}>
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
       <ClientsList
         clients={clients}
         debtors={debtors}

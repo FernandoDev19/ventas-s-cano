@@ -12,6 +12,22 @@ interface SyncConflict {
 
 const SYNC_LOG: SyncConflict[] = [];
 
+const tableColumnsCache = new Map<string, Set<string>>();
+
+const getTableColumns = (tableName: string): Set<string> => {
+  let cols = tableColumnsCache.get(tableName);
+  if (!cols) {
+    try {
+      const info = DATABASE.db.getAllSync(`PRAGMA table_info(${tableName});`) as any[];
+      cols = new Set(info.map((c) => c.name));
+      tableColumnsCache.set(tableName, cols);
+    } catch {
+      cols = new Set();
+    }
+  }
+  return cols;
+};
+
 export const SyncService = {
   /**
    * Ejecuta la sincronización bidireccional completa (Pull -> Push)
@@ -35,11 +51,17 @@ export const SyncService = {
         "recipes",
         "recipe_ingredients",
         "clients",
+        "suppliers",
+        "employees",
+        "payroll_payments",
+        "expenses",
+        "expense_items",
         "tables",
         "cashier_shifts",
         "cash_movements",
-        "suppliers",
-        "employees",
+        "sales",
+        "sale_products",
+        "sale_recipes",
       ];
 
       for (const table of tablasParaBajar) {
@@ -165,9 +187,18 @@ export const SyncService = {
   },
 
   _insertRecord: (tableName: string, record: any) => {
-    const keys = Object.keys(record);
-    const columns = [...keys, "sincronizado"].join(", ");
-    const placeholders = [...keys.map(() => "?"), "1"].join(", ");
+    const validCols = getTableColumns(tableName);
+    const keys = Object.keys(record).filter(
+      (k) => validCols.size === 0 || validCols.has(k)
+    );
+    const hasSincronizado =
+      validCols.size === 0 || validCols.has("sincronizado");
+    const columns = hasSincronizado
+      ? [...keys, "sincronizado"].join(", ")
+      : keys.join(", ");
+    const placeholders = hasSincronizado
+      ? [...keys.map(() => "?"), "1"].join(", ")
+      : keys.map(() => "?").join(", ");
     const values = [...keys.map((k) => record[k])];
 
     const query = `INSERT OR REPLACE INTO ${tableName} (${columns}) VALUES (${placeholders})`;

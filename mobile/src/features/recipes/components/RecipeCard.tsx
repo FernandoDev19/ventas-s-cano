@@ -1,8 +1,10 @@
+// @theme-migrated
 import { priceFormat } from "@/src/shared/helpers/price-format.helper";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Image, Pressable, Text, View } from "react-native";
 import { RecipeType } from "../types/recipe.type";
+import { C } from "@/src/core/theme/palette";
 
 export default function RecipeCard({
   recipe,
@@ -20,10 +22,10 @@ export default function RecipeCard({
       style={{
         marginHorizontal: 16,
         marginBottom: 14,
-        backgroundColor: "#1a1a1a",
+        backgroundColor: C.card,
         borderRadius: 18,
         borderWidth: 1,
-        borderColor: available ? "#2a2a2a" : "#ef444422",
+        borderColor: available ? C.line : "#ef444422",
         overflow: "hidden",
       }}
     >
@@ -60,7 +62,7 @@ export default function RecipeCard({
               <Text
                 style={{
                   color: available ? "#10b981" : "#ef4444",
-                  fontSize: 9,
+                  fontSize: 11,
                   fontWeight: "800",
                 }}
               >
@@ -70,14 +72,14 @@ export default function RecipeCard({
           </View>
 
           <Text
-            style={{ color: "#fff", fontSize: 16, fontWeight: "800" }}
+            style={{ color: C.text, fontSize: 18, fontWeight: "800" }}
             numberOfLines={1}
           >
             {recipe.name}
           </Text>
           {recipe.description ? (
             <Text
-              style={{ color: "#737373", fontSize: 11, marginTop: 2 }}
+              style={{ color: C.muted, fontSize: 13, marginTop: 2 }}
               numberOfLines={1}
             >
               {recipe.description}
@@ -87,7 +89,7 @@ export default function RecipeCard({
           <Text
             style={{
               color: "#ff5722",
-              fontSize: 18,
+              fontSize: 20,
               fontWeight: "900",
               marginTop: 6,
             }}
@@ -105,7 +107,7 @@ export default function RecipeCard({
             paddingBottom: 12,
             paddingTop: 4,
             borderTopWidth: 1,
-            borderTopColor: "#2a2a2a",
+            borderTopColor: C.line,
             flexDirection: "row",
             flexWrap: "wrap",
             gap: 6,
@@ -113,8 +115,8 @@ export default function RecipeCard({
         >
           <Text
             style={{
-              color: "#555",
-              fontSize: 10,
+              color: C.faint,
+              fontSize: 12,
               width: "100%",
               marginBottom: 4,
               textTransform: "uppercase",
@@ -127,7 +129,7 @@ export default function RecipeCard({
             <View
               key={ing.product_id}
               style={{
-                backgroundColor: "#0f0f0f",
+                backgroundColor: C.bg,
                 borderRadius: 8,
                 paddingHorizontal: 8,
                 paddingVertical: 4,
@@ -136,11 +138,11 @@ export default function RecipeCard({
                 gap: 4,
               }}
             >
-              <Text style={{ color: "#a3a3a3", fontSize: 11 }}>
+              <Text style={{ color: C.soft, fontSize: 13 }}>
                 ×{ing.quantity}
               </Text>
               <Text
-                style={{ color: "#fff", fontSize: 11, fontWeight: "600" }}
+                style={{ color: C.text, fontSize: 13, fontWeight: "600" }}
                 numberOfLines={1}
               >
                 {ing.product_name}
@@ -155,7 +157,7 @@ export default function RecipeCard({
         style={{
           flexDirection: "row",
           borderTopWidth: 1,
-          borderTopColor: "#2a2a2a",
+          borderTopColor: C.line,
         }}
       >
         <Pressable
@@ -168,11 +170,11 @@ export default function RecipeCard({
             gap: 6,
             paddingVertical: 12,
             borderRightWidth: 1,
-            borderRightColor: "#2a2a2a",
+            borderRightColor: C.line,
           }}
         >
           <Ionicons name="create-outline" size={16} color="#ff5722" />
-          <Text style={{ color: "#ff5722", fontSize: 13, fontWeight: "700" }}>
+          <Text style={{ color: "#ff5722", fontSize: 15, fontWeight: "700" }}>
             Editar
           </Text>
         </Pressable>
@@ -188,7 +190,7 @@ export default function RecipeCard({
           }}
         >
           <Ionicons name="trash-outline" size={16} color="#ef4444" />
-          <Text style={{ color: "#ef4444", fontSize: 13, fontWeight: "700" }}>
+          <Text style={{ color: "#ef4444", fontSize: 15, fontWeight: "700" }}>
             Eliminar
           </Text>
         </Pressable>

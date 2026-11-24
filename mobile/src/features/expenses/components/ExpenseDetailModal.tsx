@@ -1,3 +1,4 @@
+// @theme-migrated
 import { CategoryType } from "@/src/features/categories/types/category.type";
 import ExpensesService from "../services/expense.service";
 import { ExpenseType } from "../types/expense.type";
@@ -14,6 +15,7 @@ import {
 import { useState, useEffect } from "react";
 import { getIcon } from "../helpers/getIcon";
 import { SuppliersService } from "../../suppliers/services/suppliers.service";
+import { C } from "@/src/core/theme/palette";
 
 type ExpenseDetailModalProps = {
   visible: boolean;
@@ -34,11 +36,11 @@ const InfoRow = ({
   color?: string;
 }) => (
   <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-    <Text style={{ color: "#737373", fontSize: 12 }}>{label}</Text>
+    <Text style={{ color: C.muted, fontSize: 14 }}>{label}</Text>
     <Text
       style={{
         color,
-        fontSize: 13,
+        fontSize: 15,
         fontWeight: "600",
         flexShrink: 1,
         textAlign: "right",
@@ -149,7 +151,7 @@ export default function ExpenseDetailModal({
       >
         <View
           style={{
-            backgroundColor: "#141414",
+            backgroundColor: C.sheet,
             borderTopLeftRadius: 28,
             borderTopRightRadius: 28,
             padding: 24,
@@ -169,7 +171,7 @@ export default function ExpenseDetailModal({
               <Text
                 style={{
                   color: "#ff5722",
-                  fontSize: 11,
+                  fontSize: 13,
                   fontWeight: "700",
                   textTransform: "uppercase",
                   letterSpacing: 1,
@@ -177,7 +179,7 @@ export default function ExpenseDetailModal({
               >
                 Detalle de Gasto
               </Text>
-              <Text style={{ color: "#fff", fontSize: 20, fontWeight: "800" }}>
+              <Text style={{ color: C.text, fontSize: 22, fontWeight: "800" }}>
                 Gasto Registrado
               </Text>
             </View>
@@ -186,11 +188,11 @@ export default function ExpenseDetailModal({
                 onPress={handleDelete}
                 disabled={isDeleting}
                 style={{
-                  backgroundColor: "#2a0a0a",
+                  backgroundColor: C.dangerBg,
                   borderRadius: 20,
                   padding: 10,
                   borderWidth: 1,
-                  borderColor: "#5a1a1a",
+                  borderColor: C.dangerLine,
                 }}
               >
                 {isDeleting ? (
@@ -202,12 +204,12 @@ export default function ExpenseDetailModal({
               <Pressable
                 onPress={onClose}
                 style={{
-                  backgroundColor: "#2a2a2a",
+                  backgroundColor: C.line,
                   borderRadius: 20,
                   padding: 10,
                 }}
               >
-                <Ionicons name="close" size={20} color="#fff" />
+                <Ionicons name="close" size={20} color={C.text} />
               </Pressable>
             </View>
           </View>
@@ -231,7 +233,7 @@ export default function ExpenseDetailModal({
                 color="#ff5722"
               />
             </View>
-            <Text style={{ color: "#a3a3a3", fontSize: 14, fontWeight: "600" }}>
+            <Text style={{ color: C.soft, fontSize: 16, fontWeight: "600" }}>
               {category?.name ?? "Sin Categoría"}
             </Text>
             <Text
@@ -249,11 +251,11 @@ export default function ExpenseDetailModal({
           {/* Información */}
           <View
             style={{
-              backgroundColor: "#1a1a1a",
+              backgroundColor: C.card,
               borderRadius: 16,
               padding: 16,
               borderWidth: 1,
-              borderColor: "#2a2a2a",
+              borderColor: C.line,
               marginBottom: 16,
               gap: 12,
             }}
@@ -261,8 +263,8 @@ export default function ExpenseDetailModal({
             <View>
               <Text
                 style={{
-                  color: "#737373",
-                  fontSize: 11,
+                  color: C.muted,
+                  fontSize: 13,
                   textTransform: "uppercase",
                   letterSpacing: 0.5,
                   marginBottom: 2,
@@ -270,12 +272,12 @@ export default function ExpenseDetailModal({
               >
                 Descripción
               </Text>
-              <Text style={{ color: "#fff", fontSize: 15, fontWeight: "600" }}>
+              <Text style={{ color: C.text, fontSize: 17, fontWeight: "600" }}>
                 {expense.description}
               </Text>
             </View>
 
-            <View style={{ height: 1, backgroundColor: "#2a2a2a" }} />
+            <View style={{ height: 1, backgroundColor: C.line }} />
 
             <View
               style={{ flexDirection: "row", justifyContent: "space-between" }}
@@ -283,8 +285,8 @@ export default function ExpenseDetailModal({
               <View>
                 <Text
                   style={{
-                    color: "#737373",
-                    fontSize: 11,
+                    color: C.muted,
+                    fontSize: 13,
                     textTransform: "uppercase",
                     letterSpacing: 0.5,
                     marginBottom: 2,
@@ -293,7 +295,7 @@ export default function ExpenseDetailModal({
                   Fecha
                 </Text>
                 <Text
-                  style={{ color: "#fff", fontSize: 13, fontWeight: "600" }}
+                  style={{ color: C.text, fontSize: 15, fontWeight: "600" }}
                 >
                   {formattedDate}
                 </Text>
@@ -301,8 +303,8 @@ export default function ExpenseDetailModal({
               <View className="items-end">
                 <Text
                   style={{
-                    color: "#737373",
-                    fontSize: 11,
+                    color: C.muted,
+                    fontSize: 13,
                     textTransform: "uppercase",
                     letterSpacing: 0.5,
                     marginBottom: 2,
@@ -311,7 +313,7 @@ export default function ExpenseDetailModal({
                   Hora
                 </Text>
                 <Text
-                  style={{ color: "#fff", fontSize: 13, fontWeight: "600" }}
+                  style={{ color: C.text, fontSize: 15, fontWeight: "600" }}
                 >
                   {formattedTime}
                 </Text>
@@ -323,7 +325,7 @@ export default function ExpenseDetailModal({
               expense.payment_method ||
               expense.is_paid === 0) && (
               <>
-                <View style={{ height: 1, backgroundColor: "#2a2a2a" }} />
+                <View style={{ height: 1, backgroundColor: C.line }} />
                 {supplierName && (
                   <InfoRow label="Proveedor" value={supplierName} />
                 )}
@@ -347,8 +349,8 @@ export default function ExpenseDetailModal({
             <>
               <Text
                 style={{
-                  color: "#737373",
-                  fontSize: 11,
+                  color: C.muted,
+                  fontSize: 13,
                   textTransform: "uppercase",
                   letterSpacing: 1,
                   marginBottom: 8,
@@ -358,11 +360,11 @@ export default function ExpenseDetailModal({
               </Text>
               <View
                 style={{
-                  backgroundColor: "#1a1a1a",
+                  backgroundColor: C.card,
                   borderRadius: 16,
                   padding: 12,
                   borderWidth: 1,
-                  borderColor: "#2a2a2a",
+                  borderColor: C.line,
                   marginBottom: 16,
                   gap: 8,
                 }}
@@ -376,13 +378,13 @@ export default function ExpenseDetailModal({
                     }}
                   >
                     <Text
-                      style={{ color: "#fff", fontSize: 13, flex: 1 }}
+                      style={{ color: C.text, fontSize: 15, flex: 1 }}
                       numberOfLines={1}
                     >
                       {it.quantity}× {it.name}
                       {it.add_to_stock ? " 📦" : ""}
                     </Text>
-                    <Text style={{ color: "#a3a3a3", fontSize: 13 }}>
+                    <Text style={{ color: C.soft, fontSize: 15 }}>
                       {priceFormat(it.quantity * it.unit_cost)}
                     </Text>
                   </View>
@@ -402,7 +404,7 @@ export default function ExpenseDetailModal({
                 marginBottom: 16,
               }}
             >
-              <Text style={{ color: "#fff", fontSize: 16, fontWeight: "800" }}>
+              <Text style={{ color: "#fff", fontSize: 18, fontWeight: "800" }}>
                 Marcar como pagado
               </Text>
             </Pressable>
@@ -411,8 +413,8 @@ export default function ExpenseDetailModal({
           {/* Notas */}
           <Text
             style={{
-              color: "#737373",
-              fontSize: 11,
+              color: C.muted,
+              fontSize: 13,
               textTransform: "uppercase",
               letterSpacing: 1,
               marginBottom: 8,
@@ -422,17 +424,17 @@ export default function ExpenseDetailModal({
           </Text>
           <View
             style={{
-              backgroundColor: "#1a1a1a",
+              backgroundColor: C.card,
               borderRadius: 16,
               padding: 16,
               borderWidth: 1,
-              borderColor: "#2a2a2a",
+              borderColor: C.line,
             }}
           >
             <Text
               style={{
-                color: expense.notes ? "#fff" : "#555",
-                fontSize: 14,
+                color: expense.notes ? "#fff" : C.faint,
+                fontSize: 16,
                 fontStyle: expense.notes ? "normal" : "italic",
               }}
             >

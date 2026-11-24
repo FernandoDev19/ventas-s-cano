@@ -11,9 +11,10 @@ interface Props {
     image_url?: string;
     is_recipe?: boolean;
   };
+  isPopular?: boolean;
 }
 
-export default function ProductCard({ item }: Props) {
+export default function ProductCard({ item, isPopular = false }: Props) {
   const itemsInCart = useCartStore((state) => state.items);
   const addItem = useCartStore((state) => state.addItem);
   const removeItem = useCartStore((state) => state.removeItem);
@@ -69,6 +70,12 @@ export default function ProductCard({ item }: Props) {
               className="w-full h-full object-cover block transition-transform duration-300 group-hover:scale-104"
             />
           </div>
+        )}
+
+        {isPopular && isAvailable && (
+          <span className="absolute top-2 left-2 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-gold text-charcoal shadow">
+            🔥 Más pedido
+          </span>
         )}
 
         {/* BADGE DE STOCK */}

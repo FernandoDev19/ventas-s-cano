@@ -30,7 +30,11 @@ function formatCOP(n: number) {
 }
 
 function formatDate(str: string) {
-  return parseLocalDate(str).toLocaleDateString("es-CO", { day: "2-digit", month: "long", year: "numeric" });
+  return parseLocalDate(str).toLocaleDateString("es-CO", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
 }
 
 export const ExportService = {
@@ -227,13 +231,8 @@ export const ExportService = {
 
     const { uri } = await Print.printToFileAsync({ html, base64: false });
 
-    // Renombrar con fecha
-    const fileName = `fastpos_reporte_${data.startDate}_${data.endDate}.pdf`;
-    const file = new File(Paths.document, fileName);
-    file.write(uri);
-
     if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(file.uri, {
+      await Sharing.shareAsync(uri, {
         mimeType: "application/pdf",
         dialogTitle: "Exportar reporte PDF",
       });
@@ -258,7 +257,7 @@ export const ExportService = {
       ["Cantidad de Ventas", data.salesCount],
     ];
     const wsResumen = XLSX.utils.aoa_to_sheet(resumen);
-    
+
     wsResumen["!cols"] = [{ wch: 30 }, { wch: 20 }];
     XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen");
 

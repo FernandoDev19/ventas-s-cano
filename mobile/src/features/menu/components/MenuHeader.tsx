@@ -1,8 +1,10 @@
+// @theme-migrated
 import Input from "@/src/shared/components/ui/Input";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { CategoryType } from "../../categories/types/category.type";
 import MenuRecipeCard from "../../recipes/components/MenuRecipeCard";
 import { RecipeType } from "../../recipes/types/recipe.type";
+import { C } from "@/src/core/theme/palette";
 
 type Props = {
   categories: Partial<CategoryType>[];
@@ -26,7 +28,9 @@ export default function MenuHeader({
   return (
     <>
       <View className="mb-2 mt-4 gap-2">
-        <Text className="text-2xl font-extrabold text-white">Menú</Text>
+        <Text className="text-2xl font-extrabold text-neutral-900 dark:text-white">
+          Menú
+        </Text>
 
         <Input
           type="search"
@@ -49,15 +53,16 @@ export default function MenuHeader({
                   className="px-4 py-2 rounded-full"
                   style={{
                     backgroundColor:
-                      filter === (category.id ?? "") ? "#ff5722" : "#1a1a1a",
+                      filter === (category.id ?? "") ? "#ff5722" : C.card,
                     borderWidth: 1,
-                    borderColor: filter === (category.id ?? "") ? "#ff5722" : "#333",
+                    borderColor:
+                      filter === (category.id ?? "") ? "#ff5722" : C.line2,
                   }}
                 >
                   <Text
-                    className="text-sm font-semibold"
+                    className="text-base font-semibold"
                     style={{
-                      color: filter === (category.id ?? "") ? "#fff" : "#a3a3a3",
+                      color: filter === (category.id ?? "") ? "#fff" : C.soft,
                     }}
                   >
                     {category.name}
@@ -81,8 +86,8 @@ export default function MenuHeader({
           >
             <Text
               style={{
-                color: "#737373",
-                fontSize: 11,
+                color: C.muted,
+                fontSize: 13,
                 textTransform: "uppercase",
                 letterSpacing: 1.5,
                 fontWeight: "700",
@@ -90,11 +95,11 @@ export default function MenuHeader({
             >
               🍽 Platos / Combos
             </Text>
-            <View style={{ flex: 1, height: 1, backgroundColor: "#2a2a2a" }} />
+            <View style={{ flex: 1, height: 1, backgroundColor: C.line }} />
             <Text
               style={{
                 color: "#ff5722",
-                fontSize: 11,
+                fontSize: 13,
                 fontWeight: "700",
               }}
             >
@@ -122,8 +127,8 @@ export default function MenuHeader({
       >
         <Text
           style={{
-            color: "#737373",
-            fontSize: 11,
+            color: C.muted,
+            fontSize: 13,
             textTransform: "uppercase",
             letterSpacing: 1.5,
             fontWeight: "700",
@@ -131,7 +136,7 @@ export default function MenuHeader({
         >
           Productos
         </Text>
-        <View style={{ flex: 1, height: 1, backgroundColor: "#2a2a2a" }} />
+        <View style={{ flex: 1, height: 1, backgroundColor: C.line }} />
       </View>
     </>
   );

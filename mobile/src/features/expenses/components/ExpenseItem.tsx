@@ -1,9 +1,11 @@
+// @theme-migrated
 import { priceFormat } from "@/src/shared/helpers/price-format.helper";
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, Text, View } from "react-native";
 import { getIcon } from "../helpers/getIcon";
 import { ExpenseType } from "../types/expense.type";
 import { CategoryType } from "../../categories/types/category.type";
+import { C } from "@/src/core/theme/palette";
 
 function formatDate(date: Date | string): string {
   const d = new Date(date);
@@ -38,7 +40,7 @@ export default function ExpenseItem({
       onPress={() => setSelectedExpense(item)}
       onLongPress={() => handleDelete(item)}
       className="mx-4 mb-3 p-4 rounded-2xl flex-row items-center gap-3 active:opacity-85"
-      style={{ backgroundColor: "#1a1a1a" }}
+      style={{ backgroundColor: C.card }}
     >
       {/* Icon */}
       <View
@@ -50,26 +52,29 @@ export default function ExpenseItem({
 
       {/* Info */}
       <View className="flex-1">
-        <Text className="text-white font-semibold text-sm" numberOfLines={1}>
+        <Text
+          className="text-neutral-900 dark:text-white font-semibold text-base"
+          numberOfLines={1}
+        >
           {item.description}
         </Text>
-        <Text className="text-neutral-500 text-xs mt-0.5">
+        <Text className="text-neutral-500 text-sm mt-0.5">
           {formatDateTime(item.date)}
           {cat ? ` • ${cat.name.split(" ")[0]}` : ""}
         </Text>
         <View style={{ flexDirection: "row", gap: 6, marginTop: 4 }}>
           {item.kind === "inversion" && (
-            <Text style={{ color: "#a855f7", fontSize: 10, fontWeight: "800" }}>
+            <Text style={{ color: "#a855f7", fontSize: 12, fontWeight: "800" }}>
               INVERSIÓN
             </Text>
           )}
           {item.kind === "nomina" && (
-            <Text style={{ color: "#3b82f6", fontSize: 10, fontWeight: "800" }}>
+            <Text style={{ color: "#3b82f6", fontSize: 12, fontWeight: "800" }}>
               NÓMINA
             </Text>
           )}
           {item.is_paid === 0 && (
-            <Text style={{ color: "#f59e0b", fontSize: 10, fontWeight: "800" }}>
+            <Text style={{ color: "#f59e0b", fontSize: 12, fontWeight: "800" }}>
               POR PAGAR
             </Text>
           )}
@@ -77,7 +82,7 @@ export default function ExpenseItem({
       </View>
 
       {/* Amount */}
-      <Text className="text-base font-extrabold" style={{ color: "#ff5722" }}>
+      <Text className="text-lg font-extrabold" style={{ color: "#ff5722" }}>
         -{priceFormat(item.amount)}
       </Text>
     </Pressable>

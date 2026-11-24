@@ -22,6 +22,12 @@ export const useMenu = () => {
   const { isCartOpen, openCart, isConfirmationOpen, items, isCheckoutOpen } =
     useCartStore();
 
+    const [popularKeys, setPopularKeys] = useState<string[]>([]);
+
+useEffect(() => {
+  MenuService.getPopularKeys().then(setPopularKeys);
+}, []);
+
   const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
   const totalPrice = items.reduce(
     (acc, item) => acc + item.price * item.quantity,
@@ -72,6 +78,17 @@ export const useMenu = () => {
         item.description.toLowerCase().includes(searchQuery.toLowerCase())),
   );
 
+const keyOf = (i: MenuExtendedItem) =>
+  `${i.is_recipe ? "recipe" : "product"}-${i.id}`;
+
+// Solo se muestra la sección en "Todo el menú" y sin buscar
+const popularItems: MenuExtendedItem[] =
+  selectedCategory === "all" && !searchQuery
+    ? (popularKeys
+        .map((k) => filteredItems.find((i) => keyOf(i) === k))
+        .filter(Boolean) as MenuExtendedItem[])
+    : [];
+
   return {
     tableId: tableId || "caja",
     categories,
@@ -89,5 +106,7 @@ export const useMenu = () => {
     openCart,
     totalPrice,
     fetchMenu,
+    popularKeys,
+    popularItems,
   };
 };

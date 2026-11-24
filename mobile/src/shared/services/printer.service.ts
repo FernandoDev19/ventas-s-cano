@@ -376,7 +376,7 @@ export const PrinterService = {
     cmds.push(this.line());
 
     // ===== TOTAL NETO =====
-    cmds.push(this.text("VENTAS NETAS", "center", true));
+    cmds.push(this.text("GANANCIA NETA", "center", true));
     cmds.push(
       this.text(
         `$${Number(report.netProfit || 0).toLocaleString("es-CO")}`,

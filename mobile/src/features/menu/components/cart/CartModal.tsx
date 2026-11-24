@@ -1,3 +1,4 @@
+// @theme-migrated
 import Button from "@/src/shared/components/ui/Button";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -11,6 +12,7 @@ import { useCartModal } from "../../hooks/useCartModal";
 import CartHeader from "./CartHeader";
 import CartProductsList from "./CartProductsList";
 import CartFooter from "./CartFooter";
+import { C } from "@/src/core/theme/palette";
 import CartCheckoutBar from "./CartCheckoutBar";
 
 type Props = {
@@ -70,8 +72,8 @@ const CartModal = ({ onSaleCreated }: Props) => {
         onPress={() => setModalVisible(true)}
       >
         <View className="flex-row items-center">
-          <Ionicons name="cart" size={24} color="white" />
-          <Text className="text-xs absolute -top-4 -right-4 w-4 h-4 rounded-full bg-white text-black text-center m-0 p-0">
+          <Ionicons name="cart" size={24} color={C.text} />
+          <Text className="text-sm absolute -top-4 -right-4 w-4 h-4 rounded-full bg-white text-black text-center m-0 p-0">
             {totalItems}
           </Text>
         </View>
@@ -88,14 +90,17 @@ const CartModal = ({ onSaleCreated }: Props) => {
           style={{ flex: 1 }}
         >
           <View className="flex-1 bg-black/60 justify-end">
-            <View className="bg-neutral-900 rounded-t-[32px] h-[92%] px-6 pt-6 shadow-2xl border-t border-neutral-800">
+            <View
+              style={{ backgroundColor: C.sheet, borderColor: C.line }}
+              className="rounded-t-[32px] h-[92%] px-6 pt-6 shadow-2xl border-t"
+            >
               <CartHeader
                 setModalVisible={setModalVisible}
                 totalItems={totalItems}
                 onClearOrder={clearOrder}
               />
 
-                       <CartProductsList
+              <CartProductsList
                 order={order}
                 getItemImage={getItemImage}
                 getItemLabel={getItemLabel}

@@ -1,3 +1,4 @@
+// @theme-migrated
 import { useRouter } from "expo-router";
 import { Alert, Image, Pressable, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -56,7 +57,7 @@ export default function Header() {
 
   return (
     <SafeAreaView
-      className="bg-background shadow-md"
+      className="bg-[#f2f2f4] dark:bg-background shadow-md"
       edges={["top", "left", "right"]}
     >
       <View className="py-4 px-5 flex-row justify-between items-center">

@@ -1,3 +1,4 @@
+// @theme-migrated
 import React, { useEffect, useState } from "react";
 import {
   Modal,
@@ -10,6 +11,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { PrinterService, PrintCommand } from "../../services/printer.service";
+import { C, lazy } from "@/src/core/theme/palette";
 
 export default function VirtualPrinterModal() {
   const [visible, setVisible] = useState(false);
@@ -118,11 +120,11 @@ export default function VirtualPrinterModal() {
           </View>
 
           {/* Subtitle / Info */}
-          <View className="bg-neutral-800 px-4 py-2 border-b border-neutral-700 flex-row justify-between items-center">
-            <Text className="text-neutral-400 text-xs font-semibold">
+          <View className="bg-neutral-200 dark:bg-neutral-800 px-4 py-2 border-b border-neutral-300 dark:border-neutral-700 flex-row justify-between items-center">
+            <Text className="text-neutral-600 dark:text-neutral-400 text-sm font-semibold">
               Simulación de Tirilla Térmica (58mm)
             </Text>
-            <Text className="text-neutral-500 text-[10px]">ESC/POS Mode</Text>
+            <Text className="text-neutral-500 text-[12px]">ESC/POS Mode</Text>
           </View>
 
           {/* Ticket Body / Paper Roll */}
@@ -151,14 +153,17 @@ export default function VirtualPrinterModal() {
               style={[
                 styles.actionBtn,
                 {
-                  backgroundColor:
-                    target === "caja" ? "#ff5722" : "#059669",
+                  backgroundColor: target === "caja" ? "#ff5722" : "#059669",
                 },
               ]}
               className="flex-row items-center justify-center gap-2"
             >
-              <Ionicons name="checkmark-circle-outline" size={20} color="white" />
-              <Text className="text-white font-bold text-sm">
+              <Ionicons
+                name="checkmark-circle-outline"
+                size={20}
+                color={C.text}
+              />
+              <Text className="text-neutral-900 dark:text-white font-bold text-base">
                 Retirar Ticket (Listo)
               </Text>
             </TouchableOpacity>
@@ -169,148 +174,150 @@ export default function VirtualPrinterModal() {
   );
 }
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.75)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  container: {
-    width: "100%",
-    maxWidth: 360,
-    height: "80%",
-    backgroundColor: "#171717",
-    borderRadius: 24,
-    overflow: "hidden",
-    borderWidth: 1,
-    borderColor: "#262626",
-    elevation: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-  },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    backgroundColor: "#171717",
-    borderBottomWidth: 1,
-    borderColor: "#262626",
-  },
-  headerTitle: {
-    color: "#ffffff",
-    fontSize: 14,
-    fontWeight: "bold",
-    letterSpacing: 0.5,
-  },
-  closeBtn: {
-    padding: 4,
-  },
-  paperScroll: {
-    flex: 1,
-    backgroundColor: "#121212",
-  },
-  paperContent: {
-    padding: 16,
-    alignItems: "center",
-  },
-  ticketPaper: {
-    width: 280,
-    backgroundColor: "#fbfaf7", // Papel térmico crema/hueso
-    borderRadius: 2,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3,
-  },
-  receiptContainer: {
-    paddingVertical: 20,
-    paddingHorizontal: 14,
-  },
-  receiptText: {
-    fontFamily: Platform.OS === "ios" ? "Courier New" : "monospace",
-    fontSize: 12,
-    color: "#1c1917", // Negro piedra
-    lineHeight: 16,
-  },
-  textCenter: {
-    textAlign: "center",
-  },
-  textRight: {
-    textAlign: "right",
-  },
-  textBold: {
-    fontWeight: "bold",
-  },
-  textLarge: {
-    fontSize: 15,
-    lineHeight: 20,
-  },
-  textTitle: {
-    fontSize: 18,
-    lineHeight: 24,
-    fontWeight: "900",
-    marginVertical: 4,
-  },
-  dividerLine: {
-    color: "#78716c",
-    marginVertical: 6,
-  },
-  feedSpace: {
-    height: 12,
-  },
-  cutLineContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginVertical: 12,
-  },
-  cutLine: {
-    flex: 1,
-    height: 1,
-    borderStyle: "dashed",
-    borderWidth: 1,
-    borderColor: "#cbd5e1",
-  },
-  cutText: {
-    fontSize: 9,
-    fontWeight: "bold",
-    color: "#94a3b8",
-    marginLeft: 4,
-    letterSpacing: 1,
-  },
-  jaggedBorder: {
-    height: 6,
-    width: "100%",
-    backgroundColor: "#fbfaf7",
-    borderTopWidth: 2,
-    borderStyle: "dashed",
-    borderColor: "#e7e5e4",
-  },
-  jaggedBorderBottom: {
-    height: 6,
-    width: "100%",
-    backgroundColor: "#fbfaf7",
-    borderBottomWidth: 2,
-    borderStyle: "dashed",
-    borderColor: "#e7e5e4",
-  },
-  footer: {
-    padding: 16,
-    backgroundColor: "#171717",
-    borderTopWidth: 1,
-    borderColor: "#262626",
-  },
-  actionBtn: {
-    paddingVertical: 14,
-    borderRadius: 14,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});
+const styles = lazy(() =>
+  StyleSheet.create({
+    overlay: {
+      flex: 1,
+      backgroundColor: "rgba(0,0,0,0.75)",
+      justifyContent: "center",
+      alignItems: "center",
+      padding: 20,
+    },
+    container: {
+      width: "100%",
+      maxWidth: 360,
+      height: "80%",
+      backgroundColor: C.sheet,
+      borderRadius: 24,
+      overflow: "hidden",
+      borderWidth: 1,
+      borderColor: C.line,
+      elevation: 10,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 10,
+    },
+    header: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingHorizontal: 16,
+      paddingVertical: 16,
+      backgroundColor: C.sheet,
+      borderBottomWidth: 1,
+      borderColor: C.line,
+    },
+    headerTitle: {
+      color: C.text,
+      fontSize: 16,
+      fontWeight: "bold",
+      letterSpacing: 0.5,
+    },
+    closeBtn: {
+      padding: 4,
+    },
+    paperScroll: {
+      flex: 1,
+      backgroundColor: C.bg,
+    },
+    paperContent: {
+      padding: 16,
+      alignItems: "center",
+    },
+    ticketPaper: {
+      width: 280,
+      backgroundColor: "#fbfaf7", // Papel térmico crema/hueso
+      borderRadius: 2,
+      elevation: 3,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.15,
+      shadowRadius: 3,
+    },
+    receiptContainer: {
+      paddingVertical: 20,
+      paddingHorizontal: 14,
+    },
+    receiptText: {
+      fontFamily: Platform.OS === "ios" ? "Courier New" : "monospace",
+      fontSize: 14,
+      color: "#1c1917", // Negro piedra
+      lineHeight: 16,
+    },
+    textCenter: {
+      textAlign: "center",
+    },
+    textRight: {
+      textAlign: "right",
+    },
+    textBold: {
+      fontWeight: "bold",
+    },
+    textLarge: {
+      fontSize: 17,
+      lineHeight: 20,
+    },
+    textTitle: {
+      fontSize: 20,
+      lineHeight: 24,
+      fontWeight: "900",
+      marginVertical: 4,
+    },
+    dividerLine: {
+      color: "#78716c",
+      marginVertical: 6,
+    },
+    feedSpace: {
+      height: 12,
+    },
+    cutLineContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      marginVertical: 12,
+    },
+    cutLine: {
+      flex: 1,
+      height: 1,
+      borderStyle: "dashed",
+      borderWidth: 1,
+      borderColor: "#cbd5e1",
+    },
+    cutText: {
+      fontSize: 11,
+      fontWeight: "bold",
+      color: "#94a3b8",
+      marginLeft: 4,
+      letterSpacing: 1,
+    },
+    jaggedBorder: {
+      height: 6,
+      width: "100%",
+      backgroundColor: "#fbfaf7",
+      borderTopWidth: 2,
+      borderStyle: "dashed",
+      borderColor: "#e7e5e4",
+    },
+    jaggedBorderBottom: {
+      height: 6,
+      width: "100%",
+      backgroundColor: "#fbfaf7",
+      borderBottomWidth: 2,
+      borderStyle: "dashed",
+      borderColor: "#e7e5e4",
+    },
+    footer: {
+      padding: 16,
+      backgroundColor: C.sheet,
+      borderTopWidth: 1,
+      borderColor: C.line,
+    },
+    actionBtn: {
+      paddingVertical: 14,
+      borderRadius: 14,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+  }),
+);

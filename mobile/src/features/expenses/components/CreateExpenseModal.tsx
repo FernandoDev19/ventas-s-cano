@@ -1,10 +1,14 @@
+// @theme-migrated
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import { Alert, Pressable, Switch, Text, View } from "react-native";
 import DateField from "@/src/shared/components/ui/DateField";
 import FormField from "@/src/shared/components/ui/FormField";
 import SheetModal, { SheetButton } from "@/src/shared/components/ui/SheetModal";
-import { parseLocalDate, toLocalDateStr } from "@/src/shared/helpers/date.helper";
+import {
+  parseLocalDate,
+  toLocalDateStr,
+} from "@/src/shared/helpers/date.helper";
 import { priceFormat } from "@/src/shared/helpers/price-format.helper";
 import CategoriesModal from "../../categories/components/CategoriesModal";
 import { CategoryType } from "../../categories/types/category.type";
@@ -15,7 +19,12 @@ import { SuppliersService } from "../../suppliers/services/suppliers.service";
 import { SupplierType } from "../../suppliers/types/supplier.type";
 import ExpensesService from "../services/expense.service";
 import { ExpenseKind } from "../types/expense.type";
-import ExpenseItemsEditor, { ExpenseRow, rowsToItems, rowsTotal } from "./ExpenseItemsEditor";
+import ExpenseItemsEditor, {
+  ExpenseRow,
+  rowsToItems,
+  rowsTotal,
+} from "./ExpenseItemsEditor";
+import { C } from "@/src/core/theme/palette";
 
 type Props = {
   visible: boolean;
@@ -32,17 +41,35 @@ const METHODS = [
 ];
 
 const Label = ({ children }: { children: string }) => (
-  <Text style={{ color: "#737373", fontSize: 11, textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>
+  <Text
+    style={{
+      color: C.muted,
+      fontSize: 13,
+      textTransform: "uppercase",
+      letterSpacing: 1,
+      marginBottom: 6,
+    }}
+  >
     {children}
   </Text>
 );
 
 const chip = (active: boolean) => ({
-  flex: 1, paddingVertical: 12, borderRadius: 12, alignItems: "center" as const,
-  backgroundColor: active ? "#ff572220" : "#1a1a1a", borderWidth: 1.5, borderColor: active ? "#ff5722" : "#2a2a2a",
+  flex: 1,
+  paddingVertical: 12,
+  borderRadius: 12,
+  alignItems: "center" as const,
+  backgroundColor: active ? "#ff572220" : C.card,
+  borderWidth: 1.5,
+  borderColor: active ? "#ff5722" : C.line,
 });
 
-export default function CreateExpenseModal({ visible, categories, onClose, onCreated }: Props) {
+export default function CreateExpenseModal({
+  visible,
+  categories,
+  onClose,
+  onCreated,
+}: Props) {
   const [kind, setKind] = useState<ExpenseKind>("operativo");
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
@@ -63,16 +90,26 @@ export default function CreateExpenseModal({ visible, categories, onClose, onCre
 
   useEffect(() => {
     if (!visible) return;
-    setKind("operativo"); setDescription(""); setAmount(""); setRows([]); setCategoryId(null);
-    setSupplierId(null); setMethod("efectivo"); setInvoice(""); setIsPaid(true); setDueDate(null);
-    setDate(toLocalDateStr()); setNotes("");
+    setKind("operativo");
+    setDescription("");
+    setAmount("");
+    setRows([]);
+    setCategoryId(null);
+    setSupplierId(null);
+    setMethod("efectivo");
+    setInvoice("");
+    setIsPaid(true);
+    setDueDate(null);
+    setDate(toLocalDateStr());
+    setNotes("");
     ProductsService.getProducts().then(setProducts).catch(console.error);
     SuppliersService.getAll().then(setSuppliers).catch(console.error);
   }, [visible]);
 
   // Al pasar a inversión, los ítems de inventario no aplican
   useEffect(() => {
-    if (kind === "inversion") setRows((r) => r.map((x) => ({ ...x, add_to_stock: false })));
+    if (kind === "inversion")
+      setRows((r) => r.map((x) => ({ ...x, add_to_stock: false })));
   }, [kind]);
 
   const hasItems = rows.length > 0;
@@ -80,16 +117,33 @@ export default function CreateExpenseModal({ visible, categories, onClose, onCre
 
   const handleSave = async () => {
     const items = rowsToItems(rows);
-    const parsedAmount = hasItems ? itemsTotal : Number(amount.replace(/[^0-9]/g, ""));
+    const parsedAmount = hasItems
+      ? itemsTotal
+      : Number(amount.replace(/[^0-9]/g, ""));
     const finalDescription =
       description.trim() ||
-      (items.length ? `Compra: ${items.slice(0, 3).map((i) => i.name).join(", ")}` : "");
+      (items.length
+        ? `Compra: ${items
+            .slice(0, 3)
+            .map((i) => i.name)
+            .join(", ")}`
+        : "");
 
-    if (!finalDescription) return Alert.alert("Falta descripción", "Escribe una descripción o agrega ítems.");
+    if (!finalDescription)
+      return Alert.alert(
+        "Falta descripción",
+        "Escribe una descripción o agrega ítems.",
+      );
     if (!parsedAmount || parsedAmount <= 0)
-      return Alert.alert("Monto inválido", hasItems ? "Ponle costo a los ítems." : "Ingresa un monto mayor a 0.");
+      return Alert.alert(
+        "Monto inválido",
+        hasItems ? "Ponle costo a los ítems." : "Ingresa un monto mayor a 0.",
+      );
     if (!isPaid && !supplierId)
-      return Alert.alert("Falta proveedor", "Para dejar un gasto por pagar, selecciona el proveedor.");
+      return Alert.alert(
+        "Falta proveedor",
+        "Para dejar un gasto por pagar, selecciona el proveedor.",
+      );
 
     setIsSaving(true);
     try {
@@ -111,19 +165,33 @@ export default function CreateExpenseModal({ visible, categories, onClose, onCre
       Alert.alert("Gasto registrado", "El gasto se registró correctamente.");
     } catch (err) {
       console.error("Error creando gasto:", err);
-      Alert.alert("Error al guardar", `No se pudo registrar el gasto.\n\n${err instanceof Error ? err.message : ""}`);
+      Alert.alert(
+        "Error al guardar",
+        `No se pudo registrar el gasto.\n\n${err instanceof Error ? err.message : ""}`,
+      );
     } finally {
       setIsSaving(false);
     }
   };
 
   return (
-    <SheetModal visible={visible} onClose={onClose} eyebrow="Registrar" title="Nuevo gasto">
+    <SheetModal
+      visible={visible}
+      onClose={onClose}
+      eyebrow="Registrar"
+      title="Nuevo gasto"
+    >
       {/* Tipo */}
       <View style={{ flexDirection: "row", gap: 8, marginBottom: 16 }}>
         {(["operativo", "inversion"] as const).map((k) => (
-          <Pressable key={k} onPress={() => setKind(k)} style={chip(kind === k)}>
-            <Text style={{ color: kind === k ? "#fff" : "#a3a3a3", fontWeight: "700" }}>
+          <Pressable
+            key={k}
+            onPress={() => setKind(k)}
+            style={chip(kind === k)}
+          >
+            <Text
+              style={{ color: kind === k ? "#fff" : C.soft, fontWeight: "700" }}
+            >
               {k === "operativo" ? "Gasto operativo" : "Inversión"}
             </Text>
           </Pressable>
@@ -134,59 +202,126 @@ export default function CreateExpenseModal({ visible, categories, onClose, onCre
         label={hasItems ? "Descripción (opcional)" : "Descripción"}
         value={description}
         onChangeText={setDescription}
-        placeholder={kind === "inversion" ? "Ej. Freidora industrial" : "Ej. Compra de pollos"}
+        placeholder={
+          kind === "inversion"
+            ? "Ej. Freidora industrial"
+            : "Ej. Compra de pollos"
+        }
       />
 
-      <ExpenseItemsEditor rows={rows} onChange={setRows} products={products} allowProducts={kind === "operativo"} />
+      <ExpenseItemsEditor
+        rows={rows}
+        onChange={setRows}
+        products={products}
+        allowProducts={kind === "operativo"}
+      />
 
       {hasItems ? (
-        <View style={{
-          backgroundColor: "#1a1a1a", borderRadius: 14, padding: 14, borderWidth: 1, borderColor: "#2a2a2a",
-          flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16,
-        }}>
-          <Text style={{ color: "#a3a3a3", fontWeight: "600" }}>Total (suma de ítems)</Text>
-          <Text style={{ color: "#fff", fontSize: 22, fontWeight: "900" }}>{priceFormat(itemsTotal)}</Text>
+        <View
+          style={{
+            backgroundColor: C.card,
+            borderRadius: 14,
+            padding: 14,
+            borderWidth: 1,
+            borderColor: C.line,
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 16,
+          }}
+        >
+          <Text style={{ color: C.soft, fontWeight: "600" }}>
+            Total (suma de ítems)
+          </Text>
+          <Text style={{ color: C.text, fontSize: 24, fontWeight: "900" }}>
+            {priceFormat(itemsTotal)}
+          </Text>
         </View>
       ) : (
-        <FormField label="Monto" prefix="$" value={amount} onChangeText={setAmount} keyboardType="numeric" placeholder="0" />
+        <FormField
+          label="Monto"
+          prefix="$"
+          value={amount}
+          onChangeText={setAmount}
+          keyboardType="numeric"
+          placeholder="0"
+        />
       )}
 
-      <DateField label="Fecha del gasto" value={date} onChange={(v) => setDate(v)} />
+      <DateField
+        label="Fecha del gasto"
+        value={date}
+        onChange={(v) => setDate(v)}
+      />
 
       {/* Categoría */}
       <Label>Categoría</Label>
       <Pressable
         onPress={() => setShowCats(true)}
-        className="h-16 bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl px-4 flex-row items-center justify-between mb-4"
+        className="h-16 bg-white dark:bg-[#1a1a1a] border border-neutral-200 dark:border-[#2a2a2a] rounded-2xl px-4 flex-row items-center justify-between mb-4"
       >
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <Ionicons name="folder-outline" size={18} color={categoryId ? "#ff5722" : "#737373"} />
-          <Text style={{ color: categoryId ? "#fff" : "#737373", fontSize: 15 }}>
-            {categoryId ? categories.find((c) => c.id === categoryId)?.name : "Selecciona una categoría"}
+          <Ionicons
+            name="folder-outline"
+            size={18}
+            color={categoryId ? "#ff5722" : C.muted}
+          />
+          <Text style={{ color: categoryId ? "#fff" : C.muted, fontSize: 17 }}>
+            {categoryId
+              ? categories.find((c) => c.id === categoryId)?.name
+              : "Selecciona una categoría"}
           </Text>
         </View>
-        <Ionicons name="chevron-down" size={16} color="#555" />
+        <Ionicons name="chevron-down" size={16} color={C.faint} />
       </Pressable>
       <CategoriesModal
         visible={showCats}
-        onSelect={(id) => { setShowCats(false); setCategoryId(id); }}
-        onCreated={(id) => { setShowCats(false); setCategoryId(id); }}
+        onSelect={(id) => {
+          setShowCats(false);
+          setCategoryId(id);
+        }}
+        onCreated={(id) => {
+          setShowCats(false);
+          setCategoryId(id);
+        }}
         onClose={() => setShowCats(false)}
       />
 
-      <SupplierPicker suppliers={suppliers} selectedId={supplierId} onSelect={setSupplierId} />
+      <SupplierPicker
+        suppliers={suppliers}
+        selectedId={supplierId}
+        onSelect={setSupplierId}
+      />
 
-      <FormField label="N° de factura (opcional)" value={invoice} onChangeText={setInvoice} placeholder="Ej. FV-1234" />
+      <FormField
+        label="N° de factura (opcional)"
+        value={invoice}
+        onChangeText={setInvoice}
+        placeholder="Ej. FV-1234"
+      />
 
       {/* Pago */}
-      <View style={{
-        flexDirection: "row", justifyContent: "space-between", alignItems: "center",
-        backgroundColor: "#1a1a1a", borderRadius: 14, padding: 14, borderWidth: 1, borderColor: "#2a2a2a", marginBottom: 16,
-      }}>
+      <View
+        style={{
+          flexDirection: "row",
+          justifyContent: "space-between",
+          alignItems: "center",
+          backgroundColor: C.card,
+          borderRadius: 14,
+          padding: 14,
+          borderWidth: 1,
+          borderColor: C.line,
+          marginBottom: 16,
+        }}
+      >
         <View style={{ flex: 1, marginRight: 12 }}>
-          <Text style={{ color: "#fff", fontWeight: "700" }}>{isPaid ? "Pagado" : "Por pagar (a crédito)"}</Text>
-          <Text style={{ color: "#737373", fontSize: 12, marginTop: 2 }}>
-            {isPaid ? "Ya salió el dinero" : "Queda como deuda con el proveedor"}
+          <Text style={{ color: C.text, fontWeight: "700" }}>
+            {isPaid ? "Pagado" : "Por pagar (a crédito)"}
+          </Text>
+          <Text style={{ color: C.muted, fontSize: 14, marginTop: 2 }}>
+            {isPaid
+              ? "Ya salió el dinero"
+              : "Queda como deuda con el proveedor"}
           </Text>
         </View>
         <Switch
@@ -202,8 +337,18 @@ export default function CreateExpenseModal({ visible, categories, onClose, onCre
           <Label>Método de pago</Label>
           <View style={{ flexDirection: "row", gap: 8, marginBottom: 16 }}>
             {METHODS.map((m) => (
-              <Pressable key={m.value} onPress={() => setMethod(m.value)} style={chip(method === m.value)}>
-                <Text style={{ color: method === m.value ? "#fff" : "#a3a3a3", fontWeight: "700", fontSize: 12 }}>
+              <Pressable
+                key={m.value}
+                onPress={() => setMethod(m.value)}
+                style={chip(method === m.value)}
+              >
+                <Text
+                  style={{
+                    color: method === m.value ? "#fff" : C.soft,
+                    fontWeight: "700",
+                    fontSize: 14,
+                  }}
+                >
                   {m.label}
                 </Text>
               </Pressable>
@@ -211,12 +356,25 @@ export default function CreateExpenseModal({ visible, categories, onClose, onCre
           </View>
         </>
       ) : (
-        <DateField label="Fecha límite de pago" value={dueDate} onChange={setDueDate} />
+        <DateField
+          label="Fecha límite de pago"
+          value={dueDate}
+          onChange={setDueDate}
+        />
       )}
 
-      <FormField label="Notas (opcional)" value={notes} onChangeText={setNotes} placeholder="Ej. Proveedor, observaciones..." />
+      <FormField
+        label="Notas (opcional)"
+        value={notes}
+        onChangeText={setNotes}
+        placeholder="Ej. Proveedor, observaciones..."
+      />
 
-      <SheetButton label="Guardar gasto" onPress={handleSave} loading={isSaving} />
+      <SheetButton
+        label="Guardar gasto"
+        onPress={handleSave}
+        loading={isSaving}
+      />
     </SheetModal>
   );
 }

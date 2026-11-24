@@ -1,15 +1,26 @@
 import ProductCard from "./product-card/ProductCard";
 import type { ProductType } from "../../types/product.type";
 
+type Item = ProductType & {
+  is_recipe?: boolean;
+  selling_price?: number;
+  description?: string;
+};
+
 interface Props {
-  items: (ProductType & {
-    is_recipe?: boolean;
-    selling_price?: number;
-    description?: string;
-  })[];
+  items: Item[];
+  popularItems?: Item[];
+  popularKeys?: string[];
 }
 
-export default function CardContainer({ items }: Props) {
+export default function CardContainer({
+  items,
+  popularItems = [],
+  popularKeys = [],
+}: Props) {
+  const isPopular = (i: Item) =>
+    popularKeys.includes(`${i.is_recipe ? "recipe" : "product"}-${i.id}`);
+
   if (!items.length) {
     return (
       <div className="text-center py-16 text-muted">
@@ -32,6 +43,23 @@ export default function CardContainer({ items }: Props) {
 
   return (
     <div className="flex flex-col gap-4 w-full">
+      {popularItems.length > 0 && (
+        <div>
+          <h3 className="font-playfair text-xl font-bold text-gold px-4 pt-6 pb-2 flex items-center gap-2 after:content-[''] after:flex-1 after:h-[1px] after:bg-gradient-to-r after:from-gold/25 after:to-transparent">
+            🔥 Lo más pedido
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 px-4 mb-6">
+            {popularItems.map((p) => (
+              <ProductCard
+                key={`pop-${p.is_recipe ? "r" : "p"}-${p.id}`}
+                item={p}
+                isPopular
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ── SECCIÓN DE RECETAS (COMBOS Y ESPECIALES) ── */}
       {recipesList.length > 0 && (
         <div>

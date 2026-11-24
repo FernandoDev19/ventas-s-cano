@@ -1,3 +1,4 @@
+// @theme-migrated
 import { useState, useRef } from "react";
 import {
   Modal,
@@ -15,6 +16,7 @@ import * as Sharing from "expo-sharing";
 import * as Print from "expo-print";
 import * as Clipboard from "expo-clipboard";
 import { Directory, File, Paths } from "expo-file-system";
+import { C } from "@/src/core/theme/palette";
 
 type Props = {
   visible: boolean;
@@ -185,7 +187,7 @@ export default function ShareMenuQRModal({ visible, onClose }: Props) {
       >
         <ScrollView
           style={{
-            backgroundColor: "#141414",
+            backgroundColor: C.sheet,
             borderTopLeftRadius: 28,
             borderTopRightRadius: 28,
             padding: 24,
@@ -205,7 +207,7 @@ export default function ShareMenuQRModal({ visible, onClose }: Props) {
               <Text
                 style={{
                   color: "#ff5722",
-                  fontSize: 11,
+                  fontSize: 13,
                   fontWeight: "700",
                   textTransform: "uppercase",
                   letterSpacing: 1,
@@ -215,8 +217,8 @@ export default function ShareMenuQRModal({ visible, onClose }: Props) {
               </Text>
               <Text
                 style={{
-                  color: "#fff",
-                  fontSize: 20,
+                  color: C.text,
+                  fontSize: 22,
                   fontWeight: "800",
                   marginTop: 4,
                 }}
@@ -227,12 +229,12 @@ export default function ShareMenuQRModal({ visible, onClose }: Props) {
             <Pressable
               onPress={onClose}
               style={{
-                backgroundColor: "#2a2a2a",
+                backgroundColor: C.line,
                 borderRadius: 20,
                 padding: 8,
               }}
             >
-              <Ionicons name="close" size={20} color="#fff" />
+              <Ionicons name="close" size={20} color={C.text} />
             </Pressable>
           </View>
 
@@ -242,16 +244,16 @@ export default function ShareMenuQRModal({ visible, onClose }: Props) {
               alignItems: "center",
               marginBottom: 24,
               padding: 20,
-              backgroundColor: "#1a1a1a",
+              backgroundColor: C.card,
               borderRadius: 16,
               borderWidth: 1,
-              borderColor: "#2a2a2a",
+              borderColor: C.line,
             }}
           >
             <Text
               style={{
-                color: "#737373",
-                fontSize: 12,
+                color: C.muted,
+                fontSize: 14,
                 marginBottom: 16,
                 fontWeight: "600",
               }}
@@ -282,8 +284,8 @@ export default function ShareMenuQRModal({ visible, onClose }: Props) {
             {/* URL Text */}
             <Text
               style={{
-                color: "#a3a3a3",
-                fontSize: 11,
+                color: C.soft,
+                fontSize: 13,
                 textAlign: "center",
                 marginBottom: 12,
               }}
@@ -293,7 +295,7 @@ export default function ShareMenuQRModal({ visible, onClose }: Props) {
             <Text
               style={{
                 color: "#ff5722",
-                fontSize: 12,
+                fontSize: 14,
                 fontWeight: "700",
                 textAlign: "center",
               }}
@@ -318,7 +320,7 @@ export default function ShareMenuQRModal({ visible, onClose }: Props) {
               }}
             >
               <Ionicons name="logo-whatsapp" size={20} color="#fff" />
-              <Text style={{ color: "#fff", fontSize: 15, fontWeight: "700" }}>
+              <Text style={{ color: "#fff", fontSize: 17, fontWeight: "700" }}>
                 Compartir por WhatsApp
               </Text>
             </Pressable>
@@ -337,7 +339,7 @@ export default function ShareMenuQRModal({ visible, onClose }: Props) {
               }}
             >
               <Ionicons name="share-social" size={20} color="#fff" />
-              <Text style={{ color: "#fff", fontSize: 15, fontWeight: "700" }}>
+              <Text style={{ color: "#fff", fontSize: 17, fontWeight: "700" }}>
                 Compartir Menú
               </Text>
             </Pressable>
@@ -351,10 +353,10 @@ export default function ShareMenuQRModal({ visible, onClose }: Props) {
                 alignItems: "center",
                 gap: 12,
                 padding: 14,
-                backgroundColor: "#1a1a1a",
+                backgroundColor: C.card,
                 borderRadius: 14,
                 borderWidth: 1,
-                borderColor: "#2a2a2a",
+                borderColor: C.line,
                 justifyContent: "center",
                 opacity: isGenerating ? 0.6 : 1,
               }}
@@ -365,7 +367,7 @@ export default function ShareMenuQRModal({ visible, onClose }: Props) {
                 <Ionicons name="print" size={20} color="#ff5722" />
               )}
               <Text
-                style={{ color: "#ff5722", fontSize: 15, fontWeight: "700" }}
+                style={{ color: "#ff5722", fontSize: 17, fontWeight: "700" }}
               >
                 {isGenerating ? "Generando..." : "Imprimir QR"}
               </Text>
@@ -379,17 +381,15 @@ export default function ShareMenuQRModal({ visible, onClose }: Props) {
                 alignItems: "center",
                 gap: 12,
                 padding: 14,
-                backgroundColor: "#1a1a1a",
+                backgroundColor: C.card,
                 borderRadius: 14,
                 borderWidth: 1,
-                borderColor: "#2a2a2a",
+                borderColor: C.line,
                 justifyContent: "center",
               }}
             >
-              <Ionicons name="copy" size={20} color="#a3a3a3" />
-              <Text
-                style={{ color: "#a3a3a3", fontSize: 15, fontWeight: "700" }}
-              >
+              <Ionicons name="copy" size={20} color={C.soft} />
+              <Text style={{ color: C.soft, fontSize: 17, fontWeight: "700" }}>
                 Copiar Enlace
               </Text>
             </Pressable>
@@ -398,7 +398,7 @@ export default function ShareMenuQRModal({ visible, onClose }: Props) {
           {/* Info */}
           <View
             style={{
-              backgroundColor: "#1a1a1a",
+              backgroundColor: C.card,
               borderRadius: 12,
               padding: 12,
               borderLeftWidth: 3,
@@ -406,7 +406,7 @@ export default function ShareMenuQRModal({ visible, onClose }: Props) {
               marginBottom: 60,
             }}
           >
-            <Text style={{ color: "#a3a3a3", fontSize: 12, lineHeight: 18 }}>
+            <Text style={{ color: C.soft, fontSize: 14, lineHeight: 18 }}>
               ℹ️ Comparte el código QR o el enlace directo para que tus clientes
               accedan al menú digital desde sus teléfonos.
             </Text>

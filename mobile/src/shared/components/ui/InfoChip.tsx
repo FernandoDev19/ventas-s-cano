@@ -1,5 +1,7 @@
+// @theme-migrated
 import { Ionicons } from "@expo/vector-icons";
 import { Text, View } from "react-native";
+import { C } from "@/src/core/theme/palette";
 
 type Props = {
   label: string;
@@ -7,7 +9,7 @@ type Props = {
   color?: string; // hex de 6 dígitos
 };
 
-export default function InfoChip({ label, icon, color = "#a3a3a3" }: Props) {
+export default function InfoChip({ label, icon, color = C.soft }: Props) {
   return (
     <View
       style={{
@@ -21,7 +23,7 @@ export default function InfoChip({ label, icon, color = "#a3a3a3" }: Props) {
       }}
     >
       {icon && <Ionicons name={icon} size={12} color={color} />}
-      <Text style={{ color, fontSize: 11, fontWeight: "700" }}>{label}</Text>
+      <Text style={{ color, fontSize: 13, fontWeight: "700" }}>{label}</Text>
     </View>
   );
 }

@@ -78,6 +78,7 @@ const DATABASE = {
           product_id TEXT NOT NULL,
           quantity INTEGER NOT NULL,
           price REAL NOT NULL,
+          created_at TEXT,
           sincronizado INTEGER DEFAULT 0,
           updated_at TEXT NOT NULL,
           deleted_at TEXT,
@@ -129,6 +130,7 @@ const DATABASE = {
           recipe_id TEXT NOT NULL,
           quantity INTEGER NOT NULL,
           price REAL NOT NULL,
+          created_at TEXT,
           sincronizado INTEGER DEFAULT 0,
           updated_at TEXT NOT NULL,
           deleted_at TEXT,
@@ -214,6 +216,8 @@ await addCol("expenses", "payment_method", "TEXT");
 await addCol("expenses", "invoice_number", "TEXT");
 await addCol("expenses", "is_paid", "INTEGER DEFAULT 1");
 await addCol("expenses", "due_date", "TEXT");
+await addCol("sale_recipes", "created_at", "TEXT");
+await addCol("sale_products", "created_at", "TEXT");
 
       // Migración automática: aseguramos que la columna deleted_at existe en todas las tablas
       const tables = [

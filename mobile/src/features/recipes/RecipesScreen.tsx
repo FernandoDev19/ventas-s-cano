@@ -1,3 +1,4 @@
+// @theme-migrated
 import {
   ActivityIndicator,
   FlatList,
@@ -13,6 +14,7 @@ import HeaderTabs from "@/src/shared/components/HeaderTabs";
 import RecipesHeader from "./components/RecipesHeader";
 import RecipesListEmpty from "./components/RecipesListEmpty";
 import RecipeCard from "./components/RecipeCard";
+import { C } from "@/src/core/theme/palette";
 
 type Props = {
   activeTab: "productos" | "recetas";
@@ -42,13 +44,13 @@ export default function RecipesScreen({ activeTab, onChangeTab }: Props) {
       <View
         style={{
           flex: 1,
-          backgroundColor: "#0f0f0f",
+          backgroundColor: C.bg,
           alignItems: "center",
           justifyContent: "center",
         }}
       >
         <ActivityIndicator size="large" color="#ff5722" />
-        <Text style={{ color: "#737373", marginTop: 12, fontSize: 13 }}>
+        <Text style={{ color: C.muted, marginTop: 12, fontSize: 15 }}>
           Cargando recetas...
         </Text>
       </View>
@@ -56,7 +58,7 @@ export default function RecipesScreen({ activeTab, onChangeTab }: Props) {
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#0f0f0f" }}>
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
       <HeaderTabs
         tabs={["productos", "recetas"] as ("productos" | "recetas")[]}
         activeTab={activeTab}

@@ -1,3 +1,4 @@
+// @theme-migrated
 import React, { useCallback, useEffect, useState } from "react";
 import {
   Alert,
@@ -14,6 +15,7 @@ import { CategoryType } from "../types/category.type";
 import { Ionicons } from "@expo/vector-icons";
 import Button from "@/src/shared/components/ui/Button";
 import { CategoriesService } from "../services/categories.service";
+import { C } from "@/src/core/theme/palette";
 
 type Props = {
   visible: boolean;
@@ -109,7 +111,7 @@ const CategoriesModal = ({ visible, onClose, onCreated, onSelect }: Props) => {
         >
           <View
             style={{
-              backgroundColor: "#141414",
+              backgroundColor: C.sheet,
               borderTopLeftRadius: 28,
               borderTopRightRadius: 28,
               padding: 24,
@@ -126,18 +128,18 @@ const CategoriesModal = ({ visible, onClose, onCreated, onSelect }: Props) => {
                 marginBottom: 24,
               }}
             >
-              <Text style={{ color: "#fff", fontSize: 20, fontWeight: "800" }}>
+              <Text style={{ color: C.text, fontSize: 22, fontWeight: "800" }}>
                 Seleccionar Categoría
               </Text>
               <Pressable
                 onPress={handleClose}
                 style={{
-                  backgroundColor: "#2a2a2a",
+                  backgroundColor: C.line,
                   borderRadius: 20,
                   padding: 8,
                 }}
               >
-                <Ionicons name="close" size={20} color="#fff" />
+                <Ionicons name="close" size={20} color={C.text} />
               </Pressable>
             </View>
 
@@ -153,7 +155,7 @@ const CategoriesModal = ({ visible, onClose, onCreated, onSelect }: Props) => {
                         onPress={() => onSelect(cat.id)}
                         className="pl-4 h-10 justify-center"
                       >
-                        <Text className="text-white text-sm font-semibold text-center">
+                        <Text className="text-white text-base font-semibold text-center">
                           {cat.name.split(" ")[0]}
                         </Text>
                       </Pressable>
@@ -172,8 +174,8 @@ const CategoriesModal = ({ visible, onClose, onCreated, onSelect }: Props) => {
             {/* Name */}
             <Text
               style={{
-                color: "#737373",
-                fontSize: 11,
+                color: C.muted,
+                fontSize: 13,
                 textTransform: "uppercase",
                 letterSpacing: 1,
                 marginBottom: 6,
@@ -183,21 +185,21 @@ const CategoriesModal = ({ visible, onClose, onCreated, onSelect }: Props) => {
             </Text>
             <View
               style={{
-                backgroundColor: "#1a1a1a",
+                backgroundColor: C.card,
                 borderRadius: 12,
                 paddingHorizontal: 14,
                 paddingVertical: 4,
                 marginBottom: 20,
                 borderWidth: 1,
-                borderColor: "#2a2a2a",
+                borderColor: C.line,
               }}
             >
               <TextInput
                 placeholder="Ej. Pollos"
-                placeholderTextColor="#555"
+                placeholderTextColor={C.faint}
                 value={name}
                 onChangeText={setName}
-                style={{ color: "#fff", fontSize: 16, height: 46 }}
+                style={{ color: C.text, fontSize: 18, height: 46 }}
               />
             </View>
 

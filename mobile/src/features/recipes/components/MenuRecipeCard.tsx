@@ -1,8 +1,10 @@
+// @theme-migrated
 import { priceFormat } from "@/src/shared/helpers/price-format.helper";
 import { useContextOrder } from "@/src/shared/hooks/useContextOrder";
 import { Ionicons } from "@expo/vector-icons";
 import { Image, Pressable, Text, View } from "react-native";
 import { RecipeType } from "../../recipes/types/recipe.type";
+import { C } from "@/src/core/theme/palette";
 
 type Props = {
   recipe: RecipeType;
@@ -21,7 +23,7 @@ const MenuRecipeCard = ({ recipe }: Props) => {
     <Pressable
       onPress={() => canOrder && addRecipeToOrder(recipe)}
       style={{
-        backgroundColor: "#1a1a1a",
+        backgroundColor: C.card,
         borderRadius: 18,
         borderWidth: 1,
         borderColor: canOrder ? "#ff572266" : "#3a3a3a",
@@ -56,7 +58,7 @@ const MenuRecipeCard = ({ recipe }: Props) => {
           <Text
             style={{
               color: "#fff",
-              fontSize: 9,
+              fontSize: 11,
               fontWeight: "800",
               letterSpacing: 0.5,
             }}
@@ -77,7 +79,7 @@ const MenuRecipeCard = ({ recipe }: Props) => {
               backgroundColor: "rgba(0,0,0,0.45)",
             }}
           >
-            <Text style={{ color: "#ef4444", fontWeight: "800", fontSize: 13 }}>
+            <Text style={{ color: "#ef4444", fontWeight: "800", fontSize: 15 }}>
               Sin ingredientes
             </Text>
           </View>
@@ -87,14 +89,14 @@ const MenuRecipeCard = ({ recipe }: Props) => {
       {/* Info */}
       <View style={{ padding: 12 }}>
         <Text
-          style={{ color: "#fff", fontSize: 13, fontWeight: "700" }}
+          style={{ color: C.text, fontSize: 15, fontWeight: "700" }}
           numberOfLines={1}
         >
           {recipe.name}
         </Text>
         {recipe.description ? (
           <Text
-            style={{ color: "#737373", fontSize: 10, marginTop: 2 }}
+            style={{ color: C.muted, fontSize: 12, marginTop: 2 }}
             numberOfLines={1}
           >
             {recipe.description}
@@ -109,7 +111,7 @@ const MenuRecipeCard = ({ recipe }: Props) => {
             marginTop: 8,
           }}
         >
-          <Text style={{ color: "#ff5722", fontSize: 16, fontWeight: "800" }}>
+          <Text style={{ color: "#ff5722", fontSize: 18, fontWeight: "800" }}>
             {priceFormat(recipe.selling_price)}
           </Text>
 
@@ -129,7 +131,7 @@ const MenuRecipeCard = ({ recipe }: Props) => {
             }}
           >
             {qty > 0 ? (
-              <Text style={{ color: "#fff", fontWeight: "900", fontSize: 12 }}>
+              <Text style={{ color: C.text, fontWeight: "900", fontSize: 14 }}>
                 {qty}
               </Text>
             ) : (

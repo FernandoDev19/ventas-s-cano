@@ -1,14 +1,16 @@
+// @theme-migrated
 import DateTimePicker from "@react-native-community/datetimepicker";
-import {
-  ScrollView,
-  View,
-} from "react-native";
+import { ScrollView, View } from "react-native";
 import { useReports } from "./hooks/useReports";
 import ReportsHeader from "./components/ReportsHeader";
 import ReportsPresets from "./components/ReportsPresets";
 import ReportsDateSelector from "./components/ReportsDateSelector";
 import Reports from "./components/reports/Reports";
-import { parseLocalDate, toLocalDateStr } from "@/src/shared/helpers/date.helper";
+import {
+  parseLocalDate,
+  toLocalDateStr,
+} from "@/src/shared/helpers/date.helper";
+import { C } from "@/src/core/theme/palette";
 
 export default function RangeReportScreen() {
   const {
@@ -28,11 +30,11 @@ export default function RangeReportScreen() {
     setEndDate,
     handleExport,
     isExporting,
-    handlePrintReport
+    handlePrintReport,
   } = useReports();
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#0f0f0f" }}>
+    <View style={{ flex: 1, backgroundColor: C.bg }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Header */}
         <ReportsHeader />
@@ -59,13 +61,14 @@ export default function RangeReportScreen() {
             }}
           />
         )}
+        
         {showEndPicker && (
           <DateTimePicker
-            value={new Date(endDate)}
+            value={parseLocalDate(endDate)}
             mode="date"
             onChange={(_, date) => {
               setShowEndPicker(false);
-              if (date) setEndDate(date.toISOString().split("T")[0]);
+              if (date) setEndDate(toLocalDateStr(date));
             }}
           />
         )}

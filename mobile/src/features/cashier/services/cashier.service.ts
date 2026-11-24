@@ -186,13 +186,13 @@ export const CashierService = {
     );
 
     // Gastos registrados durante el turno
-const exp: any = await DATABASE.db.getFirstAsync(
-  `SELECT COALESCE(SUM(amount), 0) AS total FROM expenses
+    const exp: any = await DATABASE.db.getFirstAsync(
+      `SELECT COALESCE(SUM(amount), 0) AS total FROM expenses
     WHERE deleted_at IS NULL AND is_paid = 1
       AND LOWER(COALESCE(payment_method,'efectivo')) IN ('efectivo','cash')
       AND updated_at >= ? AND updated_at <= ?`,
-  [startISO, endISO],
-);
+      [startISO, endISO],
+    );
 
     const movements: any[] = await DATABASE.db.getAllAsync(
       `SELECT * FROM cash_movements 

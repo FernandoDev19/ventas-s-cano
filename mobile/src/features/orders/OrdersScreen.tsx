@@ -1,3 +1,4 @@
+// @theme-migrated
 import {
   View,
   Text,
@@ -13,20 +14,23 @@ import HeaderTabs from "@/src/shared/components/HeaderTabs";
 import { OrderStatusTabType } from "./types/status-tab.type";
 import { useUserRole } from "@/src/shared/hooks/useUserRole";
 import { OrderCardKDS } from "./components/OrderCardKDS";
+import { C, lazy } from "@/src/core/theme/palette";
 
 interface Props {
   onChangeTab?: (tab: "Ventas" | "Ordenes") => void;
   activeGTab?: "Ventas" | "Ordenes";
 }
 
-const STATUS_META: Record<string, { label: string; color: string }> = {
-  pending: { label: "Pendientes", color: "#f59e0b" },
-  accepted: { label: "Aceptados", color: "#3b82f6" },
-  preparing: { label: "Preparando", color: "#f97316" },
-  ready: { label: "Listos", color: "#22c55e" },
-  delivered: { label: "Entregados", color: "#a3a3a3" },
-  cancelled: { label: "Cancelados", color: "#ef4444" },
-};
+const STATUS_META: Record<string, { label: string; color: string }> = lazy(
+  () => ({
+    pending: { label: "Pendientes", color: "#f59e0b" },
+    accepted: { label: "Aceptados", color: "#3b82f6" },
+    preparing: { label: "Preparando", color: "#f97316" },
+    ready: { label: "Listos", color: "#22c55e" },
+    delivered: { label: "Entregados", color: C.soft },
+    cancelled: { label: "Cancelados", color: "#ef4444" },
+  }),
+);
 
 export default function OrdersScreen({ onChangeTab, activeGTab }: Props) {
   const { role, loading: loadingRole } = useUserRole();
@@ -45,7 +49,7 @@ export default function OrdersScreen({ onChangeTab, activeGTab }: Props) {
 
   if (loadingRole) {
     return (
-      <View className="flex-1 bg-[#141414] justify-center items-center">
+      <View className="flex-1 bg-white dark:bg-[#141414] justify-center items-center">
         <ActivityIndicator size="small" color="#ff5722" />
       </View>
     );
@@ -54,7 +58,7 @@ export default function OrdersScreen({ onChangeTab, activeGTab }: Props) {
   const meta = STATUS_META[activeTab];
 
   return (
-    <View className="flex-1 bg-background">
+    <View className="flex-1 bg-[#f2f2f4] dark:bg-background">
       {userRole !== "kitchen" && (
         <HeaderTabs
           tabs={["Ventas", "Ordenes"]}
@@ -65,10 +69,10 @@ export default function OrdersScreen({ onChangeTab, activeGTab }: Props) {
 
       {/* Título */}
       <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
-        <Text style={{ color: "#fff", fontSize: 24, fontWeight: "800" }}>
+        <Text style={{ color: C.text, fontSize: 24, fontWeight: "800" }}>
           {userRole === "kitchen" ? "Cocina" : "Pedidos"}
         </Text>
-        <Text style={{ color: "#737373", fontSize: 13 }}>
+        <Text style={{ color: C.muted, fontSize: 15 }}>
           {orders.length} en {meta?.label.toLowerCase()}
         </Text>
       </View>
@@ -95,16 +99,16 @@ export default function OrdersScreen({ onChangeTab, activeGTab }: Props) {
                   paddingHorizontal: 14,
                   paddingVertical: 8,
                   borderRadius: 999,
-                  backgroundColor: active ? m.color : "#1a1a1a",
+                  backgroundColor: active ? m.color : C.card,
                   borderWidth: 1,
-                  borderColor: active ? m.color : "#333",
+                  borderColor: active ? m.color : C.line2,
                 }}
               >
                 <Text
                   style={{
-                    color: active ? "#fff" : "#a3a3a3",
+                    color: active ? "#fff" : C.soft,
                     fontWeight: "700",
-                    fontSize: 13,
+                    fontSize: 15,
                   }}
                 >
                   {m.label}
@@ -149,7 +153,7 @@ export default function OrdersScreen({ onChangeTab, activeGTab }: Props) {
                   width: 80,
                   height: 80,
                   borderRadius: 40,
-                  backgroundColor: "#1a1a1a",
+                  backgroundColor: C.card,
                   alignItems: "center",
                   justifyContent: "center",
                   marginBottom: 16,
@@ -157,10 +161,10 @@ export default function OrdersScreen({ onChangeTab, activeGTab }: Props) {
               >
                 <Ionicons name="receipt-outline" size={36} color="#444" />
               </View>
-              <Text style={{ color: "#fff", fontWeight: "800", fontSize: 18 }}>
+              <Text style={{ color: C.text, fontWeight: "800", fontSize: 20 }}>
                 Sin pedidos
               </Text>
-              <Text style={{ color: "#737373", fontSize: 13, marginTop: 4 }}>
+              <Text style={{ color: C.muted, fontSize: 15, marginTop: 4 }}>
                 No hay pedidos en esta sección por ahora
               </Text>
             </View>

@@ -1,5 +1,7 @@
+// @theme-migrated
 import { Text, View } from "react-native";
 import { TableType } from "../services/tables.service";
+import { C } from "@/src/core/theme/palette";
 
 type Props = {
   tables: TableType[];
@@ -26,15 +28,22 @@ export default function TablesHeader({ tables }: Props) {
         flex: 1,
         paddingVertical: 10,
         paddingHorizontal: 8,
-        backgroundColor: "#1a1a1a",
+        backgroundColor: C.card,
         borderRadius: 12,
         borderLeftWidth: 3,
         borderLeftColor: color,
         alignItems: "center",
       }}
     >
-      <Text style={{ fontSize: 18, fontWeight: "900", color }}>{value}</Text>
-      <Text style={{ fontSize: 10, color: "#737373", marginTop: 2, textAlign: "center" }}>
+      <Text style={{ fontSize: 20, fontWeight: "900", color }}>{value}</Text>
+      <Text
+        style={{
+          fontSize: 12,
+          color: C.muted,
+          marginTop: 2,
+          textAlign: "center",
+        }}
+      >
         {label}
       </Text>
     </View>
@@ -44,10 +53,10 @@ export default function TablesHeader({ tables }: Props) {
     <View style={{ paddingHorizontal: 16, marginBottom: 20 }}>
       {/* Título */}
       <View style={{ marginBottom: 16 }}>
-        <Text style={{ fontSize: 24, fontWeight: "800", color: "#fff" }}>
+        <Text style={{ fontSize: 24, fontWeight: "800", color: C.text }}>
           Mesas
         </Text>
-        <Text style={{ fontSize: 13, color: "#737373", marginTop: 2 }}>
+        <Text style={{ fontSize: 15, color: C.muted, marginTop: 2 }}>
           {stats.total} total · {stats.ocupadas} ocupadas
         </Text>
       </View>
@@ -68,14 +77,15 @@ export default function TablesHeader({ tables }: Props) {
           marginTop: 16,
           paddingVertical: 10,
           paddingHorizontal: 12,
-          backgroundColor: "#1a1a1a",
+          backgroundColor: C.card,
           borderRadius: 12,
           borderLeftWidth: 3,
           borderLeftColor: "#ff5722",
         }}
       >
-        <Text style={{ fontSize: 12, color: "#a3a3a3", lineHeight: 16 }}>
-          💡 Toca una mesa para cambiar su estado. Los clientes pueden pedir desde sus QR también.
+        <Text style={{ fontSize: 14, color: C.soft, lineHeight: 16 }}>
+          💡 Toca una mesa para cambiar su estado. Los clientes pueden pedir
+          desde sus QR también.
         </Text>
       </View>
     </View>

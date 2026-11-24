@@ -1,3 +1,4 @@
+// @theme-migrated
 import { useCashier } from "@/src/features/cashier/hooks/useCashier";
 import { priceFormat } from "@/src/shared/helpers/price-format.helper";
 import {
@@ -14,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useState, useEffect } from "react";
 import OpenShiftModal from "./components/OpenShiftModal";
 import CashMovementModal from "./components/CashMovementModal";
+import { C } from "@/src/core/theme/palette";
 
 type CalculatedTotals = Awaited<
   ReturnType<
@@ -37,7 +39,7 @@ const Row = ({
       marginBottom: 8,
     }}
   >
-    <Text style={{ color: "#737373", fontSize: 12 }}>{label}</Text>
+    <Text style={{ color: C.muted, fontSize: 14 }}>{label}</Text>
     <Text style={{ color, fontWeight: "600" }}>{value}</Text>
   </View>
 );
@@ -97,7 +99,7 @@ export default function CashierArchiveScreen() {
   }
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: "#0f0f0f" }}>
+    <ScrollView style={{ flex: 1, backgroundColor: C.bg }}>
       <View style={{ padding: 16 }}>
         {/* Estado del Turno */}
         {currentShift && currentShift.status === "open" ? (
@@ -105,7 +107,7 @@ export default function CashierArchiveScreen() {
             {/* Info del Turno */}
             <View
               style={{
-                backgroundColor: "#1a1a1a",
+                backgroundColor: C.card,
                 borderRadius: 16,
                 padding: 16,
                 marginBottom: 16,
@@ -124,14 +126,14 @@ export default function CashierArchiveScreen() {
                 <Text
                   style={{
                     color: "#22c55e",
-                    fontSize: 12,
+                    fontSize: 14,
                     fontWeight: "700",
                     textTransform: "uppercase",
                   }}
                 >
                   ● Turno Abierto
                 </Text>
-                <Text style={{ color: "#a3a3a3", fontSize: 12 }}>
+                <Text style={{ color: C.soft, fontSize: 14 }}>
                   {new Date(currentShift.opening_date).toLocaleDateString(
                     "es-CO",
                   )}{" "}
@@ -141,8 +143,8 @@ export default function CashierArchiveScreen() {
 
               <Text
                 style={{
-                  color: "#737373",
-                  fontSize: 10,
+                  color: C.muted,
+                  fontSize: 12,
                   textTransform: "uppercase",
                   letterSpacing: 1,
                   marginBottom: 4,
@@ -152,7 +154,7 @@ export default function CashierArchiveScreen() {
               </Text>
               <Text
                 style={{
-                  color: "#fff",
+                  color: C.text,
                   fontSize: 28,
                   fontWeight: "900",
                   marginBottom: 16,
@@ -168,7 +170,7 @@ export default function CashierArchiveScreen() {
                     marginBottom: 16,
                     paddingBottom: 8,
                     borderBottomWidth: 1,
-                    borderBottomColor: "#2a2a2a",
+                    borderBottomColor: C.line,
                   }}
                 >
                   <Row
@@ -188,7 +190,7 @@ export default function CashierArchiveScreen() {
                   <Row
                     label="Otros medios (no entra a caja):"
                     value={priceFormat(totals.otherSales)}
-                    color="#737373"
+                    color={C.muted}
                   />
                   <View
                     style={{
@@ -196,13 +198,13 @@ export default function CashierArchiveScreen() {
                       justifyContent: "space-between",
                       paddingTop: 8,
                       borderTopWidth: 1,
-                      borderTopColor: "#2a2a2a",
+                      borderTopColor: C.line,
                     }}
                   >
                     <Text
                       style={{
-                        color: "#a3a3a3",
-                        fontSize: 13,
+                        color: C.soft,
+                        fontSize: 15,
                         fontWeight: "700",
                       }}
                     >
@@ -211,7 +213,7 @@ export default function CashierArchiveScreen() {
                     <Text
                       style={{
                         color: "#ff5722",
-                        fontSize: 16,
+                        fontSize: 18,
                         fontWeight: "900",
                       }}
                     >
@@ -241,7 +243,7 @@ export default function CashierArchiveScreen() {
                     style={{
                       color: "#ff5722",
                       fontWeight: "700",
-                      fontSize: 12,
+                      fontSize: 14,
                     }}
                   >
                     Movimiento
@@ -262,12 +264,12 @@ export default function CashierArchiveScreen() {
                 >
                   <Ionicons name="lock-closed-outline" size={16} color="#fff" />
                   <Text
-                    style={{ color: "#fff", fontWeight: "700", fontSize: 12 }}
+                    style={{ color: "#fff", fontWeight: "700", fontSize: 14 }}
                   >
                     Cerrar
                   </Text>
                   <Text
-                    style={{ color: "#a3a3a3", fontSize: 13, marginBottom: 12 }}
+                    style={{ color: C.soft, fontSize: 15, marginBottom: 12 }}
                   >
                     Esperado: {priceFormat(totals?.expectedTotal || 0)}
                   </Text>
@@ -279,14 +281,14 @@ export default function CashierArchiveScreen() {
             {movements.length > 0 && (
               <View
                 style={{
-                  backgroundColor: "#1a1a1a",
+                  backgroundColor: C.card,
                   borderRadius: 16,
                   padding: 16,
                   marginBottom: 16,
                 }}
               >
                 <Text
-                  style={{ color: "#fff", fontWeight: "800", marginBottom: 12 }}
+                  style={{ color: C.text, fontWeight: "800", marginBottom: 12 }}
                 >
                   Movimientos ({movements.length})
                 </Text>
@@ -302,23 +304,23 @@ export default function CashierArchiveScreen() {
                         alignItems: "center",
                         paddingVertical: 8,
                         borderBottomWidth: 1,
-                        borderBottomColor: "#2a2a2a",
+                        borderBottomColor: C.line,
                       }}
                     >
                       <View>
                         <Text
                           style={{
-                            color: "#fff",
+                            color: C.text,
                             fontWeight: "600",
-                            fontSize: 13,
+                            fontSize: 15,
                           }}
                         >
                           {item.description}
                         </Text>
                         <Text
                           style={{
-                            color: "#737373",
-                            fontSize: 11,
+                            color: C.muted,
+                            fontSize: 13,
                             marginTop: 2,
                           }}
                         >
@@ -350,12 +352,12 @@ export default function CashierArchiveScreen() {
           <Pressable
             onPress={() => setShowOpenModal(true)}
             style={{
-              backgroundColor: "#1a1a1a",
+              backgroundColor: C.card,
               borderRadius: 16,
               padding: 24,
               alignItems: "center",
               borderWidth: 2,
-              borderColor: "#2a2a2a",
+              borderColor: C.line,
               borderStyle: "dashed",
             }}
           >
@@ -367,17 +369,15 @@ export default function CashierArchiveScreen() {
             />
             <Text
               style={{
-                color: "#fff",
-                fontSize: 16,
+                color: C.text,
+                fontSize: 18,
                 fontWeight: "700",
                 marginBottom: 4,
               }}
             >
               No hay turno abierto
             </Text>
-            <Text
-              style={{ color: "#737373", fontSize: 12, textAlign: "center" }}
-            >
+            <Text style={{ color: C.muted, fontSize: 14, textAlign: "center" }}>
               Toca aquí para abrir un nuevo turno
             </Text>
           </Pressable>
@@ -409,7 +409,7 @@ export default function CashierArchiveScreen() {
         >
           <View
             style={{
-              backgroundColor: "#141414",
+              backgroundColor: C.sheet,
               borderRadius: 24,
               padding: 24,
               width: "100%",
@@ -417,8 +417,8 @@ export default function CashierArchiveScreen() {
           >
             <Text
               style={{
-                color: "#fff",
-                fontSize: 20,
+                color: C.text,
+                fontSize: 22,
                 fontWeight: "800",
                 marginBottom: 16,
               }}
@@ -428,8 +428,8 @@ export default function CashierArchiveScreen() {
 
             <Text
               style={{
-                color: "#737373",
-                fontSize: 11,
+                color: C.muted,
+                fontSize: 13,
                 textTransform: "uppercase",
                 letterSpacing: 1,
                 marginBottom: 6,
@@ -439,12 +439,12 @@ export default function CashierArchiveScreen() {
             </Text>
             <View
               style={{
-                backgroundColor: "#1a1a1a",
+                backgroundColor: C.card,
                 borderRadius: 12,
                 paddingHorizontal: 14,
                 marginBottom: 24,
                 borderWidth: 1,
-                borderColor: "#2a2a2a",
+                borderColor: C.line,
                 flexDirection: "row",
                 alignItems: "center",
               }}
@@ -452,7 +452,7 @@ export default function CashierArchiveScreen() {
               <Text
                 style={{
                   color: "#ff5722",
-                  fontSize: 16,
+                  fontSize: 18,
                   fontWeight: "800",
                   marginRight: 4,
                 }}
@@ -461,11 +461,11 @@ export default function CashierArchiveScreen() {
               </Text>
               <TextInput
                 placeholder="0"
-                placeholderTextColor="#555"
+                placeholderTextColor={C.faint}
                 value={actualAmount}
                 onChangeText={setActualAmount}
                 keyboardType="numeric"
-                style={{ color: "#fff", fontSize: 16, flex: 1, height: 46 }}
+                style={{ color: C.text, fontSize: 18, flex: 1, height: 46 }}
               />
             </View>
 
@@ -478,14 +478,14 @@ export default function CashierArchiveScreen() {
                 disabled={isClosing}
                 style={{
                   flex: 1,
-                  backgroundColor: "#2a2a2a",
+                  backgroundColor: C.line,
                   paddingVertical: 14,
                   borderRadius: 12,
                   alignItems: "center",
                   opacity: isClosing ? 0.5 : 1,
                 }}
               >
-                <Text style={{ color: "#fff", fontWeight: "700" }}>
+                <Text style={{ color: C.text, fontWeight: "700" }}>
                   Cancelar
                 </Text>
               </Pressable>

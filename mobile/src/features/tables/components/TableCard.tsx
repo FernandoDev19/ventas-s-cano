@@ -1,6 +1,8 @@
+// @theme-migrated
 import { Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { TableType } from "../services/tables.service";
+import { C } from "@/src/core/theme/palette";
 
 type Props = {
   table: TableType;
@@ -10,15 +12,40 @@ export default function TableCard({ table }: Props) {
   const getStatusColor = () => {
     switch (table.status) {
       case "libre":
-        return { bg: "#22c55e22", border: "#22c55e", text: "#22c55e", icon: "checkmark-circle" };
+        return {
+          bg: "#22c55e22",
+          border: "#22c55e",
+          text: "#22c55e",
+          icon: "checkmark-circle",
+        };
       case "ocupada":
-        return { bg: "#3b82f622", border: "#3b82f6", text: "#3b82f6", icon: "people" };
+        return {
+          bg: "#3b82f622",
+          border: "#3b82f6",
+          text: "#3b82f6",
+          icon: "people",
+        };
       case "esperando_cuenta":
-        return { bg: "#f59e0b22", border: "#f59e0b", text: "#f59e0b", icon: "document-text" };
+        return {
+          bg: "#f59e0b22",
+          border: "#f59e0b",
+          text: "#f59e0b",
+          icon: "document-text",
+        };
       case "por_cobrar":
-        return { bg: "#f43f5e22", border: "#f43f5e", text: "#f43f5e", icon: "wallet" };
+        return {
+          bg: "#f43f5e22",
+          border: "#f43f5e",
+          text: "#f43f5e",
+          icon: "wallet",
+        };
       default:
-        return { bg: "#64748b22", border: "#64748b", text: "#64748b", icon: "help-circle" };
+        return {
+          bg: "#64748b22",
+          border: "#64748b",
+          text: "#64748b",
+          icon: "help-circle",
+        };
     }
   };
 
@@ -47,7 +74,7 @@ export default function TableCard({ table }: Props) {
       }}
     >
       {/* Número de Mesa */}
-      <Text style={{ fontSize: 24, fontWeight: "900", color: "#fff" }}>
+      <Text style={{ fontSize: 24, fontWeight: "900", color: C.text }}>
         {table.number_mesa}
       </Text>
 
@@ -57,7 +84,7 @@ export default function TableCard({ table }: Props) {
       {/* Label de Estado */}
       <Text
         style={{
-          fontSize: 11,
+          fontSize: 13,
           fontWeight: "700",
           color: status.text,
           textTransform: "uppercase",

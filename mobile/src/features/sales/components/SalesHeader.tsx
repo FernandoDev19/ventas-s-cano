@@ -1,8 +1,10 @@
+// @theme-migrated
 import { Pressable, Text, View } from "react-native";
 import SalesSummaryBar, { FilterId } from "./SalesSummaryBar";
 import { Ionicons } from "@expo/vector-icons";
 import { SaleType } from "../types/sale.type";
 import { SalesScope } from "../hooks/useSales";
+import { C } from "@/src/core/theme/palette";
 
 type Props = {
   sales: SaleType[]; // las del alcance actual
@@ -31,8 +33,10 @@ export default function SalesHeader({
       {/* Title */}
       <View className="px-4 mb-3 flex-row justify-between items-center">
         <View>
-          <Text className="text-2xl font-extrabold text-white">Ventas</Text>
-          <Text className="text-neutral-500 text-sm">
+          <Text className="text-2xl font-extrabold text-neutral-900 dark:text-white">
+            Ventas
+          </Text>
+          <Text className="text-neutral-500 text-base">
             {sales.length} venta{sales.length !== 1 ? "s" : ""}{" "}
             {scope === "shift" ? "en este turno" : "en el historial"}
           </Text>
@@ -50,16 +54,16 @@ export default function SalesHeader({
               onPress={() => setScope(s.id)}
               className="px-4 py-2 rounded-full"
               style={{
-                backgroundColor: active ? "#ff5722" : "#1a1a1a",
+                backgroundColor: active ? "#ff5722" : C.card,
                 borderWidth: 1,
-                borderColor: active ? "#ff5722" : "#333",
+                borderColor: active ? "#ff5722" : C.line2,
               }}
             >
               <Text
                 style={{
-                  color: active ? "#fff" : "#a3a3a3",
+                  color: active ? "#fff" : C.soft,
                   fontWeight: "600",
-                  fontSize: 13,
+                  fontSize: 15,
                 }}
               >
                 {s.label}
@@ -79,15 +83,15 @@ export default function SalesHeader({
 
       {/* Section label */}
       <View className="px-4 mb-2 flex-row items-center gap-2">
-        <View className="h-px flex-1" style={{ backgroundColor: "#2a2a2a" }} />
-        <Text className="text-neutral-600 text-xs uppercase tracking-widest px-2">
+        <View className="h-px flex-1" style={{ backgroundColor: C.line }} />
+        <Text className="text-neutral-600 text-sm uppercase tracking-widest px-2">
           {filter === "all"
             ? "Todas las ventas"
             : filter === "paid"
               ? "Ventas pagadas"
               : "Fiados pendientes (todos)"}
         </Text>
-        <View className="h-px flex-1" style={{ backgroundColor: "#2a2a2a" }} />
+        <View className="h-px flex-1" style={{ backgroundColor: C.line }} />
       </View>
     </View>
   );

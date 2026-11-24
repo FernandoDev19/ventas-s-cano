@@ -1,8 +1,10 @@
+// @theme-migrated
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { FlatList, RefreshControl, Text, View } from "react-native";
 import ClientCard from "./ClientCard";
 import ClientsHeader from "./ClientsHeader";
+import { C } from "@/src/core/theme/palette";
 
 type Props = {
   clients: any[];
@@ -61,18 +63,18 @@ export default function ClientsList({
             paddingVertical: 80,
           }}
         >
-          <Ionicons name="people-outline" size={48} color="#333" />
+          <Ionicons name="people-outline" size={48} color={C.line2} />
           <Text
             style={{
-              color: "#fff",
+              color: C.text,
               fontWeight: "700",
-              fontSize: 18,
+              fontSize: 20,
               marginTop: 16,
             }}
           >
             Sin clientes
           </Text>
-          <Text style={{ color: "#737373", fontSize: 14, marginTop: 4 }}>
+          <Text style={{ color: C.muted, fontSize: 16, marginTop: 4 }}>
             Agrega tu primer cliente
           </Text>
         </View>

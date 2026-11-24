@@ -1,3 +1,4 @@
+// @theme-migrated
 import React from "react";
 import { ClientType } from "@/src/features/clients/types/client.type";
 import Input from "@/src/shared/components/ui/Input";
@@ -19,6 +20,7 @@ import {
 import DateTimePicker from "@react-native-community/datetimepicker";
 import ClientPicker from "@/src/features/clients/components/ClientPicker";
 import { TableType } from "@/src/features/tables/services/tables.service";
+import { C } from "@/src/core/theme/palette";
 
 const QUICK_NOTES = ["Sin salsas", "Sin cebolla", "Extra salsa", "Bien cocido"];
 
@@ -41,9 +43,9 @@ const pill = (active: boolean) => ({
   paddingVertical: 10,
   borderRadius: 12,
   gap: 4,
-  backgroundColor: active ? "#ff572220" : "#262626",
+  backgroundColor: active ? "#ff572220" : C.sheet,
   borderWidth: 1.5,
-  borderColor: active ? "#ff5722" : "#3f3f46",
+  borderColor: active ? "#ff5722" : C.line,
 });
 
 const Section = ({
@@ -57,20 +59,27 @@ const Section = ({
 }) => (
   <View
     style={{
-      backgroundColor: "#1a1a1a",
+      backgroundColor: C.card,
       borderRadius: 18,
       padding: 14,
       marginBottom: 14,
       borderWidth: 1,
-      borderColor: "#2a2a2a",
+      borderColor: C.line,
     }}
   >
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 12 }}>
+    <View
+      style={{
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 8,
+        marginBottom: 12,
+      }}
+    >
       <Ionicons name={icon} size={16} color="#ff5722" />
       <Text
         style={{
-          color: "#a3a3a3",
-          fontSize: 11,
+          color: C.soft,
+          fontSize: 13,
           fontWeight: "800",
           textTransform: "uppercase",
           letterSpacing: 1,
@@ -174,12 +183,20 @@ export default function CartFooter({
           {ORDER_TYPES.map((t) => {
             const active = orderType === t.key;
             return (
-              <Pressable key={t.key} onPress={() => setOrderType(t.key)} style={pill(active)}>
-                <Ionicons name={t.icon} size={18} color={active ? "#ff5722" : "#a3a3a3"} />
+              <Pressable
+                key={t.key}
+                onPress={() => setOrderType(t.key)}
+                style={pill(active)}
+              >
+                <Ionicons
+                  name={t.icon}
+                  size={18}
+                  color={active ? "#ff5722" : C.soft}
+                />
                 <Text
                   style={{
-                    color: active ? "#fff" : "#a3a3a3",
-                    fontSize: 12,
+                    color: active ? "#ff5722" : C.text,
+                    fontSize: 14,
                     fontWeight: active ? "700" : "500",
                   }}
                 >
@@ -194,23 +211,23 @@ export default function CartFooter({
           <View style={{ marginTop: 12 }}>
             <View
               style={{
-                backgroundColor: "#141414",
+                backgroundColor: C.sheet,
                 borderRadius: 12,
                 paddingHorizontal: 12,
                 borderWidth: 1,
-                borderColor: deliveryAddress.trim() ? "#ff5722" : "#3f3f46",
+                borderColor: deliveryAddress.trim() ? "#ff5722" : C.line,
               }}
             >
               <TextInput
                 placeholder="Dirección de entrega *  Ej: Calle 45 # 12-34"
-                placeholderTextColor="#666"
+                placeholderTextColor={C.muted}
                 value={deliveryAddress}
                 onChangeText={setDeliveryAddress}
-                style={{ color: "#fff", fontSize: 15, height: 44 }}
+                style={{ color: C.text, fontSize: 17, height: 44 }}
               />
             </View>
             {!deliveryAddress.trim() && (
-              <Text style={{ color: "#f87171", fontSize: 11, marginTop: 4 }}>
+              <Text style={{ color: C.dangerText, fontSize: 13, marginTop: 4 }}>
                 * Obligatoria para despachar el domicilio.
               </Text>
             )}
@@ -219,25 +236,30 @@ export default function CartFooter({
 
         {orderType === "comer_aqui" && (
           <View style={{ marginTop: 12 }}>
-            <Text style={{ color: "#737373", fontSize: 11, marginBottom: 6 }}>
+            <Text style={{ color: C.muted, fontSize: 13, marginBottom: 6 }}>
               Mesa (opcional)
             </Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 8 }}
+            >
               <Pressable
                 onPress={() => setSelectedTableId(null)}
                 style={{
                   paddingHorizontal: 12,
                   paddingVertical: 8,
                   borderRadius: 10,
-                  backgroundColor: selectedTableId === null ? "#ff572225" : "#262626",
+                  backgroundColor:
+                    selectedTableId === null ? "#ff572225" : C.sheet,
                   borderWidth: 1,
-                  borderColor: selectedTableId === null ? "#ff5722" : "#3f3f46",
+                  borderColor: selectedTableId === null ? "#ff5722" : C.line,
                 }}
               >
                 <Text
                   style={{
-                    color: selectedTableId === null ? "#ff5722" : "#a3a3a3",
-                    fontSize: 12,
+                    color: selectedTableId === null ? "#ff5722" : C.soft,
+                    fontSize: 14,
                     fontWeight: "700",
                   }}
                 >
@@ -255,15 +277,23 @@ export default function CartFooter({
                       paddingHorizontal: 12,
                       paddingVertical: 8,
                       borderRadius: 10,
-                      backgroundColor: selected ? "#ff572225" : ocupada ? "#2b1c17" : "#262626",
+                      backgroundColor: selected
+                        ? "#ff572225"
+                        : ocupada
+                          ? C.warnBg
+                          : C.sheet,
                       borderWidth: 1,
-                      borderColor: selected ? "#ff5722" : ocupada ? "#7c2d12" : "#3f3f46",
+                      borderColor: selected
+                        ? "#ff5722"
+                        : ocupada
+                          ? C.warnLine
+                          : C.line,
                     }}
                   >
                     <Text
                       style={{
-                        color: selected ? "#fff" : ocupada ? "#ea580c" : "#fff",
-                        fontSize: 12,
+                        color: selected ? "#ff5722" : ocupada ? C.warnText : C.text,
+                        fontSize: 14,
                         fontWeight: selected ? "800" : "600",
                       }}
                     >
@@ -287,7 +317,14 @@ export default function CartFooter({
           onClientCreated={onClientCreated}
         />
 
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 8 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            flexWrap: "wrap",
+            gap: 6,
+            marginBottom: 8,
+          }}
+        >
           {QUICK_NOTES.map((tag) => {
             const selected = note.includes(tag);
             return (
@@ -298,15 +335,15 @@ export default function CartFooter({
                   paddingHorizontal: 10,
                   paddingVertical: 5,
                   borderRadius: 8,
-                  backgroundColor: selected ? "#ff572233" : "#262626",
+                  backgroundColor: selected ? "#ff572233" : C.sheet,
                   borderWidth: 1,
-                  borderColor: selected ? "#ff5722" : "#3f3f46",
+                  borderColor: selected ? "#ff5722" : C.line,
                 }}
               >
                 <Text
                   style={{
-                    color: selected ? "#ff5722" : "#a3a3a3",
-                    fontSize: 12,
+                    color: selected ? "#ff5722" : C.soft,
+                    fontSize: 14,
                     fontWeight: selected ? "700" : "500",
                   }}
                 >
@@ -330,7 +367,9 @@ export default function CartFooter({
         {/* Contado / Fiado */}
         <View style={{ flexDirection: "row", gap: 8, marginBottom: 12 }}>
           <Pressable onPress={() => setIsDebt(false)} style={pill(!isDebt)}>
-            <Text style={{ color: !isDebt ? "#fff" : "#a3a3a3", fontWeight: "700" }}>
+            <Text
+              style={{ color: !isDebt ? "#ff5722" : C.soft, fontWeight: "700" }}
+            >
               Contado
             </Text>
           </Pressable>
@@ -341,7 +380,9 @@ export default function CartFooter({
             }}
             style={pill(isDebt)}
           >
-            <Text style={{ color: isDebt ? "#fff" : "#a3a3a3", fontWeight: "700" }}>
+            <Text
+              style={{ color: isDebt ? "#ff5722" : C.soft, fontWeight: "700" }}
+            >
               Fiado
             </Text>
           </Pressable>
@@ -353,16 +394,26 @@ export default function CartFooter({
             {Object.values(PaymentMethods).map((method) => {
               const active = paymentMethod === method;
               return (
-                <Pressable key={method} onPress={() => setPaymentMethod(method)} style={pill(active)}>
+                <Pressable
+                  key={method}
+                  onPress={() => setPaymentMethod(method)}
+                  style={pill(active)}
+                >
                   {method === PaymentMethods.NEQUI ? (
                     <Image
                       source={require("@/assets/icons/nequi.png")}
                       style={{ width: 22, height: 22 }}
                     />
                   ) : (
-                    <Ionicons name={method} size={22} color="white" />
+                    <Ionicons name={method} size={22} color={active ? "#ff5722" : C.text} />
                   )}
-                  <Text style={{ color: active ? "#fff" : "#a3a3a3", fontSize: 12, fontWeight: "600" }}>
+                  <Text
+                    style={{
+                      color: active ? "#ff5722" : C.soft,
+                      fontSize: 14,
+                      fontWeight: "600",
+                    }}
+                  >
                     {METHOD_LABEL[method]}
                   </Text>
                 </Pressable>
@@ -373,14 +424,22 @@ export default function CartFooter({
 
         {/* Calculadora de cambio */}
         {!isDebt && paymentMethod === PaymentMethods.CASH && (
-          <View style={{ backgroundColor: "#141414", borderRadius: 14, padding: 12 }}>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 8 }}>
-              <Text style={{ color: "#a3a3a3", fontSize: 12, fontWeight: "700" }}>
+          <View
+            style={{ backgroundColor: C.sheet, borderRadius: 14, padding: 12 }}
+          >
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "space-between",
+                marginBottom: 8,
+              }}
+            >
+              <Text style={{ color: C.soft, fontSize: 14, fontWeight: "700" }}>
                 ¿Con cuánto paga?
               </Text>
               {numericCash > 0 && (
                 <Pressable onPress={() => setCashReceived("")} hitSlop={8}>
-                  <Text style={{ color: "#737373", fontSize: 11 }}>Limpiar</Text>
+                  <Text style={{ color: C.muted, fontSize: 13 }}>Limpiar</Text>
                 </Pressable>
               )}
             </View>
@@ -389,23 +448,40 @@ export default function CartFooter({
               style={{
                 flexDirection: "row",
                 alignItems: "center",
-                backgroundColor: "#1a1a1a",
+                backgroundColor: C.card,
                 borderRadius: 12,
                 paddingHorizontal: 14,
                 height: 48,
                 borderWidth: 1,
-                borderColor: numericCash >= totalPrecio && numericCash > 0 ? "#10b981" : "#3f3f46",
+                borderColor:
+                  numericCash >= totalPrecio && numericCash > 0
+                    ? "#10b981"
+                    : C.line,
                 marginBottom: 8,
               }}
             >
-              <Text style={{ color: "#ff5722", fontSize: 18, fontWeight: "800", marginRight: 8 }}>$</Text>
+              <Text
+                style={{
+                  color: "#ff5722",
+                  fontSize: 20,
+                  fontWeight: "800",
+                  marginRight: 8,
+                }}
+              >
+                $
+              </Text>
               <TextInput
                 placeholder="0"
-                placeholderTextColor="#555"
+                placeholderTextColor={C.faint}
                 keyboardType="numeric"
                 value={cashReceived}
                 onChangeText={setCashReceived}
-                style={{ color: "#fff", fontSize: 18, fontWeight: "700", flex: 1 }}
+                style={{
+                  color: C.text,
+                  fontSize: 20,
+                  fontWeight: "700",
+                  flex: 1,
+                }}
               />
             </View>
 
@@ -415,16 +491,25 @@ export default function CartFooter({
                   key={bill}
                   onPress={() => setCashReceived(String(bill))}
                   style={{
-                    backgroundColor: numericCash === bill ? "#ff572233" : "#262626",
+                    backgroundColor:
+                      numericCash === bill ? "#ff572233" : C.sheet,
                     paddingHorizontal: 10,
                     paddingVertical: 6,
                     borderRadius: 8,
                     borderWidth: 1,
-                    borderColor: numericCash === bill ? "#ff5722" : "#3f3f46",
+                    borderColor: numericCash === bill ? "#ff5722" : C.line,
                   }}
                 >
-                  <Text style={{ color: numericCash === bill ? "#ff5722" : "#a3a3a3", fontSize: 11, fontWeight: "700" }}>
-                    {i === 0 ? `Exacto ${priceFormat(bill)}` : priceFormat(bill)}
+                  <Text
+                    style={{
+                      color: numericCash === bill ? "#ff5722" : C.text,
+                      fontSize: 13,
+                      fontWeight: "700",
+                    }}
+                  >
+                    {i === 0
+                      ? `Exacto ${priceFormat(bill)}`
+                      : priceFormat(bill)}
                   </Text>
                 </Pressable>
               ))}
@@ -440,18 +525,26 @@ export default function CartFooter({
                   flexDirection: "row",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  backgroundColor: changeAmount >= 0 ? "#10b98115" : "#f59e0b15",
+                  backgroundColor:
+                    changeAmount >= 0 ? "#10b98115" : "#f59e0b15",
                   borderColor: changeAmount >= 0 ? "#10b981" : "#f59e0b",
                 }}
               >
-                <Text style={{ color: "#a3a3a3", fontSize: 11, fontWeight: "700", textTransform: "uppercase" }}>
+                <Text
+                  style={{
+                    color: C.soft,
+                    fontSize: 13,
+                    fontWeight: "700",
+                    textTransform: "uppercase",
+                  }}
+                >
                   {changeAmount >= 0 ? "Cambio a devolver" : "Faltan"}
                 </Text>
                 <Text
                   style={{
-                    fontSize: 20,
+                    fontSize: 22,
                     fontWeight: "900",
-                    color: changeAmount >= 0 ? "#34d399" : "#fbbf24",
+                    color: changeAmount >= 0 ? C.okText : C.warnText,
                   }}
                 >
                   {priceFormat(Math.abs(changeAmount))}
@@ -478,53 +571,64 @@ export default function CartFooter({
                 }}
               >
                 <Ionicons name="warning-outline" size={16} color="#f59e0b" />
-                <Text style={{ color: "#fbbf24", fontSize: 12, fontWeight: "600", flex: 1 }}>
+                <Text
+                  style={{
+                    color: C.warnText,
+                    fontSize: 14,
+                    fontWeight: "600",
+                    flex: 1,
+                  }}
+                >
                   Asigna un cliente arriba para poder fiar.
                 </Text>
               </View>
             )}
 
             <View>
-              <Text style={{ color: "#737373", fontSize: 11, marginBottom: 6 }}>
+              <Text style={{ color: C.muted, fontSize: 13, marginBottom: 6 }}>
                 Monto que quedan debiendo
               </Text>
               <TextInput
                 keyboardType="numeric"
                 value={String(amountDebt)}
-                onChangeText={(t) => setAmountDebt(Number(t.replace(/[^0-9]/g, "")))}
+                onChangeText={(t) =>
+                  setAmountDebt(Number(t.replace(/[^0-9]/g, "")))
+                }
                 style={{
-                  backgroundColor: "#141414",
+                  backgroundColor: C.sheet,
                   borderWidth: 1,
-                  borderColor: "#3f3f46",
+                  borderColor: C.line,
                   borderRadius: 12,
                   paddingHorizontal: 14,
                   height: 48,
-                  color: "#fff",
-                  fontSize: 16,
+                  color: C.text,
+                  fontSize: 18,
                   fontWeight: "700",
                 }}
               />
             </View>
 
             <View>
-              <Text style={{ color: "#737373", fontSize: 11, marginBottom: 6 }}>
+              <Text style={{ color: C.muted, fontSize: 13, marginBottom: 6 }}>
                 Fecha límite de pago
               </Text>
               <Pressable
                 onPress={() => setShowDatePicker(true)}
                 style={{
                   height: 48,
-                  backgroundColor: "#141414",
+                  backgroundColor: C.sheet,
                   borderRadius: 12,
                   borderWidth: 1,
-                  borderColor: "#3f3f46",
+                  borderColor: C.line,
                   paddingHorizontal: 14,
                   flexDirection: "row",
                   alignItems: "center",
                   justifyContent: "space-between",
                 }}
               >
-                <Text style={{ color: "#fff", fontSize: 15, fontWeight: "700" }}>
+                <Text
+                  style={{ color: C.text, fontSize: 17, fontWeight: "700" }}
+                >
                   {debtDate.toLocaleDateString("es-CO", {
                     day: "2-digit",
                     month: "short",
