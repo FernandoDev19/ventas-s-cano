@@ -4,11 +4,14 @@ import { PrinterService } from "@/src/shared/services/printer.service";
 import { OrdersService } from "../services/orders.service";
 import { SalesService } from "../../sales/services/sales.service";
 import {
+  buildOrderAcceptedMessage,
   buildInvoiceMessage,
+  getOrderPaymentPreference,
   sendInvoiceViaWhatsApp,
 } from "@/src/shared/helpers/whatsapp.helper";
 import { OrderStatusTabType } from "../types/status-tab.type";
 import { TablesService } from "../../tables/services/tables.service";
+import { useSettings } from "@/src/core/context/SettingsContext";
 
 interface UseChangeOrderStatusProps {
   cargarOrdenes: (tab: OrderStatusTabType) => void;
@@ -25,6 +28,8 @@ export const useChangeOrderStatus = ({
   setLoading,
   handlePrintCashierTicket,
 }: UseChangeOrderStatusProps) => {
+  const { nequiPaymentInfo } = useSettings();
+
   const updateOrderStatus = async (
     orderId: string,
     status: string,
@@ -119,11 +124,11 @@ export const useChangeOrderStatus = ({
   };
 
   const handleAcceptOrder = async (orden: OrderPro) => {
-    try {
-      const handleAccept = async (
-        tipoPago: "efectivo" | "transferencia" | "deuda",
-      ) => {
-        setLoading(true);
+    const handleAccept = async (
+      tipoPago: "efectivo" | "transferencia" | "deuda",
+    ) => {
+      setLoading(true);
+      try {
         await SalesService.crearVentaDesdeOrdenWeb(orden, tipoPago);
         await updateOrderStatus(orden.id, "accepted", "pending", "accepted");
 
@@ -156,47 +161,66 @@ export const useChangeOrderStatus = ({
           console.error("Error al imprimir orden aceptada:", printErr);
         }
 
-        Alert.alert(
-          "¡Pedido Aceptado!",
-          "Pasó a la cocina e ingresó a las finanzas locales.",
-        );
         cargarOrdenes(activeTab);
-      };
 
-      Alert.alert(
-        "Método de Pago",
-        "¿Cómo se registrará el ingreso de este pedido de la web?",
-        [
-          { text: "💵 Efectivo", onPress: () => handleAccept("efectivo") },
-          {
-            text: "📱 Transferencia",
-            onPress: () => handleAccept("transferencia"),
+        const paymentPreference = getOrderPaymentPreference(orden.comments);
+        if (paymentPreference === "nequi" && !nequiPaymentInfo.trim()) {
+          Alert.alert(
+            "Pedido aceptado",
+            "Falta configurar la llave Nequi o el enlace al QR. Configúralo en Más > Datos de pago Nequi para incluirlo en WhatsApp.",
+          );
+          return;
+        }
+
+        if (!orden.customer_phone?.trim()) {
+          Alert.alert(
+            "Pedido aceptado",
+            "El cliente no tiene teléfono registrado; no se pudo preparar el mensaje de WhatsApp.",
+          );
+          return;
+        }
+
+        const message = buildOrderAcceptedMessage({
+          customerName: orden.customer_name,
+          orderId: orden.id,
+          total: orden.total_price,
+          nequiPaymentInfo:
+            paymentPreference === "nequi" ? nequiPaymentInfo.trim() : undefined,
+        });
+        await sendInvoiceViaWhatsApp(orden.customer_phone, message);
+      } catch (error) {
+        Alert.alert(
+          "Error crítico",
+          "No se pudo aceptar el pedido: " +
+            (error instanceof Error ? error.message : String(error)),
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    Alert.alert(
+      "Método de Pago",
+      "¿Cómo se registrará el ingreso de este pedido de la web?",
+      [
+        { text: "💵 Efectivo", onPress: () => void handleAccept("efectivo") },
+        {
+          text: "📱 Transferencia",
+          onPress: () => void handleAccept("transferencia"),
+        },
+        {
+          text: "📝 Fiar (Deuda)",
+          onPress: () => {
+            if (!orden.client_id) {
+              Alert.alert("Aviso", "Esta orden no tiene un cliente enlazado.");
+              return;
+            }
+            void handleAccept("deuda");
           },
-          {
-            text: "📝 Fiar (Deuda)",
-            onPress: () => {
-              if (!orden.client_id) {
-                Alert.alert(
-                  "Aviso",
-                  "Esta orden no tiene un cliente enlazado.",
-                );
-                return;
-              }
-              handleAccept("deuda");
-            },
-          },
-          { text: "Cancelar", style: "cancel" },
-        ],
-      );
-    } catch (error) {
-      Alert.alert(
-        "Error crítico",
-        "No se pudo sincronizar con la base de datos local. \n" +
-          (error as Error).message,
-      );
-    } finally {
-      setLoading(false);
-    }
+        },
+        { text: "Cancelar", style: "cancel" },
+      ],
+    );
   };
 
   const handlePreparingOrder = async (orden: OrderPro) => {

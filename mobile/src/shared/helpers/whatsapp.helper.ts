@@ -49,6 +49,36 @@ export function buildInvoiceMessage(params: {
   return lines.join("\n");
 }
 
+export function getOrderPaymentPreference(
+  comments?: string | null,
+): "nequi" | null {
+  const paymentTag = comments?.match(/\[PAGO:\s*([^\]]+)\]/i)?.[1];
+  return paymentTag?.toLowerCase().includes("nequi") ? "nequi" : null;
+}
+
+export function buildOrderAcceptedMessage(params: {
+  customerName: string;
+  orderId: string;
+  total: number;
+  nequiPaymentInfo?: string;
+}): string {
+  const { customerName, orderId, total, nequiPaymentInfo } = params;
+  const lines = [
+    `¡Hola ${customerName}! Tu pedido #${orderId.slice(0, 6).toUpperCase()} fue aceptado por Sabor Express.`,
+    `Total: $${total.toLocaleString("es-CO")}`,
+  ];
+
+  if (nequiPaymentInfo) {
+    const instructions = /^https?:\/\//i.test(nequiPaymentInfo)
+      ? `Puedes pagar por Nequi usando este enlace al QR: ${nequiPaymentInfo}`
+      : `Puedes pagar por Nequi/Bre-B usando la llave: ${nequiPaymentInfo}`;
+    lines.push(instructions);
+  }
+
+  lines.push("¡Gracias por tu pedido!");
+  return lines.join("\n");
+}
+
 /**
  * Normaliza un número colombiano eliminando prefijos y dejando solo 10 dígitos.
  * Si el número no está en Colombia, agrega +57 automáticamente.

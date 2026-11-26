@@ -8,6 +8,7 @@ import { BYPASS_AUTH, useUserRole } from "@/src/shared/hooks/useUserRole";
 import { ThemeToggle } from "@/src/core/theme/ThemeToggle";
 import { useTheme } from "@/src/core/theme/ThemeContext";
 import { useSettings } from "@/src/core/context/SettingsContext";
+import NequiPaymentSettingsModal from "@/src/shared/components/NequiPaymentSettingsModal";
 
 type Item = {
   title: string;
@@ -22,6 +23,7 @@ export default function MoreTab() {
   const { role } = useUserRole();
   const { c } = useTheme();
   const [printerVisible, setPrinterVisible] = useState(false);
+  const [nequiSettingsVisible, setNequiSettingsVisible] = useState(false);
   const userRole = role || "cashier";
   const { allowNoStock, setAllowNoStock } = useSettings();
 
@@ -60,6 +62,13 @@ export default function MoreTab() {
       icon: "print-outline",
       roles: ["admin"],
       onPress: () => setPrinterVisible(true),
+    },
+    {
+      title: "Datos de pago Nequi",
+      subtitle: "Llave o enlace al QR",
+      icon: "phone-portrait-outline",
+      roles: ["admin"],
+      onPress: () => setNequiSettingsVisible(true),
     },
     {
       title: "Empleados y nómina",
@@ -212,6 +221,10 @@ export default function MoreTab() {
       <PrinterSettingsModal
         visible={printerVisible}
         onClose={() => setPrinterVisible(false)}
+      />
+      <NequiPaymentSettingsModal
+        visible={nequiSettingsVisible}
+        onClose={() => setNequiSettingsVisible(false)}
       />
     </View>
   );

@@ -139,7 +139,11 @@ export default function OrdersScreen({ onChangeTab, activeGTab }: Props) {
                 handleCambiarEstado(item, nuevoEstado as any)
               }
               onChatCliente={() =>
-                abrirWhatsAppCliente(item.customer_phone, item.customer_name)
+                abrirWhatsAppCliente(
+                  item.customer_phone,
+                  item.customer_name,
+                  item,
+                )
               }
               onPrintBill={() => handlePrintCashierTicket(item)}
             />
