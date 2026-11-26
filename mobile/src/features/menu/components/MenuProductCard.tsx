@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image, Pressable, Text, View } from "react-native";
 import { ProductType } from "../../inventory/types/product.type";
 import { C } from "@/src/core/theme/palette";
+import { useSettings } from "@/src/core/context/SettingsContext";
 
 type Props = {
   product: ProductType;
@@ -13,6 +14,9 @@ type Props = {
 
 const MenuProductCard = ({ product }: Props) => {
   const { addToOrder, order } = useContextOrder();
+  const { allowNoStock } = useSettings();
+  const outOfStock = product.stock <= 0;
+  const blocked = outOfStock && !allowNoStock;
 
   const orderItem = order.find(
     (item) => item.type === "product" && item.product.id === product.id,
@@ -21,8 +25,8 @@ const MenuProductCard = ({ product }: Props) => {
 
   return (
     <Pressable
-      onPress={() => addToOrder(product)}
-      className={`${!product.stock ? "opacity-50 pointer-not-allowed border-2 border-red-500" : ""} bg-neutral-200 dark:bg-neutral-800 rounded-2xl border-[0.3px] border-primary flex-1 overflow-hidden`}
+      onPress={() => !blocked && addToOrder(product)}
+      className={`${blocked ? "opacity-50 border-2 border-red-500" : ""} bg-neutral-200 dark:bg-neutral-800 rounded-2xl border-[0.3px] border-primary flex-1 overflow-hidden`}
     >
       <Image
         source={
@@ -34,10 +38,12 @@ const MenuProductCard = ({ product }: Props) => {
         resizeMode="cover"
       />
 
-      {!product.stock && (
-        <View className="absolute top-0 flex-1 h-40 w-full items-center justify-center">
-          <Text className="text-2xl text-red-500 font-extrabold opacity-100 z-1">
-            Sin Stock
+      {outOfStock && (
+        <View className="absolute top-0 h-40 w-full items-center justify-center">
+          <Text
+            className={`text-2xl font-extrabold ${blocked ? "text-red-500" : "text-amber-400"}`}
+          >
+            {blocked ? "Sin Stock" : "Sin stock"}
           </Text>
         </View>
       )}
@@ -55,7 +61,7 @@ const MenuProductCard = ({ product }: Props) => {
           <Button
             onPress={() => addToOrder(product)}
             className="w-10 h-10 !px-0 !py-0"
-            disabled={!product.stock}
+            disabled={blocked}
           >
             {qty > 0 ? (
               <View className="flex-row items-center">

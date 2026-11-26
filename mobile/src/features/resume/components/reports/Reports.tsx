@@ -6,50 +6,126 @@ import { Ionicons } from "@expo/vector-icons";
 import { C } from "@/src/core/theme/palette";
 
 const Stat = ({ label, value, color = C.text, sub }: any) => (
-  <View style={{ flex: 1, padding: 14, backgroundColor: C.card, borderRadius: 14, borderWidth: 1, borderColor: C.line }}>
-    <Text style={{ color: C.muted, fontSize: 12, textTransform: "uppercase", fontWeight: "700" }}>{label}</Text>
-    <Text style={{ color, fontSize: 20, fontWeight: "800", marginTop: 4 }}>{value}</Text>
-    {!!sub && <Text style={{ color: C.muted, fontSize: 13, marginTop: 2 }}>{sub}</Text>}
+  <View
+    style={{
+      flex: 1,
+      padding: 14,
+      backgroundColor: C.card,
+      borderRadius: 14,
+      borderWidth: 1,
+      borderColor: C.line,
+    }}
+  >
+    <Text
+      style={{
+        color: C.muted,
+        fontSize: 12,
+        textTransform: "uppercase",
+        fontWeight: "700",
+      }}
+    >
+      {label}
+    </Text>
+    <Text style={{ color, fontSize: 20, fontWeight: "800", marginTop: 4 }}>
+      {value}
+    </Text>
+    {!!sub && (
+      <Text style={{ color: C.muted, fontSize: 13, marginTop: 2 }}>{sub}</Text>
+    )}
   </View>
 );
 
-export function ProfitSummary({ p, totalPaid, totalDebt }: { p: any; totalPaid: number; totalDebt: number }) {
+export function ProfitSummary({
+  p,
+  totalPaid,
+  totalDebt,
+}: {
+  p: any;
+  totalPaid: number;
+  totalDebt: number;
+}) {
   const netColor = p.net >= 0 ? C.okText : C.dangerText;
   return (
     <View style={{ marginHorizontal: 16, gap: 10, marginBottom: 16 }}>
-      <View style={{ padding: 18, borderRadius: 16, backgroundColor: C.card, borderLeftWidth: 4,
-                     borderLeftColor: p.net >= 0 ? "#22c55e" : "#ef4444" }}>
-        <Text style={{ color: C.muted, fontSize: 13, textTransform: "uppercase", letterSpacing: 1 }}>Utilidad neta</Text>
+      <View
+        style={{
+          padding: 18,
+          borderRadius: 16,
+          backgroundColor: C.card,
+          borderLeftWidth: 4,
+          borderLeftColor: p.net >= 0 ? "#22c55e" : "#ef4444",
+        }}
+      >
+        <Text
+          style={{
+            color: C.muted,
+            fontSize: 13,
+            textTransform: "uppercase",
+            letterSpacing: 1,
+          }}
+        >
+          Utilidad neta
+        </Text>
         <Text style={{ color: netColor, fontSize: 36, fontWeight: "900" }}>
-          {p.net < 0 ? "-" : ""}{priceFormat(Math.abs(p.net))}
+          {p.net < 0 ? "-" : ""}
+          {priceFormat(Math.abs(p.net))}
         </Text>
         <Text style={{ color: C.muted, fontSize: 14 }}>
-          Margen neto {p.netMargin.toFixed(1)}% · ticket promedio {priceFormat(p.avgTicket)}
+          Margen neto {p.netMargin.toFixed(1)}% · ticket promedio{" "}
+          {priceFormat(p.avgTicket)}
         </Text>
       </View>
 
       <View style={{ flexDirection: "row", gap: 10 }}>
         <Stat label="Ventas" value={priceFormat(p.revenue)} />
-        <Stat label="Costo de ventas" value={`-${priceFormat(p.cost)}`} color={C.dangerText} />
+        <Stat
+          label="Costo de ventas"
+          value={`-${priceFormat(p.cost)}`}
+          color={C.dangerText}
+        />
       </View>
       <View style={{ flexDirection: "row", gap: 10 }}>
-        <Stat label="Utilidad bruta" value={priceFormat(p.gross)} color={C.okText} sub={`Margen ${p.grossMargin.toFixed(1)}%`} />
-        <Stat label="Gastos operativos" value={`-${priceFormat(p.opex)}`} color={C.dangerText} />
+        <Stat
+          label="Utilidad bruta"
+          value={priceFormat(p.gross)}
+          color={C.okText}
+          sub={`Margen ${p.grossMargin.toFixed(1)}%`}
+        />
+        <Stat
+          label="Gastos operativos"
+          value={`-${priceFormat(p.opex)}`}
+          color={C.dangerText}
+        />
       </View>
       <View style={{ flexDirection: "row", gap: 10 }}>
         <Stat label="Cobrado" value={priceFormat(totalPaid)} color="#22c55e" />
-        <Stat label="Por cobrar (fiado)" value={priceFormat(totalDebt)} color="#f59e0b" />
+        <Stat
+          label="Por cobrar (fiado)"
+          value={priceFormat(totalDebt)}
+          color="#f59e0b"
+        />
       </View>
 
       {(p.inventoryPurchases > 0 || p.inversion > 0) && (
         <Text style={{ color: C.muted, fontSize: 13 }}>
-          Informativo (no resta de la utilidad): compras de inventario {priceFormat(p.inventoryPurchases)} · inversión {priceFormat(p.inversion)}
+          Informativo (no resta de la utilidad): compras de inventario{" "}
+          {priceFormat(p.inventoryPurchases)} · inversión{" "}
+          {priceFormat(p.inversion)}
         </Text>
       )}
       {p.uncostedPct > 0 && (
-        <View style={{ padding: 12, borderRadius: 12, backgroundColor: C.warnBg, borderWidth: 1, borderColor: C.warnLine }}>
+        <View
+          style={{
+            padding: 12,
+            borderRadius: 12,
+            backgroundColor: C.warnBg,
+            borderWidth: 1,
+            borderColor: C.warnLine,
+          }}
+        >
           <Text style={{ color: C.warnText, fontSize: 14, fontWeight: "600" }}>
-            {p.uncostedPct.toFixed(0)}% de lo vendido no tiene costo cargado; la utilidad real es menor a la mostrada.
+            {p.uncostedPct.toFixed(0)}% de lo vendido no tiene costo cargado; la
+            utilidad real es menor a la mostrada.
           </Text>
         </View>
       )}
@@ -60,21 +136,60 @@ export function ProfitSummary({ p, totalPaid, totalDebt }: { p: any; totalPaid: 
 export function ProductProfitList({ items }: { items: any[] }) {
   if (!items.length) return null;
   return (
-    <View style={{ marginHorizontal: 16, marginBottom: 16, padding: 16, backgroundColor: C.card,
-                   borderRadius: 16, borderWidth: 1, borderColor: C.line }}>
-      <Text style={{ color: C.text, fontWeight: "700", fontSize: 17, marginBottom: 12 }}>Rentabilidad por producto</Text>
+    <View
+      style={{
+        marginHorizontal: 16,
+        marginBottom: 16,
+        padding: 16,
+        backgroundColor: C.card,
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: C.line,
+      }}
+    >
+      <Text
+        style={{
+          color: C.text,
+          fontWeight: "700",
+          fontSize: 17,
+          marginBottom: 12,
+        }}
+      >
+        Rentabilidad por producto
+      </Text>
       {items.slice(0, 15).map((p) => {
-        const color = p.profit < 0 ? C.dangerText : p.margin < 20 ? C.warnText : C.okText;
+        const color =
+          p.profit < 0 ? C.dangerText : p.margin < 20 ? C.warnText : C.okText;
         return (
-          <View key={p.name} style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center",
-                                      paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: C.line }}>
+          <View
+            key={p.name}
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              paddingVertical: 8,
+              borderBottomWidth: 1,
+              borderBottomColor: C.line,
+            }}
+          >
             <View style={{ flex: 1, marginRight: 8 }}>
-              <Text style={{ color: C.text, fontWeight: "600" }} numberOfLines={1}>{p.name}</Text>
-              <Text style={{ color: C.muted, fontSize: 13 }}>{p.quantity} uds · vendido {priceFormat(p.revenue)}</Text>
+              <Text
+                style={{ color: C.text, fontWeight: "600" }}
+                numberOfLines={1}
+              >
+                {p.name}
+              </Text>
+              <Text style={{ color: C.muted, fontSize: 13 }}>
+                {p.quantity} uds · vendido {priceFormat(p.revenue)}
+              </Text>
             </View>
             <View style={{ alignItems: "flex-end" }}>
-              <Text style={{ color, fontWeight: "800" }}>{priceFormat(p.profit)}</Text>
-              <Text style={{ color, fontSize: 13 }}>{p.margin.toFixed(0)}%</Text>
+              <Text style={{ color, fontWeight: "800" }}>
+                {priceFormat(p.profit)}
+              </Text>
+              <Text style={{ color, fontSize: 13 }}>
+                {p.margin.toFixed(0)}%
+              </Text>
             </View>
           </View>
         );
@@ -220,7 +335,11 @@ export default function Reports({
           )}
 
           {/* KPIs principales */}
-          <ProfitSummary p={report.profit} totalPaid={report.totalPaid} totalDebt={report.totalDebt} />
+          <ProfitSummary
+            p={report.profit}
+            totalPaid={report.totalPaid}
+            totalDebt={report.totalDebt}
+          />
 
           {/* Top productos */}
           <ProductProfitList items={report.detail.products} />
@@ -344,6 +463,177 @@ export default function Reports({
               ))}
             </View>
           )}
+
+          {/* Utilidad por día */}
+          {report.days?.length > 0 && (
+            <View
+              style={{
+                marginHorizontal: 16,
+                marginBottom: 16,
+                padding: 16,
+                backgroundColor: C.card,
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: C.line,
+              }}
+            >
+              <Text
+                style={{
+                  color: C.text,
+                  fontWeight: "700",
+                  fontSize: 17,
+                  marginBottom: 12,
+                }}
+              >
+                Utilidad por día
+              </Text>
+              {report.days.map((d: any) => (
+                <View
+                  key={d.dateStr}
+                  style={{
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    paddingVertical: 8,
+                    borderBottomWidth: 1,
+                    borderBottomColor: C.line,
+                  }}
+                >
+                  <View>
+                    <Text style={{ color: C.soft, fontSize: 15 }}>
+                      {formatDate(d.dateStr)}
+                    </Text>
+                    <Text style={{ color: C.muted, fontSize: 12 }}>
+                      {d.count} ventas · Costo {priceFormat(d.cost ?? 0)}
+                    </Text>
+                  </View>
+                  <View style={{ alignItems: "flex-end" }}>
+                    <Text style={{ color: C.text, fontWeight: "700" }}>
+                      {priceFormat(d.total ?? 0)}
+                    </Text>
+                    <Text
+                      style={{
+                        color: (d.profit ?? 0) >= 0 ? C.okText : C.dangerText,
+                        fontSize: 13,
+                        fontWeight: "700",
+                      }}
+                    >
+                      {(d.profit ?? 0) < 0 ? "-" : ""}
+                      {priceFormat(Math.abs(d.profit ?? 0))}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Cobros por medio de pago */}
+          {report.payments && Object.keys(report.payments).length > 0 && (
+            <View
+              style={{
+                marginHorizontal: 16,
+                marginBottom: 16,
+                padding: 16,
+                backgroundColor: C.card,
+                borderRadius: 16,
+                borderWidth: 1,
+                borderColor: C.line,
+              }}
+            >
+              <Text
+                style={{
+                  color: C.text,
+                  fontWeight: "700",
+                  fontSize: 17,
+                  marginBottom: 12,
+                }}
+              >
+                Cobros por medio de pago
+              </Text>
+              {Object.entries(report.payments).map(
+                ([method, amount]: [string, any]) => (
+                  <View
+                    key={method}
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                      paddingVertical: 8,
+                      borderBottomWidth: 1,
+                      borderBottomColor: C.line,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: C.soft,
+                        fontSize: 15,
+                        textTransform: "capitalize",
+                      }}
+                    >
+                      {method}
+                    </Text>
+                    <Text style={{ color: C.text, fontWeight: "700" }}>
+                      {priceFormat(amount ?? 0)}
+                    </Text>
+                  </View>
+                ),
+              )}
+            </View>
+          )}
+
+          {/* Ventas por hora */}
+          {Array.isArray(report.hours) &&
+            report.hours.some(
+              (h: any) => h?.hour !== undefined && h?.hour !== null,
+            ) && (
+              <View
+                style={{
+                  marginHorizontal: 16,
+                  marginBottom: 16,
+                  padding: 16,
+                  backgroundColor: C.card,
+                  borderRadius: 16,
+                  borderWidth: 1,
+                  borderColor: C.line,
+                }}
+              >
+                <Text
+                  style={{
+                    color: C.text,
+                    fontWeight: "700",
+                    fontSize: 17,
+                    marginBottom: 12,
+                  }}
+                >
+                  Ventas por hora
+                </Text>
+                {report.hours
+                  .filter((h: any) => h?.hour !== undefined && h?.hour !== null)
+                  .map((h: any, idx: number) => (
+                    <View
+                      key={`${h.hour}-${idx}`}
+                      style={{
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        paddingVertical: 8,
+                        borderBottomWidth: 1,
+                        borderBottomColor: C.line,
+                      }}
+                    >
+                      <Text style={{ color: C.soft, fontSize: 15 }}>
+                        {String(h.hour).padStart(2, "0")}:00
+                      </Text>
+                      <View style={{ alignItems: "flex-end" }}>
+                        <Text style={{ color: C.text, fontWeight: "700" }}>
+                          {priceFormat(h.total ?? 0)}
+                        </Text>
+                        <Text style={{ color: C.muted, fontSize: 12 }}>
+                          {h.count ?? 0} ventas
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+              </View>
+            )}
         </View>
       ) : (
         <View style={{ alignItems: "center", paddingVertical: 60 }}>

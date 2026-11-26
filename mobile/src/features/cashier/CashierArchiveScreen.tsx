@@ -16,6 +16,7 @@ import { useState, useEffect } from "react";
 import OpenShiftModal from "./components/OpenShiftModal";
 import CashMovementModal from "./components/CashMovementModal";
 import { C } from "@/src/core/theme/palette";
+import { parseLocalDate } from "@/src/shared/helpers/date.helper";
 
 type CalculatedTotals = Awaited<
   ReturnType<
@@ -134,7 +135,7 @@ export default function CashierArchiveScreen() {
                   ● Turno Abierto
                 </Text>
                 <Text style={{ color: C.soft, fontSize: 14 }}>
-                  {new Date(currentShift.opening_date).toLocaleDateString(
+                  {parseLocalDate(currentShift.opening_date).toLocaleDateString(
                     "es-CO",
                   )}{" "}
                   {currentShift.opening_time}

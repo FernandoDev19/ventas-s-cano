@@ -1,7 +1,11 @@
 import "react-native-get-random-values";
 import "../global.css";
 import Header from "@/src/core/layouts/Header";
-import { DarkTheme, ThemeProvider, DefaultTheme } from "@react-navigation/native";
+import {
+  DarkTheme,
+  ThemeProvider,
+  DefaultTheme,
+} from "@react-navigation/native";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { OrderProvider } from "../core/context/OrderContext";
@@ -13,6 +17,7 @@ import { supabase } from "../core/config/supabase";
 import { useUserRole, BYPASS_AUTH } from "@/src/shared/hooks/useUserRole";
 import { AppThemeProvider, useTheme } from "../core/theme/ThemeContext";
 import { palettes } from "../core/theme/palette";
+import { SettingsProvider } from "../core/context/SettingsContext";
 
 const navLightTheme = {
   ...DefaultTheme,
@@ -146,7 +151,9 @@ export default function RootLayout() {
 
   return (
     <AppThemeProvider>
-      <Inner />
+      <SettingsProvider>
+        <Inner />
+      </SettingsProvider>
     </AppThemeProvider>
   );
 }

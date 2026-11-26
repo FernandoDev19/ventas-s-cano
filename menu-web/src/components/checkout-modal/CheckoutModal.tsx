@@ -276,7 +276,7 @@ export default function CheckoutModal({ tableId }: Props) {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="... disabled:opacity-60 disabled:cursor-not-allowed"
+            className="bg-crimson-dark text-cream font-medium tracking-wide uppercase text-xs p-3.5 rounded-xl w-full border border-crimson-dark hover:bg-cream hover:text-crimson-dark transition-all duration-200 shadow-sm cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {isSubmitting ? "Enviando pedido…" : "Confirmar y Enviar Pedido"}
           </button>

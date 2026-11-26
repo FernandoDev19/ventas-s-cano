@@ -1,12 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Alert, Pressable, ScrollView, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, Switch, Text, View } from "react-native";
 import PrinterSettingsModal from "@/src/shared/components/printer/PrinterSettingsModal";
 import { supabase } from "@/src/core/config/supabase";
 import { BYPASS_AUTH, useUserRole } from "@/src/shared/hooks/useUserRole";
 import { ThemeToggle } from "@/src/core/theme/ThemeToggle";
 import { useTheme } from "@/src/core/theme/ThemeContext";
+import { useSettings } from "@/src/core/context/SettingsContext";
 
 type Item = {
   title: string;
@@ -22,6 +23,7 @@ export default function MoreTab() {
   const { c } = useTheme();
   const [printerVisible, setPrinterVisible] = useState(false);
   const userRole = role || "cashier";
+  const { allowNoStock, setAllowNoStock } = useSettings();
 
   const items: Item[] = [
     {
@@ -109,6 +111,38 @@ export default function MoreTab() {
           <ThemeToggle />
         </View>
 
+        <View
+          style={{
+            marginHorizontal: 16,
+            marginBottom: 12,
+            padding: 14,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            backgroundColor: c.card,
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: c.line,
+          }}
+        >
+          <View style={{ flex: 1, marginRight: 12 }}>
+            <Text style={{ color: c.text, fontWeight: "700", fontSize: 15 }}>
+              Vender sin stock
+            </Text>
+            <Text style={{ color: c.muted, fontSize: 13, marginTop: 2 }}>
+              {allowNoStock
+                ? "Se puede vender aunque el inventario esté en 0 (el stock queda en negativo)."
+                : "Los productos agotados no se pueden agregar al pedido."}
+            </Text>
+          </View>
+          <Switch
+            value={allowNoStock}
+            onValueChange={setAllowNoStock}
+            trackColor={{ false: c.line, true: "#ff572266" }}
+            thumbColor={allowNoStock ? "#ff5722" : c.soft}
+          />
+        </View>
+
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 12 }}>
           {items
             .filter((i) => i.roles.includes(userRole))
@@ -145,9 +179,7 @@ export default function MoreTab() {
                   >
                     {item.title}
                   </Text>
-                  <Text
-                    style={{ color: c.muted, fontSize: 11, marginTop: 2 }}
-                  >
+                  <Text style={{ color: c.muted, fontSize: 11, marginTop: 2 }}>
                     {item.subtitle}
                   </Text>
                 </View>

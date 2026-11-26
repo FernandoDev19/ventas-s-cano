@@ -72,7 +72,7 @@ export default function InventoryItemCard({
                   ? "#ef4444"
                   : item.stock <= STOCK_LOW_THRESHOLD
                     ? "#f59e0b"
-                    : "#fff",
+                    : "#22c55e",
             }}
           >
             {item.stock}

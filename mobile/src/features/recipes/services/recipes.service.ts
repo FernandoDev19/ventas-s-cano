@@ -17,11 +17,18 @@ export const RecipesService = {
         const prod = ing as any;
         return prod.product_stock >= ing.quantity;
       });
+      const maxUnits = ingredients.length
+        ? Math.min(
+            ...ingredients.map((i) =>
+              Math.floor(((i as any).product_stock ?? 0) / i.quantity),
+            ),
+          )
+        : Infinity;
       const cost = ingredients.reduce(
         (s, ing) => s + ing.quantity * ((ing as any).product_cost ?? 0),
         0,
       );
-      result.push({ ...recipe, ingredients, canPrepare, cost });
+      result.push({ ...recipe, ingredients, canPrepare, cost, maxUnits });
     }
     return result;
   },

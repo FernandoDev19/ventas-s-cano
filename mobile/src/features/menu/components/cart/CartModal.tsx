@@ -14,6 +14,8 @@ import CartProductsList from "./CartProductsList";
 import CartFooter from "./CartFooter";
 import { C } from "@/src/core/theme/palette";
 import CartCheckoutBar from "./CartCheckoutBar";
+import PriceDialog from "@/src/shared/components/ui/PriceDialog";
+import { originalPriceOf, unitPriceOf } from "@/src/core/context/OrderContext";
 
 type Props = {
   onSaleCreated: () => void;
@@ -60,6 +62,9 @@ const CartModal = ({ onSaleCreated }: Props) => {
     setDeliveryAddress,
     cashReceived,
     setCashReceived,
+    priceTarget,
+    setPriceTarget,
+    handleApplyPrice,
   } = useCartModal(onSaleCreated);
 
   if (totalItems === 0) return null;
@@ -107,6 +112,7 @@ const CartModal = ({ onSaleCreated }: Props) => {
                 getItemPrice={getItemPrice}
                 handleDecrement={handleDecrement}
                 handleIncrement={handleIncrement}
+                onEditPrice={setPriceTarget}
                 ListFooterComponent={
                   <CartFooter
                     totalPrecio={totalPrecio}
@@ -160,6 +166,16 @@ const CartModal = ({ onSaleCreated }: Props) => {
                         : "Nequi",
                 ].join(" · ")}
                 onConfirm={() => handleCheckout(buildSale(), order)}
+              />
+
+              <PriceDialog
+                visible={priceTarget !== null}
+                title={priceTarget ? getItemLabel(priceTarget) : ""}
+                originalPrice={priceTarget ? originalPriceOf(priceTarget) : 0}
+                currentPrice={priceTarget ? unitPriceOf(priceTarget) : 0}
+                onClose={() => setPriceTarget(null)}
+                onConfirm={(p) => handleApplyPrice(p)}
+                onReset={() => handleApplyPrice(null)}
               />
             </View>
           </View>

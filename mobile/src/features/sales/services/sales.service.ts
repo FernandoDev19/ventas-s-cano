@@ -5,6 +5,7 @@ import { SyncService } from "@/src/shared/services/sync.service";
 import { OrderPro } from "../../orders/types/order.type";
 import {
   localRangeISO,
+  parseLocalDate,
   toLocalDateStr,
 } from "@/src/shared/helpers/date.helper";
 
@@ -34,7 +35,7 @@ export const SalesService = {
   ): Promise<SaleType> => {
     const createdAtStr = new Date().toISOString();
     const debtDateStr = sale.debt_date
-      ? new Date(sale.debt_date).toISOString().split("T")[0]
+      ? parseLocalDate(sale.debt_date).toISOString().split("T")[0]
       : null;
 
     const saleId = uuidv4();
@@ -179,13 +180,14 @@ export const SalesService = {
           if (item.product_id) {
             // Es un producto individual
             await DATABASE.db.runAsync(
-              "INSERT INTO sale_products (id, sale_id, product_id, quantity, price, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+              "INSERT INTO sale_products (id, sale_id, product_id, quantity, price, cost, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
               [
                 uuidv4(),
                 saleId,
                 item.product_id,
                 item.quantity,
                 item.price_at_time,
+                await productCost(item.product_id),
                 0,
                 hoy,
               ],
@@ -198,14 +200,17 @@ export const SalesService = {
             );
           } else if (item.recipe_id) {
             // Es una receta / combo especial
+            const costoReceta = await recipeCost(item.recipe_id);
+
             await DATABASE.db.runAsync(
-              "INSERT INTO sale_recipes (id, sale_id, recipe_id, quantity, price, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+              "INSERT INTO sale_recipes (id, sale_id, recipe_id, quantity, price, cost, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
               [
                 uuidv4(),
                 saleId,
                 item.recipe_id,
                 item.quantity,
                 item.price_at_time,
+                costoReceta,
                 0,
                 hoy,
               ],
@@ -215,7 +220,7 @@ export const SalesService = {
               product_id: string;
               quantity: number;
             }>(
-              "SELECT product_id, quantity FROM recipe_ingredients WHERE recipe_id = ?;",
+              "SELECT product_id, quantity FROM recipe_ingredients WHERE recipe_id = ? AND deleted_at IS NULL",
               [item.recipe_id],
             );
 
@@ -251,22 +256,23 @@ export const SalesService = {
       `SELECT s.*, c.name as client_name,
         (SELECT group_concat(sp.quantity || 'x ' || p.name, ', ')
            FROM sale_products sp JOIN products p ON p.id = sp.product_id
-          WHERE sp.sale_id = s.id) as products_summary,
+          WHERE sp.sale_id = s.id AND sp.deleted_at IS NULL) as products_summary,
         (SELECT group_concat(sr.quantity || 'x ' || r.name, ', ')
            FROM sale_recipes sr JOIN recipes r ON r.id = sr.recipe_id
-          WHERE sr.sale_id = s.id) as recipes_summary,
-        (SELECT COALESCE(SUM(quantity), 0) FROM sale_products WHERE sale_id = s.id)
-        + (SELECT COALESCE(SUM(quantity), 0) FROM sale_recipes WHERE sale_id = s.id) as items_count
+          WHERE sr.sale_id = s.id AND sr.deleted_at IS NULL) as recipes_summary,
+        (SELECT COALESCE(SUM(sp.quantity), 0) FROM sale_products sp WHERE sp.sale_id = s.id AND sp.deleted_at IS NULL)
+        + (SELECT COALESCE(SUM(sr.quantity), 0) FROM sale_recipes sr WHERE sr.sale_id = s.id AND sr.deleted_at IS NULL) as items_count
        FROM sales s
        LEFT JOIN clients c ON s.client_id = c.id
        WHERE s.status IS NULL OR s.status != 'cancelled'
        ORDER BY s.created_at DESC`,
     );
+
     return sales.map((sale: any) => ({
       ...sale,
       is_debt: Boolean(sale.is_debt),
       created_at: new Date(sale.created_at),
-      debt_date: sale.debt_date ? new Date(sale.debt_date) : null,
+      debt_date: sale.debt_date ? parseLocalDate(sale.debt_date) : null,
       items_summary: [sale.products_summary, sale.recipes_summary]
         .filter(Boolean)
         .join(", "),
@@ -333,7 +339,7 @@ export const SalesService = {
       ...sale,
       is_debt: Boolean(sale.is_debt),
       created_at: new Date(sale.created_at),
-      debt_date: sale.debt_date ? new Date(sale.debt_date) : null,
+      debt_date: sale.debt_date ? parseLocalDate(sale.debt_date) : null,
       client: sale.client_id
         ? {
             id: sale.client_id,
@@ -371,44 +377,46 @@ export const SalesService = {
     const [rowTotal, rowPaid, rowDebt, rowCount, topProducts, salesRaw] =
       await Promise.all([
         DATABASE.db.getFirstAsync(
-          "SELECT SUM(total) as total FROM sales WHERE (status IS NULL OR status != 'cancelled') AND created_at BETWEEN ? AND ?",
+          "SELECT SUM(total) as total FROM sales WHERE (status IS NULL OR status != 'cancelled') AND deleted_at IS NULL AND created_at BETWEEN ? AND ?",
           [startISO, endISO],
         ),
         DATABASE.db.getFirstAsync(
-          "SELECT SUM(total) as total FROM sales WHERE is_debt = 0 AND (status IS NULL OR status != 'cancelled') AND created_at BETWEEN ? AND ?",
+          "SELECT SUM(total) as total FROM sales WHERE is_debt = 0 AND (status IS NULL OR status != 'cancelled') AND deleted_at IS NULL AND created_at BETWEEN ? AND ?",
           [startISO, endISO],
         ),
         DATABASE.db.getFirstAsync(
-          "SELECT SUM(debt_amount) as total FROM sales WHERE is_debt = 1 AND (status IS NULL OR status != 'cancelled') AND created_at BETWEEN ? AND ?",
+          "SELECT SUM(debt_amount) as total FROM sales WHERE is_debt = 1 AND (status IS NULL OR status != 'cancelled') AND deleted_at IS NULL AND created_at BETWEEN ? AND ?",
           [startISO, endISO],
         ),
         DATABASE.db.getFirstAsync(
-          "SELECT COUNT(*) as count FROM sales WHERE (status IS NULL OR status != 'cancelled') AND created_at BETWEEN ? AND ?",
+          "SELECT COUNT(*) as count FROM sales WHERE (status IS NULL OR status != 'cancelled') AND deleted_at IS NULL AND created_at BETWEEN ? AND ?",
           [startISO, endISO],
         ),
         DATABASE.db.getAllAsync(
           `SELECT name, SUM(quantity) AS quantity, SUM(total) AS total FROM (
-     SELECT p.name AS name, sp.quantity AS quantity, sp.quantity * sp.price AS total
-       FROM sale_products sp
-       JOIN products p ON p.id = sp.product_id
-       JOIN sales s ON s.id = sp.sale_id
-      WHERE (s.status IS NULL OR s.status != 'cancelled') AND s.deleted_at IS NULL
-        AND s.created_at BETWEEN ? AND ?
-     UNION ALL
-     SELECT r.name || ' (receta)', sr.quantity, sr.quantity * sr.price
-       FROM sale_recipes sr
-       JOIN recipes r ON r.id = sr.recipe_id
-       JOIN sales s ON s.id = sr.sale_id
-      WHERE (s.status IS NULL OR s.status != 'cancelled') AND s.deleted_at IS NULL
-        AND s.created_at BETWEEN ? AND ?
-   ) GROUP BY name ORDER BY quantity DESC`,
+            SELECT p.name AS name, sp.quantity AS quantity, sp.quantity * sp.price AS total
+              FROM sale_products sp
+              JOIN products p ON p.id = sp.product_id
+              JOIN sales s ON s.id = sp.sale_id
+              WHERE (s.status IS NULL OR s.status != 'cancelled') AND s.deleted_at IS NULL
+                AND sp.deleted_at IS NULL
+                AND s.created_at BETWEEN ? AND ?
+            UNION ALL
+            SELECT r.name || ' (receta)', sr.quantity, sr.quantity * sr.price
+              FROM sale_recipes sr
+              JOIN recipes r ON r.id = sr.recipe_id
+              JOIN sales s ON s.id = sr.sale_id
+              WHERE (s.status IS NULL OR s.status != 'cancelled') AND s.deleted_at IS NULL
+                AND sr.deleted_at IS NULL
+                AND s.created_at BETWEEN ? AND ?
+          ) GROUP BY name ORDER BY quantity DESC`,
           [startISO, endISO, startISO, endISO],
         ),
         DATABASE.db.getAllAsync(
           `SELECT s.*, c.name as client_name 
            FROM sales s 
            LEFT JOIN clients c ON s.client_id = c.id 
-           WHERE (s.status IS NULL OR s.status != 'cancelled') AND s.created_at BETWEEN ? AND ? 
+           WHERE (s.status IS NULL OR s.status != 'cancelled') AND s.deleted_at IS NULL AND s.created_at BETWEEN ? AND ? 
            ORDER BY s.created_at DESC`,
           [startISO, endISO],
         ),
@@ -483,7 +491,7 @@ export const SalesService = {
       `SELECT sp.*, p.name as product_name, p.image_url as product_image 
        FROM sale_products sp
        JOIN products p ON sp.product_id = p.id
-       WHERE sp.sale_id = ?`,
+       WHERE sp.sale_id = ? AND sp.deleted_at IS NULL`,
       [id],
     );
 
@@ -492,7 +500,7 @@ export const SalesService = {
       `SELECT sr.*, r.name as recipe_name, r.image_url as recipe_image
        FROM sale_recipes sr
        JOIN recipes r ON sr.recipe_id = r.id
-       WHERE sr.sale_id = ?`,
+       WHERE sr.sale_id = ? AND sr.deleted_at IS NULL`,
       [id],
     );
 
@@ -500,7 +508,7 @@ export const SalesService = {
       ...sale,
       is_debt: Boolean(sale.is_debt),
       created_at: new Date(sale.created_at),
-      debt_date: sale.debt_date ? new Date(sale.debt_date) : null,
+      debt_date: sale.debt_date ? parseLocalDate(sale.debt_date) : null,
       products,
       recipes,
       client: sale.client_id
@@ -514,9 +522,9 @@ export const SalesService = {
   },
 
   getProfitDetail: async (startDate: string, endDate: string) => {
-  const { startISO, endISO } = localRangeISO(startDate, endDate);
-  const rows: any[] = await DATABASE.db.getAllAsync(
-    `SELECT s.created_at, p.id AS item_id, p.name AS name, 0 AS is_recipe,
+    const { startISO, endISO } = localRangeISO(startDate, endDate);
+    const rows: any[] = await DATABASE.db.getAllAsync(
+      `SELECT s.created_at, p.id AS item_id, p.name AS name, 0 AS is_recipe,
             sp.quantity AS qty, sp.quantity * sp.price AS revenue, sp.quantity * sp.cost AS cost
        FROM sale_products sp
        JOIN products p ON p.id = sp.product_id
@@ -530,34 +538,42 @@ export const SalesService = {
        JOIN sales s ON s.id = sr.sale_id
       WHERE (s.status IS NULL OR s.status != 'cancelled') AND s.deleted_at IS NULL
         AND sr.deleted_at IS NULL AND s.created_at BETWEEN ? AND ?`,
-    [startISO, endISO, startISO, endISO],
-  );
+      [startISO, endISO, startISO, endISO],
+    );
 
-  const map = new Map<string, any>();
-  const costByDay: Record<string, number> = {};
-  let totalCost = 0, uncostedRevenue = 0;
+    const map = new Map<string, any>();
+    const costByDay: Record<string, number> = {};
+    let totalCost = 0,
+      uncostedRevenue = 0;
 
-  for (const r of rows) {
-    const key = `${r.is_recipe}-${r.item_id}`;
-    const e = map.get(key) ?? {
-      name: r.is_recipe ? `${r.name} (receta)` : r.name,
-      quantity: 0, revenue: 0, cost: 0,
-    };
-    e.quantity += r.qty; e.revenue += r.revenue; e.cost += r.cost;
-    map.set(key, e);
-    totalCost += r.cost;
-    if (!r.cost) uncostedRevenue += r.revenue;       // vendido sin costo cargado
-    const d = toLocalDateStr(r.created_at);
-    costByDay[d] = (costByDay[d] ?? 0) + r.cost;
-  }
+    for (const r of rows) {
+      const key = `${r.is_recipe}-${r.item_id}`;
+      const e = map.get(key) ?? {
+        name: r.is_recipe ? `${r.name} (receta)` : r.name,
+        quantity: 0,
+        revenue: 0,
+        cost: 0,
+      };
+      e.quantity += r.qty;
+      e.revenue += r.revenue;
+      e.cost += r.cost;
+      map.set(key, e);
+      totalCost += r.cost;
+      if (!r.cost) uncostedRevenue += r.revenue; // vendido sin costo cargado
+      const d = toLocalDateStr(r.created_at);
+      costByDay[d] = (costByDay[d] ?? 0) + r.cost;
+    }
 
-  const products = [...map.values()]
-    .map((p) => ({ ...p, profit: p.revenue - p.cost,
-                   margin: p.revenue ? ((p.revenue - p.cost) / p.revenue) * 100 : 0 }))
-    .sort((a, b) => b.profit - a.profit);
+    const products = [...map.values()]
+      .map((p) => ({
+        ...p,
+        profit: p.revenue - p.cost,
+        margin: p.revenue ? ((p.revenue - p.cost) / p.revenue) * 100 : 0,
+      }))
+      .sort((a, b) => b.profit - a.profit);
 
-  return { totalCost, uncostedRevenue, products, costByDay };
-},
+    return { totalCost, uncostedRevenue, products, costByDay };
+  },
 
   updateSale: async (
     id: string,
@@ -689,7 +705,7 @@ export const SalesService = {
         fields.push("debt_date = ?");
         values.push(
           sale.debt_date
-            ? new Date(sale.debt_date).toISOString().split("T")[0]
+            ? parseLocalDate(sale.debt_date).toISOString().split("T")[0]
             : null,
         );
       }
@@ -771,7 +787,7 @@ export const SalesService = {
       ...sale,
       is_debt: Boolean(sale.is_debt),
       created_at: new Date(sale.created_at),
-      debt_date: sale.debt_date ? new Date(sale.debt_date) : null,
+      debt_date: sale.debt_date ? parseLocalDate(sale.debt_date) : null,
       client: sale.client_id
         ? {
             id: sale.client_id,
@@ -793,7 +809,7 @@ export const SalesService = {
       ...sale,
       is_debt: true,
       created_at: new Date(sale.created_at),
-      debt_date: sale.debt_date ? new Date(sale.debt_date) : null,
+      debt_date: sale.debt_date ? parseLocalDate(sale.debt_date) : null,
       client: sale.client_id
         ? {
             id: sale.client_id,
@@ -832,7 +848,7 @@ export const SalesService = {
               sale.is_debt ? 1 : 0,
               sale.debt_amount || null,
               sale.debt_date
-                ? new Date(sale.debt_date).toISOString().split("T")[0]
+                ? parseLocalDate(sale.debt_date).toISOString().split("T")[0]
                 : null,
               0,
               new Date().toISOString(),
@@ -866,7 +882,7 @@ export const SalesService = {
       ...sale,
       is_debt: Boolean(sale.is_debt),
       created_at: new Date(sale.created_at),
-      debt_date: sale.debt_date ? new Date(sale.debt_date) : null,
+      debt_date: sale.debt_date ? parseLocalDate(sale.debt_date) : null,
     };
   },
 

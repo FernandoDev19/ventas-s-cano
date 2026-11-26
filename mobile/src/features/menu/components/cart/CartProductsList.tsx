@@ -2,7 +2,7 @@
 import React from "react";
 import { FlatList, Image, Pressable, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { OrderItem } from "@/src/core/context/OrderContext";
+import { OrderItem, originalPriceOf } from "@/src/core/context/OrderContext";
 import { priceFormat } from "@/src/shared/helpers/price-format.helper";
 import { C } from "@/src/core/theme/palette";
 
@@ -14,6 +14,7 @@ type Props = {
   handleDecrement: (item: OrderItem) => void;
   handleIncrement: (item: OrderItem) => void;
   ListFooterComponent?: React.ReactElement | null;
+  onEditPrice: (item: OrderItem) => void;
 };
 
 export default function CartProductsList({
@@ -24,6 +25,7 @@ export default function CartProductsList({
   handleDecrement,
   handleIncrement,
   ListFooterComponent,
+  onEditPrice,
 }: Props) {
   return (
     <FlatList
@@ -40,7 +42,11 @@ export default function CartProductsList({
       ListFooterComponent={ListFooterComponent}
       renderItem={({ item }) => (
         <View
-          style={{ backgroundColor: C.card, borderWidth: 1, borderColor: C.line }}
+          style={{
+            backgroundColor: C.card,
+            borderWidth: 1,
+            borderColor: C.line,
+          }}
           className="flex-row p-4 rounded-2xl items-center justify-between"
         >
           <View className="flex-row items-center flex-1 mr-4">
@@ -85,15 +91,42 @@ export default function CartProductsList({
                   {getItemLabel(item)}
                 </Text>
               </View>
-              <Text className="text-primary font-bold mt-0.5">
-                {priceFormat(getItemPrice(item))}
-              </Text>
+              <Pressable
+                onPress={() => onEditPrice(item)}
+                hitSlop={8}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 6,
+                  marginTop: 2,
+                }}
+              >
+                <Text className="text-primary font-bold">
+                  {priceFormat(getItemPrice(item))}
+                </Text>
+                <Ionicons name="pencil" size={13} color="#ff5722" />
+                {item.customPrice !== undefined && (
+                  <Text
+                    style={{
+                      color: C.muted,
+                      fontSize: 12,
+                      textDecorationLine: "line-through",
+                    }}
+                  >
+                    {priceFormat(originalPriceOf(item) * item.quantity)}
+                  </Text>
+                )}
+              </Pressable>
             </View>
           </View>
 
           {/* Controles de unidades */}
           <View
-            style={{ backgroundColor: C.sheet, borderWidth: 1, borderColor: C.line }}
+            style={{
+              backgroundColor: C.sheet,
+              borderWidth: 1,
+              borderColor: C.line,
+            }}
             className="flex-row items-center rounded-xl p-1 gap-2.5"
           >
             <Pressable

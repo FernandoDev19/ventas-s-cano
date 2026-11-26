@@ -15,10 +15,11 @@ export type RecipeType = {
   name: string;
   description?: string;
   image_url?: string;
-  cost?: number;  
+  cost?: number;
   selling_price: number;
   category_id?: string | null;
   ingredients?: RecipeIngredientType[];
+  maxUnits?: number;
   // Calculated field: true if all ingredients have enough stock
   canPrepare?: boolean;
   sincronizado?: 0 | 1;

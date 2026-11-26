@@ -6,6 +6,7 @@ import { RecipesService } from "../services/recipes.service";
 import { ProductsService } from "../../inventory/services/products.service";
 import { CategoriesService } from "../../categories/services/categories.service";
 import { Alert } from "react-native";
+import { useOnDataChanged } from "@/src/shared/hooks/useRealtimeSync";
 
 export const useRecipes = () => {
   const [recipes, setRecipes] = useState<RecipeType[]>([]);
@@ -16,6 +17,8 @@ export const useRecipes = () => {
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<RecipeType | null>(null);
+
+  useOnDataChanged(["recipes", "recipe_ingredients", "products"], () => loadData(true));
 
   const loadData = useCallback(async (refresh = false) => {
     if (refresh) setIsRefreshing(true);

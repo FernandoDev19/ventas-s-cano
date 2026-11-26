@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image, Pressable, Text, View } from "react-native";
 import { RecipeType } from "../../recipes/types/recipe.type";
 import { C } from "@/src/core/theme/palette";
+import { useSettings } from "@/src/core/context/SettingsContext";
 
 type Props = {
   recipe: RecipeType;
@@ -12,12 +13,13 @@ type Props = {
 
 const MenuRecipeCard = ({ recipe }: Props) => {
   const { addRecipeToOrder, removeFromOrder, order } = useContextOrder();
+  const { allowNoStock } = useSettings();
 
   const orderItem = order.find(
     (item) => item.type === "recipe" && item.recipe.id === recipe.id,
   );
   const qty = orderItem?.quantity ?? 0;
-  const canOrder = recipe.canPrepare !== false;
+  const canOrder = allowNoStock || recipe.canPrepare !== false;
 
   return (
     <Pressable

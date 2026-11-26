@@ -1,4 +1,8 @@
-import { OrderItem } from "@/src/core/context/OrderContext";
+import {
+  OrderItem,
+  originalPriceOf,
+  unitPriceOf,
+} from "@/src/core/context/OrderContext";
 import { Alert } from "react-native";
 import { RecipesService } from "../../recipes/services/recipes.service";
 import { SalesService } from "../../sales/services/sales.service";
@@ -19,17 +23,20 @@ import {
 } from "@/src/shared/helpers/whatsapp.helper";
 
 export const useCartModal = (onSaleCreated: () => void) => {
-  const { order, addToOrder, addRecipeToOrder, removeFromOrder, clearOrder } =
-    useContextOrder();
+  const {
+    order,
+    addToOrder,
+    addRecipeToOrder,
+    removeFromOrder,
+    clearOrder,
+    setItemPrice,
+  } = useContextOrder();
 
   const totalItems = order.reduce((sum, item) => sum + item.quantity, 0);
-  const totalPrecio = order.reduce((sum, item) => {
-    if (item.type === "product")
-      return sum + item.product.price * item.quantity;
-    if (item.type === "recipe")
-      return sum + item.recipe.selling_price * item.quantity;
-    return sum;
-  }, 0);
+  const totalPrecio = order.reduce(
+    (sum, item) => sum + unitPriceOf(item) * item.quantity,
+    0,
+  );
 
   const [clients, setClients] = useState<ClientType[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
@@ -58,6 +65,21 @@ export const useCartModal = (onSaleCreated: () => void) => {
 
   const refreshClients = () => {
     ClientsService.getAll().then(setClients);
+  };
+
+  const [priceTarget, setPriceTarget] = useState<OrderItem | null>(null);
+  const handleApplyPrice = (price: number | null) => {
+    if (!priceTarget) return;
+    const id =
+      priceTarget.type === "product"
+        ? priceTarget.product.id
+        : priceTarget.recipe.id!;
+    setItemPrice(
+      id,
+      priceTarget.type,
+      price === originalPriceOf(priceTarget) ? null : price,
+    );
+    setPriceTarget(null);
   };
 
   useEffect(() => {
@@ -155,7 +177,7 @@ export const useCartModal = (onSaleCreated: () => void) => {
           return {
             product_id: o.product.id,
             quantity: o.quantity,
-            price: o.product.price,
+            price: unitPriceOf(o),
           };
         })
         .filter(Boolean);
@@ -167,7 +189,7 @@ export const useCartModal = (onSaleCreated: () => void) => {
           return {
             recipe_id: o.recipe.id,
             quantity: o.quantity,
-            price: o.recipe.selling_price,
+            price: unitPriceOf(o),
           };
         })
         .filter(Boolean);
@@ -337,10 +359,7 @@ export const useCartModal = (onSaleCreated: () => void) => {
               name:
                 item.type === "product" ? item.product.name : item.recipe.name,
               quantity: item.quantity,
-              price:
-                item.type === "product"
-                  ? item.product.price
-                  : item.recipe.selling_price,
+              price: unitPriceOf(item),
             }));
 
             const msg = buildInvoiceMessage({
@@ -404,10 +423,7 @@ export const useCartModal = (onSaleCreated: () => void) => {
                   : "local",
             order_items: order.map((item) => ({
               quantity: item.quantity,
-              price_at_time:
-                item.type === "product"
-                  ? item.product.price
-                  : item.recipe.selling_price,
+              price_at_time: unitPriceOf(item),
               product_id: item.type === "product" ? item.product.id : null,
               recipe_id: item.type === "recipe" ? item.recipe.id : null,
             })),
@@ -470,10 +486,7 @@ export const useCartModal = (onSaleCreated: () => void) => {
     return item.recipe.image_url;
   };
 
-  const getItemPrice = (item: OrderItem) => {
-    if (item.type === "product") return item.product.price * item.quantity;
-    return item.recipe.selling_price * item.quantity;
-  };
+  const getItemPrice = (item: OrderItem) => unitPriceOf(item) * item.quantity;
 
   const handleIncrement = (item: OrderItem) => {
     if (item.type === "product") addToOrder(item.product);
@@ -525,5 +538,8 @@ export const useCartModal = (onSaleCreated: () => void) => {
     setDeliveryAddress,
     cashReceived,
     setCashReceived,
+    priceTarget,
+    setPriceTarget,
+    handleApplyPrice,
   };
 };

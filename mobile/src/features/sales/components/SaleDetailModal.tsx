@@ -35,6 +35,7 @@ import {
 import { getPaymentInfo } from "@/src/shared/helpers/sale-note.helper";
 import ClientPicker from "../../clients/components/ClientPicker";
 import { C } from "@/src/core/theme/palette";
+import PriceDialog from "@/src/shared/components/ui/PriceDialog";
 
 type SaleDetailModalProps = {
   visible: boolean;
@@ -112,6 +113,7 @@ export default function SaleDetailModal({
   const [allProducts, setAllProducts] = useState<ProductType[]>([]);
   const [allRecipes, setAllRecipes] = useState<RecipeType[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [priceTarget, setPriceTarget] = useState<EditableItem | null>(null);
 
   // Client
   const [clients, setClients] = useState<ClientType[]>([]);
@@ -340,6 +342,19 @@ export default function SaleDetailModal({
     (sum, p) => sum + p.price * p.quantity,
     0,
   );
+
+  const updateItemPrice = (
+    item_id: string,
+    is_recipe: boolean,
+    price: number,
+  ) =>
+    setEditedItems((prev) =>
+      prev.map((p) =>
+        p.item_id === item_id && p.is_recipe === is_recipe
+          ? { ...p, price }
+          : p,
+      ),
+    );
 
   useEffect(() => {
     if (editedDebtAmount > editedTotal) setEditedDebtAmount(editedTotal);
@@ -985,15 +1000,21 @@ export default function SaleDetailModal({
                               {item.item_name}
                             </Text>
                           </View>
-                          <Text
+                          <Pressable
+                            onPress={() => setPriceTarget(item)}
+                            hitSlop={8}
                             style={{
-                              color: C.muted,
-                              fontSize: 13,
+                              flexDirection: "row",
+                              alignItems: "center",
+                              gap: 4,
                               marginTop: 2,
                             }}
                           >
-                            {priceFormat(item.price)} c/u
-                          </Text>
+                            <Text style={{ color: C.muted, fontSize: 13 }}>
+                              {priceFormat(item.price)} c/u
+                            </Text>
+                            <Ionicons name="pencil" size={12} color="#ff5722" />
+                          </Pressable>
                         </View>
                         {/* Controles de cantidad */}
                         <View
@@ -1124,7 +1145,7 @@ export default function SaleDetailModal({
                         <Text
                           style={{
                             color:
-                              editedIsDebt === opt.value ? "#fff" : C.muted,
+                              editedIsDebt === opt.value ? "#ff5722" : C.muted,
                             fontWeight: "700",
                             fontSize: 15,
                           }}
@@ -1181,7 +1202,7 @@ export default function SaleDetailModal({
                               />
                               <Text
                                 style={{
-                                  color: active ? "#fff" : C.muted,
+                                  color: active ? "#ff5722" : C.muted,
                                   fontWeight: "700",
                                   fontSize: 15,
                                 }}
@@ -1807,8 +1828,12 @@ export default function SaleDetailModal({
                     }}
                   >
                     <Text
+                      className={
+                        sale.note
+                          ? "text-neutral-600 dark:text-white"
+                          : "text-neutral-500"
+                      }
                       style={{
-                        color: sale.note ? "#fff" : C.faint,
                         fontSize: 15,
                         fontStyle: sale.note ? "normal" : "italic",
                       }}
@@ -2119,6 +2144,20 @@ export default function SaleDetailModal({
         confirmText={reasonType === "edit" ? "Guardar" : "Anular Venta"}
         onClose={() => setShowReasonDialog(false)}
         onConfirm={handleConfirmReason}
+      />
+
+      <PriceDialog
+        visible={priceTarget !== null}
+        title={priceTarget?.item_name ?? ""}
+        originalPrice={priceTarget?.price ?? 0}
+        currentPrice={priceTarget?.price ?? 0}
+        originalLabel="Precio actual"
+        onClose={() => setPriceTarget(null)}
+        onConfirm={(p) => {
+          if (priceTarget)
+            updateItemPrice(priceTarget.item_id, priceTarget.is_recipe, p);
+          setPriceTarget(null);
+        }}
       />
     </Modal>
   );

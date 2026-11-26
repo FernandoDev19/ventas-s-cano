@@ -2,7 +2,10 @@ import DATABASE from "@/src/core/config/db";
 import { ExpenseType } from "../types/expense.type";
 import { v4 as uuidv4 } from "uuid";
 import { SyncService } from "@/src/shared/services/sync.service";
-import { toLocalDateStr } from "@/src/shared/helpers/date.helper";
+import {
+  parseLocalDate,
+  toLocalDateStr,
+} from "@/src/shared/helpers/date.helper";
 
 const ExpensesService = {
   getAllExpenses: async (): Promise<ExpenseType[]> => {
@@ -11,7 +14,7 @@ const ExpensesService = {
     );
     return expenses.map((exp: any) => ({
       ...exp,
-      date: new Date(exp.date),
+      date: parseLocalDate(exp.date),
     })) as ExpenseType[];
   },
 
@@ -23,7 +26,7 @@ const ExpensesService = {
     if (!exp) return null;
     return {
       ...exp,
-      date: new Date(exp.date),
+      date: parseLocalDate(exp.date),
     } as ExpenseType;
   },
 
@@ -225,7 +228,7 @@ const ExpensesService = {
     );
     return expenses.map((exp: any) => ({
       ...exp,
-      date: new Date(exp.date),
+      date: parseLocalDate(exp.date),
     })) as ExpenseType[];
   },
 
@@ -239,7 +242,7 @@ const ExpensesService = {
     );
     return expenses.map((exp: any) => ({
       ...exp,
-      date: new Date(exp.date),
+      date: parseLocalDate(exp.date),
     })) as ExpenseType[];
   },
 

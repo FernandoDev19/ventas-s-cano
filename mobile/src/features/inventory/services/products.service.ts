@@ -76,7 +76,7 @@ export const ProductsService = {
     const now = new Date().toISOString();
 
     await DATABASE.db.runAsync(
-      "INSERT INTO products (id, image_url, name, price, cost, stock, category_id, is_visible_menu, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO products (id, image_url, name, price, cost, stock, category_id, is_visible_menu, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [
         id,
         product.image_url || "",

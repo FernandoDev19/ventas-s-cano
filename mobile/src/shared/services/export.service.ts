@@ -44,63 +44,6 @@ function formatDate(str: string) {
 export const ExportService = {
   // ─── PDF ───────────────────────────────────────────────
   exportPDF: async (data: ReportData): Promise<void> => {
-    // const netProfit = data.totalSales - data.expenses.total;
-    // const profitColor = netProfit >= 0 ? "#22c55e" : "#ef4444";
-
-    const topProductsRows = data.topProducts
-      .map(
-        (p, i) => `
-      <tr>
-        <td>#${i + 1}</td>
-        <td>${p.name}</td>
-        <td style="text-align:center">${p.quantity}</td>
-        <td style="text-align:right">${formatCOP(p.total)}</td>
-      </tr>
-    `,
-      )
-      .join("");
-
-    const salesByDayRows = data.salesByDay
-      .map(
-        (d) => `
-      <tr>
-        <td>${formatDate(d.dateStr)}</td>
-        <td style="text-align:center">${d.count}</td>
-        <td style="text-align:right">${formatCOP(d.total)}</td>
-      </tr>
-    `,
-      )
-      .join("");
-
-    const expenseCatRows = data.expenses.byCategory
-      .map(
-        (c) => `
-      <tr>
-        <td>${c.category}</td>
-        <td style="text-align:right" class="danger">-${formatCOP(c.total)}</td>
-      </tr>
-    `,
-      )
-      .join("");
-
-    const salesRows = data.sales
-      .slice(0, 20)
-      .map(
-        (s) => `
-      <tr>
-        <td>#${String(s.id).padStart(3, "0")}</td>
-        <td>${s.note || "—"}</td>
-        <td style="text-align:center">
-          <span style="color:${s.is_debt ? "#f59e0b" : "#22c55e"}">
-            ${s.is_debt ? "Fiado" : "Pagado"}
-          </span>
-        </td>
-        <td style="text-align:right">${formatCOP(s.total)}</td>
-      </tr>
-    `,
-      )
-      .join("");
-
     const esc = (s: any) =>
       String(s ?? "").replace(
         /[&<>"]/g,
@@ -209,70 +152,56 @@ export const ExportService = {
   // ─── EXCEL ─────────────────────────────────────────────
   exportExcel: async (data: ReportData): Promise<void> => {
     const wb = XLSX.utils.book_new();
+    const p = data.profit ?? {};
 
-    // Hoja 1: Resumen
-    const p = data.profit;
+    // Hoja 1: Resumen (primera pestaña al abrir)
     const resumen = [
       ["Sabor Express — Reporte de gestión"],
       [`Período: ${formatDate(data.startDate)} al ${formatDate(data.endDate)}`],
       [],
       ["ESTADO DE RESULTADOS"],
-      ["Ventas", p.revenue],
-      ["(-) Costo de ventas", p.cost],
-      ["Utilidad bruta", p.gross],
-      ["Margen bruto %", Number(p.grossMargin.toFixed(1))],
-      ["(-) Gastos operativos", p.opex],
-      ["Utilidad neta", p.net],
-      ["Margen neto %", Number(p.netMargin.toFixed(1))],
+      ["Ventas", p.revenue ?? 0],
+      ["(-) Costo de ventas", p.cost ?? 0],
+      ["Utilidad bruta", p.gross ?? 0],
+      ["Margen bruto %", Number((p.grossMargin ?? 0).toFixed(1))],
+      ["(-) Gastos operativos", p.opex ?? 0],
+      ["Utilidad neta", p.net ?? 0],
+      ["Margen neto %", Number((p.netMargin ?? 0).toFixed(1))],
       [],
-      ["Cobrado", data.totalPaid],
-      ["Por cobrar (fiado)", data.totalDebt],
-      ["Compras de inventario (informativo)", p.inventoryPurchases],
-      ["Inversión (informativo)", p.inversion],
+      ["Cobrado", data.totalPaid ?? 0],
+      ["Por cobrar (fiado)", data.totalDebt ?? 0],
+      ["Compras de inventario (informativo)", p.inventoryPurchases ?? 0],
+      ["Inversión (informativo)", p.inversion ?? 0],
     ];
-
-    // hoja nueva
-    const wsProfit = XLSX.utils.aoa_to_sheet([
-      ["Producto", "Unidades", "Vendido", "Costo", "Utilidad", "Margen %"],
-      ...data.detail.products.map((x: any) => [
-        x.name,
-        x.quantity,
-        x.revenue,
-        x.cost,
-        x.profit,
-        Number(x.margin.toFixed(1)),
-      ]),
-    ]);
-    wsProfit["!cols"] = [
-      { wch: 30 },
-      { wch: 10 },
-      { wch: 14 },
-      { wch: 14 },
-      { wch: 14 },
-      { wch: 10 },
-    ];
-    XLSX.utils.book_append_sheet(wb, wsProfit, "Rentabilidad");
 
     const wsResumen = XLSX.utils.aoa_to_sheet(resumen);
-
     wsResumen["!cols"] = [{ wch: 30 }, { wch: 20 }];
     XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen");
 
-    // Hoja 2: Ventas por día
-    if (data.salesByDay.length > 0) {
-      const byDayData = [
-        ["Fecha", "Cantidad Ventas", "Total"],
-        ...data.salesByDay.map((d) => [
-          formatDate(d.dateStr),
-          d.count,
-          d.total,
+    // Hoja 2: Rentabilidad por producto
+    const products = data.detail?.products ?? [];
+    if (products.length > 0) {
+      const wsProfit = XLSX.utils.aoa_to_sheet([
+        ["Producto", "Unidades", "Vendido", "Costo", "Utilidad", "Margen %"],
+        ...products.map((x: any) => [
+          x.name,
+          x.quantity ?? 0,
+          x.revenue ?? 0,
+          x.cost ?? 0,
+          x.profit ?? 0,
+          Number((x.margin ?? 0).toFixed(1)),
         ]),
+      ]);
+      wsProfit["!cols"] = [
+        { wch: 30 },
+        { wch: 10 },
+        { wch: 14 },
+        { wch: 14 },
+        { wch: 14 },
+        { wch: 10 },
       ];
-      const wsByDay = XLSX.utils.aoa_to_sheet(byDayData);
-      wsByDay["!cols"] = [{ wch: 25 }, { wch: 18 }, { wch: 18 }];
-      XLSX.utils.book_append_sheet(wb, wsByDay, "Ventas por Día");
+      XLSX.utils.book_append_sheet(wb, wsProfit, "Rentabilidad");
     }
-
     // Hoja 3: Detalle ventas
     if (data.sales.length > 0) {
       const salesData = [

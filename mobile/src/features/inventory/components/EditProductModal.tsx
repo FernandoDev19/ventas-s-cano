@@ -500,7 +500,7 @@ export default function EditProductModal({
                   />
                   <Text
                     style={{
-                      color: isVisibleMenu ? "#fff" : C.muted,
+                      color: isVisibleMenu ? "#ff5722" : C.muted,
                       fontSize: 17,
                     }}
                   >
@@ -523,7 +523,7 @@ export default function EditProductModal({
                   />
                   <Text
                     style={{
-                      color: !isVisibleMenu ? "#fff" : C.muted,
+                      color: !isVisibleMenu ? "#ff5722" : C.muted,
                       fontSize: 17,
                     }}
                   >
@@ -562,7 +562,7 @@ export default function EditProductModal({
                   />
                   <Text
                     style={{
-                      color: categoryId ? "#fff" : C.muted,
+                      color: categoryId ? "#ff5722" : C.muted,
                       fontSize: 17,
                     }}
                   >
