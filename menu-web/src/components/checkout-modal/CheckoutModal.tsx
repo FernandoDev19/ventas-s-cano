@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useCartStore } from "../../store/cart.store";
 import type { OrderCheckoutType } from "../../types/order.type";
 import { CheckoutService } from "../../services/checkout.service";
@@ -22,11 +22,18 @@ export default function CheckoutModal({ tableId }: Props) {
   const [direccion, setDireccion] = useState("");
   const [comentarios, setComentarios] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("efectivo"); // Efectivo | Tarjeta | Nequi
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submittingRef = useRef(false); // bloquea doble toque instantáneo
+  const orderIdRef = useRef(crypto.randomUUID());
 
   if (!isCheckoutOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setIsSubmitting(true);
 
     const orderItems = items.map((item) => ({
       id: String(item.id),
@@ -57,13 +64,20 @@ export default function CheckoutModal({ tableId }: Props) {
     };
 
     try {
-      await CheckoutService.createOrder(orderData, tableId);
-
+      const result = await CheckoutService.createOrder(
+        orderData,
+        tableId,
+        orderIdRef.current,
+      );
+      if (!result.success) throw result.error;
       closeCheckout();
       openConfirmation();
     } catch (error) {
-      console.error("Error al crear el pedido:", error);
-      alert("Error al crear el pedido. Por favor, intenta de nuevo.");
+      console.error(error);
+      alert("No se pudo enviar el pedido. Intenta de nuevo.");
+    } finally {
+      submittingRef.current = false;
+      setIsSubmitting(false);
     }
   };
 
@@ -78,7 +92,8 @@ export default function CheckoutModal({ tableId }: Props) {
           </h3>
           <button
             onClick={closeCheckout}
-            className="text-muted hover:text-gold text-xl p-1 cursor-pointer"
+            disabled={isSubmitting}
+            className="text-muted hover:text-gold text-xl p-1 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
             ✕
           </button>
@@ -260,9 +275,10 @@ export default function CheckoutModal({ tableId }: Props) {
           {/* BOTÓN DE ACCIÓN */}
           <button
             type="submit"
-            className="w-full bg-crimson hover:bg-crimson-dark text-white font-bold p-4 rounded-xl shadow-lg mt-2 transition-colors active:scale-98 cursor-pointer uppercase tracking-wider text-xs"
+            disabled={isSubmitting}
+            className="... disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Confirmar y Enviar Pedido
+            {isSubmitting ? "Enviando pedido…" : "Confirmar y Enviar Pedido"}
           </button>
         </form>
       </div>

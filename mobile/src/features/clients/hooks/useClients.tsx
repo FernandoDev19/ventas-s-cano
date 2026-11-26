@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { ClientsService } from "../services/clients.service";
 import { useFocusEffect } from "expo-router";
+import { useOnDataChanged } from "@/src/shared/hooks/useRealtimeSync";
 
 export const useClients = () => {
   const [clients, setClients] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+    useOnDataChanged(["clients", "sales"], () => loadData(true));
 
   const loadData = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);

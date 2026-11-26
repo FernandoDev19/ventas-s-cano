@@ -5,6 +5,7 @@ import { ProductsService } from "../../inventory/services/products.service";
 import { ProductType } from "../../inventory/types/product.type";
 import { RecipesService } from "../../recipes/services/recipes.service";
 import { RecipeType } from "../../recipes/types/recipe.type";
+import { useOnDataChanged } from "@/src/shared/hooks/useRealtimeSync";
 
 export const useProductList = (filter: string) => {
   const [products, setProducts] = useState<ProductType[]>([]);
@@ -12,6 +13,11 @@ export const useProductList = (filter: string) => {
   const [search, setSearch] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  useOnDataChanged(["products", "recipes", "recipe_ingredients", "categories"], () => {
+  loadProducts(true);
+});
+
 
   const filteredProducts = products.filter((p) =>
     p.name.toLowerCase().includes(search.toLowerCase()),

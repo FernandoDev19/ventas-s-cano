@@ -229,13 +229,13 @@ export const useChangeOrderStatus = ({
         [
           {
             // Fix 3: entrega → estado "delivered" + liberar mesa
-            text: "Sí, entregar e imprimir cuenta",
+            text: "Sí, entregar",
             onPress: async () => {
               await updateOrderStatus(orden.id, "delivered", "ready");
               if (esMesa && orden.table_id) {
                 await TablesService.release(orden.table_id);
               }
-              await handlePrintCashierTicket(orden);
+              // await handlePrintCashierTicket(orden);
               cargarOrdenes(activeTab);
               ofrecerFacturaWhatsApp(orden);
             },
@@ -255,53 +255,14 @@ export const useChangeOrderStatus = ({
     }
   };
 
-  const handleDelivered = async (orden: OrderPro) => {
-    const handleReadyWithoutPrint = async (orden: OrderPro) => {
-      try {
-        await updateOrderStatus(orden.id, "delivered");
-
-        if (orden.delivery_type === "mesa" && orden.table_id) {
-          await TablesService.release(orden.table_id);
-        }
-
-        cargarOrdenes(activeTab);
-        ofrecerFacturaWhatsApp(orden);
-      } catch {
-        Alert.alert("Error", "No se pudo actualizar el estado.");
-      }
-    };
-
-    const handleReadyWithPrint = async (orden: OrderPro) => {
-      try {
-        await updateOrderStatus(orden.id, "delivered");
-        await handlePrintCashierTicket(orden);
-        cargarOrdenes(activeTab);
-        ofrecerFacturaWhatsApp(orden);
-      } catch {
-        Alert.alert("Error", "No se pudo completar la operación.");
-      }
-    };
-
-    await updateOrderStatus(orden.id, "delivered");
-
-    Alert.alert(
-      "¿Listo para servir?",
-      "¿Deseas imprimir la cuenta en la caja ahora?",
-      [
-        {
-          text: "No, después",
-          onPress: () => handleReadyWithoutPrint(orden),
-        },
-        {
-          text: "Sí, imprimir cuenta",
-          onPress: () => handleReadyWithPrint(orden),
-        },
-        { text: "Cancelar", style: "cancel" },
-      ],
-    );
-
-    cargarOrdenes(activeTab);
-  };
+const handleDelivered = async (orden: OrderPro) => {
+  await updateOrderStatus(orden.id, "delivered");
+  if (orden.delivery_type === "mesa" && orden.table_id) {
+    await TablesService.release(orden.table_id);
+  }
+  cargarOrdenes(activeTab);
+  ofrecerFacturaWhatsApp(orden);   // si también te molesta, hazlo botón
+};
 
   const handleCancelled = async (orden: OrderPro) => {
     const tienePhone = !!orden.customer_phone?.trim();

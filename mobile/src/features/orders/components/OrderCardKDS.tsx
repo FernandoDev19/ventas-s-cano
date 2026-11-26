@@ -14,6 +14,8 @@ import {
 } from "@/src/shared/helpers/sale-note.helper";
 import { C } from "@/src/core/theme/palette";
 
+const alertedOrders = new Set<string>();
+
 interface CardProps {
   item: OrderPro;
   onAccionEstado: (
@@ -100,13 +102,16 @@ export const OrderCardKDS = ({
       if (
         mins >= 20 &&
         (item.status === "accepted" || item.status === "preparing") &&
-        !alertedRef.current
+        !alertedOrders.has(item.id)
       ) {
-        alertedRef.current = true;
+        alertedOrders.add(item.id);
         try {
           const { sound } = await Audio.Sound.createAsync(
             require("@/assets/sounds/alerta-cocina.mp3"),
           );
+          sound.setOnPlaybackStatusUpdate((s) => {
+            if (s.isLoaded && s.didJustFinish) sound.unloadAsync(); // suelta el foco
+          });
           await sound.playAsync();
         } catch {
           console.log("Error al pitar en cocina");
@@ -116,7 +121,7 @@ export const OrderCardKDS = ({
     tick();
     const interval = setInterval(tick, 30000);
     return () => clearInterval(interval);
-  }, [item.created_at, item.status]);
+  }, [item.created_at, item.status, item.id]);
 
   const parsed = parseSaleNote(item.comments);
   const kind: OrderKind =

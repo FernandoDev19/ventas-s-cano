@@ -206,18 +206,25 @@ const DATABASE = {
       `);
 
       const addCol = async (table: string, col: string, def: string) => {
-  const info = (await DATABASE.db.getAllAsync(`PRAGMA table_info(${table});`)) as any[];
-  if (!info.some((c) => c.name === col))
-    await DATABASE.db.execAsync(`ALTER TABLE ${table} ADD COLUMN ${col} ${def};`);
-};
-await addCol("expenses", "kind", "TEXT DEFAULT 'operativo'");   // operativo | inversion | nomina
-await addCol("expenses", "supplier_id", "TEXT");
-await addCol("expenses", "payment_method", "TEXT");
-await addCol("expenses", "invoice_number", "TEXT");
-await addCol("expenses", "is_paid", "INTEGER DEFAULT 1");
-await addCol("expenses", "due_date", "TEXT");
-await addCol("sale_recipes", "created_at", "TEXT");
-await addCol("sale_products", "created_at", "TEXT");
+        const info = (await DATABASE.db.getAllAsync(
+          `PRAGMA table_info(${table});`,
+        )) as any[];
+        if (!info.some((c) => c.name === col))
+          await DATABASE.db.execAsync(
+            `ALTER TABLE ${table} ADD COLUMN ${col} ${def};`,
+          );
+      };
+      await addCol("expenses", "kind", "TEXT DEFAULT 'operativo'"); // operativo | inversion | nomina
+      await addCol("expenses", "supplier_id", "TEXT");
+      await addCol("expenses", "payment_method", "TEXT");
+      await addCol("expenses", "invoice_number", "TEXT");
+      await addCol("expenses", "is_paid", "INTEGER DEFAULT 1");
+      await addCol("expenses", "due_date", "TEXT");
+      await addCol("sale_recipes", "created_at", "TEXT");
+      await addCol("sale_products", "created_at", "TEXT");
+      await addCol("products", "cost", "REAL DEFAULT 0");
+      await addCol("sale_products", "cost", "REAL DEFAULT 0");
+      await addCol("sale_recipes", "cost", "REAL DEFAULT 0");
 
       // Migración automática: aseguramos que la columna deleted_at existe en todas las tablas
       const tables = [
@@ -236,7 +243,7 @@ await addCol("sale_products", "created_at", "TEXT");
         "suppliers",
         "employees",
         "payroll_payments",
-        "expense_items"
+        "expense_items",
       ];
       for (const tableName of tables) {
         try {
@@ -258,6 +265,26 @@ await addCol("sale_products", "created_at", "TEXT");
             err,
           );
         }
+      }
+
+      try {
+        const now = new Date().toISOString();
+        const dedupe = (table: string, parent: string, item: string) =>
+          DATABASE.db.runAsync(
+            `UPDATE ${table} SET deleted_at = ?, sincronizado = 0, updated_at = ?
+        WHERE deleted_at IS NULL AND id IN (
+          SELECT id FROM (
+            SELECT id, ROW_NUMBER() OVER (
+              PARTITION BY ${parent}, ${item} ORDER BY updated_at DESC, id DESC) AS rn
+              FROM ${table} WHERE deleted_at IS NULL)
+          WHERE rn > 1)`,
+            [now, now],
+          );
+        await dedupe("recipe_ingredients", "recipe_id", "product_id");
+        await dedupe("sale_products", "sale_id", "product_id");
+        await dedupe("sale_recipes", "sale_id", "recipe_id");
+      } catch (e) {
+        console.error("Autorreparación duplicados:", e);
       }
 
       try {

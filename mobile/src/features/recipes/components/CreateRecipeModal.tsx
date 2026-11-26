@@ -221,6 +221,18 @@ export default function CreateRecipeModal({
     }
   };
 
+  const recipeCost = ingredients.reduce(
+    (s, i) =>
+      s +
+      i.quantity * (allProducts.find((p) => p.id === i.product_id)?.cost ?? 0),
+    0,
+  );
+
+  const numericPrice = parseFloat(price.replace(/,/g, "")) || 0;
+  const profit = numericPrice - recipeCost;
+  const marginPct =
+    numericPrice > 0 ? Math.round((profit / numericPrice) * 100) : 0;
+
   return (
     <Modal
       visible={visible}
@@ -382,7 +394,7 @@ export default function CreateRecipeModal({
                   {
                     flexDirection: "row",
                     alignItems: "center",
-                    marginBottom: 20,
+                    marginBottom: 6,
                   },
                 ]}
               >
@@ -405,6 +417,21 @@ export default function CreateRecipeModal({
                   style={[styles.input, { flex: 1 }]}
                 />
               </View>
+
+              {/* Cost and margin */}
+              <Text
+                style={{
+                  color: profit < 0 ? "#ef4444" : C.muted,
+                  fontSize: 13,
+                  fontWeight: "600",
+                  marginBottom: 20,
+                }}
+              >
+                Costo: {priceFormat(recipeCost)} · Margen:{" "}
+                {numericPrice > 0
+                  ? `${priceFormat(profit)} (${marginPct}%)`
+                  : "—"}
+              </Text>
 
               {/* Category */}
               <Text style={styles.label}>Categoría</Text>

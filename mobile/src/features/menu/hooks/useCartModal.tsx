@@ -35,7 +35,9 @@ export const useCartModal = (onSaleCreated: () => void) => {
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
 
   const [tables, setTables] = useState<TableType[]>([]);
-  const [orderType, setOrderType] = useState<"comer_aqui" | "para_llevar" | "domicilio">("comer_aqui");
+  const [orderType, setOrderType] = useState<
+    "comer_aqui" | "para_llevar" | "domicilio"
+  >("comer_aqui");
   const [selectedTableId, setSelectedTableId] = useState<number | null>(null);
   const [deliveryAddress, setDeliveryAddress] = useState<string>("");
   const [cashReceived, setCashReceived] = useState<string>("");
@@ -61,7 +63,9 @@ export const useCartModal = (onSaleCreated: () => void) => {
   useEffect(() => {
     if (modalVisible) {
       refreshClients();
-      TablesService.getAll().then(setTables).catch(() => {});
+      TablesService.getAll()
+        .then(setTables)
+        .catch(() => {});
       setAmountDebt(totalPrecio);
     }
   }, [modalVisible, totalPrecio]);
@@ -90,7 +94,9 @@ export const useCartModal = (onSaleCreated: () => void) => {
     if (paymentMethod === "cash" && cleanCash) {
       const numCash = Number(cleanCash);
       if (numCash >= totalPrecio) {
-        noteParts.push(`(Paga: $${numCash.toLocaleString("es-CO")} - Cambio: $${(numCash - totalPrecio).toLocaleString("es-CO")})`);
+        noteParts.push(
+          `(Paga: $${numCash.toLocaleString("es-CO")} - Cambio: $${(numCash - totalPrecio).toLocaleString("es-CO")})`,
+        );
       }
     }
 
@@ -109,7 +115,10 @@ export const useCartModal = (onSaleCreated: () => void) => {
     if (isSubmitting) return;
 
     if (!order || order.length === 0) {
-      Alert.alert("Orden vacía", "Agrega al menos un producto antes de continuar.");
+      Alert.alert(
+        "Orden vacía",
+        "Agrega al menos un producto antes de continuar.",
+      );
       return;
     }
 
@@ -146,7 +155,7 @@ export const useCartModal = (onSaleCreated: () => void) => {
           return {
             product_id: o.product.id,
             quantity: o.quantity,
-            price: o.product.price, 
+            price: o.product.price,
           };
         })
         .filter(Boolean);
@@ -158,7 +167,7 @@ export const useCartModal = (onSaleCreated: () => void) => {
           return {
             recipe_id: o.recipe.id,
             quantity: o.quantity,
-            price: o.recipe.selling_price,     
+            price: o.recipe.selling_price,
           };
         })
         .filter(Boolean);
@@ -170,74 +179,94 @@ export const useCartModal = (onSaleCreated: () => void) => {
         recipesToSave,
       );
 
-
       // ⚙️ FUNCIÓN CENTRAL: Ejecuta todo el cierre de la venta (Impresión, stock, limpiar UI)
-      const finalizarFlujoVenta = async () => {
+      const finalizarFlujoVenta = async ({
+        printKitchen,
+      }: {
+        printKitchen: boolean;
+      }) => {
         // 🖨️ Impresión (sin bloquear UI)
-        try {
-          const cajaConfig = await PrinterService.getConfig("caja");
-          if (cajaConfig.enabled) {
-            const displayItems = order.map((item) => ({
-              quantity: item.quantity,
-              name:
-                item.type === "product" ? item.product.name : item.recipe.name,
-              price:
-                item.type === "product"
-                  ? item.product.price
-                  : item.recipe.selling_price,
-            }));
+        // try {
+        //   const cajaConfig = await PrinterService.getConfig("caja");
+        //   if (cajaConfig.enabled) {
+        //     const displayItems = order.map((item) => ({
+        //       quantity: item.quantity,
+        //       name:
+        //         item.type === "product" ? item.product.name : item.recipe.name,
+        //       price:
+        //         item.type === "product"
+        //           ? item.product.price
+        //           : item.recipe.selling_price,
+        //     }));
 
-            let clientName = "";
-            if (sale.client_id) {
-              const clientObj = clients.find((c) => c.id === sale.client_id);
-              if (clientObj) clientName = clientObj.name;
+        //     let clientName = "";
+        //     if (sale.client_id) {
+        //       const clientObj = clients.find((c) => c.id === sale.client_id);
+        //       if (clientObj) clientName = clientObj.name;
+        //     }
+
+        //     const printerSaleObj = {
+        //       ...createdSale,
+        //       client_name: clientName,
+        //       payment_method: sale.payment_method,
+        //       note: sale.note,
+        //     };
+
+        //     const ticketCmds = PrinterService.generateCajaTicket(
+        //       printerSaleObj,
+        //       displayItems,
+        //     );
+        //     await PrinterService.print("caja", ticketCmds);
+        //   }
+
+        // } catch (printErr) {
+        //   console.error("Error al mandar a imprimir desde checkout:", printErr);
+        // }
+
+        if (printKitchen) {
+          try {
+            const cocinaConfig = await PrinterService.getConfig("cocina");
+            if (cocinaConfig.enabled) {
+              const comandaItems = order.map((item) => ({
+                quantity: item.quantity,
+                name:
+                  item.type === "product"
+                    ? item.product.name
+                    : item.recipe.name,
+              }));
+
+              let clientName = "";
+              if (sale.client_id) {
+                const clientObj = clients.find((c) => c.id === sale.client_id);
+                if (clientObj) clientName = clientObj.name;
+              }
+
+              const mesaObj = selectedTableId
+                ? tables.find((t) => t.id === selectedTableId)
+                : null;
+              const comandaObj = {
+                id: createdSale.id,
+                delivery_type:
+                  orderType === "domicilio" ? "domicilio" : "local",
+                delivery_address:
+                  orderType === "domicilio" ? deliveryAddress.trim() : "",
+                customer_name:
+                  clientName ||
+                  (orderType === "comer_aqui" && mesaObj
+                    ? `Mesa ${mesaObj.number_mesa}`
+                    : "Caja Local"),
+                note: sale.note,
+              };
+
+              const kitchenCmds = PrinterService.generateCocinaComanda(
+                comandaObj,
+                comandaItems,
+              );
+              await PrinterService.print("cocina", kitchenCmds);
             }
-
-            const printerSaleObj = {
-              ...createdSale,
-              client_name: clientName,
-              payment_method: sale.payment_method,
-              note: sale.note,
-            };
-
-            const ticketCmds = PrinterService.generateCajaTicket(
-              printerSaleObj,
-              displayItems,
-            );
-            await PrinterService.print("caja", ticketCmds);
+          } catch (printErr) {
+            console.error("Error imprimiendo comanda:", printErr);
           }
-
-          const cocinaConfig = await PrinterService.getConfig("cocina");
-          if (cocinaConfig.enabled) {
-            const comandaItems = order.map((item) => ({
-              quantity: item.quantity,
-              name:
-                item.type === "product" ? item.product.name : item.recipe.name,
-            }));
-
-            let clientName = "";
-            if (sale.client_id) {
-              const clientObj = clients.find((c) => c.id === sale.client_id);
-              if (clientObj) clientName = clientObj.name;
-            }
-
-            const mesaObj = selectedTableId ? tables.find(t => t.id === selectedTableId) : null;
-            const comandaObj = {
-              id: createdSale.id,
-              delivery_type: orderType === "domicilio" ? "domicilio" : "local",
-              delivery_address: orderType === "domicilio" ? deliveryAddress.trim() : "",
-              customer_name: clientName || (orderType === "comer_aqui" && mesaObj ? `Mesa ${mesaObj.number_mesa}` : "Caja Local"),
-              note: sale.note,
-            };
-
-            const kitchenCmds = PrinterService.generateCocinaComanda(
-              comandaObj,
-              comandaItems,
-            );
-            await PrinterService.print("cocina", kitchenCmds);
-          }
-        } catch (printErr) {
-          console.error("Error al mandar a imprimir desde checkout:", printErr);
         }
 
         // Deducir stock de ingredientes de las recetas
@@ -288,7 +317,7 @@ export const useCartModal = (onSaleCreated: () => void) => {
 
         // Sincronizar en segundo plano
         SyncService.run().catch((e) =>
-          console.warn("Error sync tras crear venta:", e)
+          console.warn("Error sync tras crear venta:", e),
         );
 
         // ─── Post-cierre: alertas informativas ────────────────
@@ -342,7 +371,7 @@ export const useCartModal = (onSaleCreated: () => void) => {
         try {
           let nombreCliente = "Caja Local";
           let telefonoCliente = "";
-          
+
           if (selectedClientId) {
             const clientObj = clients.find((c) => c.id === selectedClientId);
             if (clientObj) {
@@ -351,17 +380,28 @@ export const useCartModal = (onSaleCreated: () => void) => {
             }
           }
 
-          const mesaObj = selectedTableId ? tables.find(t => t.id === selectedTableId) : null;
+          const mesaObj = selectedTableId
+            ? tables.find((t) => t.id === selectedTableId)
+            : null;
           const orderId = await OrdersService.createOrderFromMobile({
             client_id: selectedClientId || null,
             customer_name: nombreCliente,
             customer_phone: telefonoCliente,
-            delivery_address: orderType === "domicilio" ? deliveryAddress.trim() : "",
-            table_id: orderType === "comer_aqui" ? (mesaObj?.number_mesa ?? selectedTableId) : null,
+            delivery_address:
+              orderType === "domicilio" ? deliveryAddress.trim() : "",
+            table_id:
+              orderType === "comer_aqui"
+                ? (mesaObj?.number_mesa ?? selectedTableId)
+                : null,
             total_price: totalPrecio,
             comments: sale.note || "Pedido desde App Móvil",
             status: "accepted",
-            delivery_type: orderType === "domicilio" ? "domicilio" : (orderType === "para_llevar" ? "para_llevar" : "local"),
+            delivery_type:
+              orderType === "domicilio"
+                ? "domicilio"
+                : orderType === "para_llevar"
+                  ? "para_llevar"
+                  : "local",
             order_items: order.map((item) => ({
               quantity: item.quantity,
               price_at_time:
@@ -381,11 +421,11 @@ export const useCartModal = (onSaleCreated: () => void) => {
             TablesService.occupy(selectedTableId).catch(() => {});
           }
 
-          await finalizarFlujoVenta();
+          await finalizarFlujoVenta({ printKitchen: true });
         } catch (orderErr) {
           console.error("Error enviando la comanda digital al KDS:", orderErr);
           // Finalizar de todas formas (la venta ya está guardada local)
-          await finalizarFlujoVenta();
+          await finalizarFlujoVenta({ printKitchen: true });
           Alert.alert(
             "⚠️ Aviso KDS",
             "La venta se registró, pero no se pudo enviar la comanda a cocina.",
@@ -401,7 +441,7 @@ export const useCartModal = (onSaleCreated: () => void) => {
           {
             text: "No, entrega directa",
             style: "cancel",
-            onPress: () => finalizarFlujoVenta(),
+            onPress: () => finalizarFlujoVenta({ printKitchen: false }),
           },
           {
             text: "Sí, mandar a cocina 🔥",

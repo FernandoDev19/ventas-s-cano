@@ -3,14 +3,15 @@ import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import { router } from "expo-router"; // Asegúrate de importar el router de Expo
 import { supabase } from "@/src/core/config/supabase";
+import Constants, { ExecutionEnvironment } from "expo-constants";
 
 // Configuración obligatoria fuera del hook para que la app sepa qué hacer con la app abierta
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
+    shouldShowAlert: false,
+    shouldPlaySound: false,
     shouldSetBadge: false,
-    shouldShowBanner: true,
+    shouldShowBanner: false,
     shouldShowList: true,
   }),
 });
@@ -31,83 +32,58 @@ export const useNotifications = () => {
   };
 
   // Tu función original melá, usando tu projectId real
-  const notificationsConfigurate = useCallback(async () => {
-    try {
-      if (Platform.OS === "web") {
-        return null;
-      }
+  const notificationsConfigurate = useCallback(async (role: string) => {
+    if (Platform.OS === "web") return;
+    if (Constants.executionEnvironment === ExecutionEnvironment.StoreClient)
+      return; // Expo Go
 
-      if (__DEV__) {
-        console.log(
-          "⚠️ Estás en Expo Go. Las Push remotas están desactivadas para evitar el crash. ¡Sigue derecho!",
-        );
-        return null;
-      }
-
-      const { status: existingStatus } =
-        await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-
-      if (existingStatus !== "granted") {
-        const { status: asksStatus } =
-          await Notifications.requestPermissionsAsync();
-        finalStatus = asksStatus;
-      }
-
-      if (finalStatus !== "granted") {
-        console.log("❌ El usuario no dio permiso para notificaciones.");
-        return;
-      }
-
-      // Dejamos tu projectId intacto para cuando tires el build nativo
-      const tokenData = await Notifications.getExpoPushTokenAsync({
-        projectId: "b8ba3324-6576-458a-8010-7aa73314f49d",
+    if (Platform.OS === "android") {
+      await Notifications.setNotificationChannelAsync("default", {
+        name: "default",
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: "#FF5722",
       });
-
-      const token = tokenData.data;
-      console.log("✅ Token obtenido:", token);
-
-      await saveTokenInSupabase(token);
-
-      if (Platform.OS === "android") {
-        await Notifications.setNotificationChannelAsync("default", {
-          name: "default",
-          importance: Notifications.AndroidImportance.MAX,
-          vibrationPattern: [0, 250, 250, 250],
-          lightColor: "#FF5722",
-        });
-      }
-    } catch (error) {
-      console.error("Error configurando las push notifications:", error);
     }
+    const { status: existing } = await Notifications.getPermissionsAsync();
+    const status =
+      existing === "granted"
+        ? existing
+        : (await Notifications.requestPermissionsAsync()).status;
+    if (status !== "granted") return;
+
+    const { data: token } = await Notifications.getExpoPushTokenAsync({
+      projectId: "b8ba3324-6576-458a-8010-7aa73314f49d",
+    });
+    await supabase
+      .from("push_tokens")
+      .upsert(
+        [
+          {
+            token,
+            role,
+            platform: Platform.OS,
+            updated_at: new Date().toISOString(),
+          },
+        ],
+        { onConflict: "token" },
+      );
   }, []);
 
   // 🚀 LA TRAÍDA DEL MÁS ALLÁ: Escuchar cuando el dueño toca la notificación
-  const listenToNotifications = useCallback(() => {
-    if (Platform.OS === "web") {
-      return () => {};
-    }
-
-    const subscription = Notifications.addNotificationResponseReceivedListener(
-      (response) => {
-        // Extraemos el ID de la orden que viaja en el objeto 'data' desde la Edge Function
-        const orderId = response.notification.request.content.data?.orderId;
-
-        if (orderId) {
-          console.log(`🚀 Abriendo la orden desde la notificación: ${orderId}`);
-          // Lo mandas directo a la vista de órdenes
-          router.push({
-            pathname: "/(tabs)/(sales)/sales",
-            params: { tab: "Ordenes" },
-          });
-        }
-      },
-    );
-
-    // Retornamos la función para poder limpiar el invento en el layout
-    return () => {
-      subscription.remove();
+  const listenToNotifications = useCallback((role: string) => {
+    if (Platform.OS === "web") return () => {};
+    const go = (r: Notifications.NotificationResponse) => {
+      if (!r.notification.request.content.data?.orderId) return;
+      router.push(
+        role === "kitchen"
+          ? "/(tabs)/(orders)/orders"
+          : { pathname: "/(tabs)/(sales)/sales", params: { tab: "Ordenes" } },
+      );
     };
+    Notifications.getLastNotificationResponseAsync().then((r) => r && go(r)); // app cerrada
+    const sub = Notifications.addNotificationResponseReceivedListener(go);
+    return () => sub.remove();
   }, []);
 
   return {

@@ -4,6 +4,7 @@ import { CategoryType } from "../../categories/types/category.type";
 import ExpensesService from "../services/expense.service";
 import { CategoriesService } from "../../categories/services/categories.service";
 import { Alert } from "react-native";
+import { useOnDataChanged } from "@/src/shared/hooks/useRealtimeSync";
 
 export const useExpenses = () => {
   const [expenses, setExpenses] = useState<ExpenseType[]>([]);
@@ -20,6 +21,8 @@ export const useExpenses = () => {
     null,
   );
   const [selectedKind, setSelectedKind] = useState<"all" | ExpenseKind>("all");
+
+  useOnDataChanged(["expenses", "expense_items"], () => loadData(true))
 
   const loadData = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);

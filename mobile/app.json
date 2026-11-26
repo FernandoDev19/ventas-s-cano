@@ -23,7 +23,8 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.fernando_cano.sabor_express"
+      "package": "com.fernando_cano.sabor_express",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "output": "single",
@@ -58,7 +59,15 @@
           "enableBackgroundRecording": false
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-notifications",
+        {
+          "color": "#ff5722",
+          "icon": "./assets/images/icon.png"
+        }
+      ],
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -68,8 +77,7 @@
       "router": {},
       "eas": {
         "projectId": "b8ba3324-6576-458a-8010-7aa73314f49d"
-      },
-      "supabaseServiceKey": "process.env.SUPABASE_SERVICE_ROLE_KEY"
+      }
     },
     "runtimeVersion": {
       "policy": "appVersion"

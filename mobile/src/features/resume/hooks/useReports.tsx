@@ -8,6 +8,12 @@ import { PrinterService } from "@/src/shared/services/printer.service";
 import { toLocalDateStr } from "@/src/shared/helpers/date.helper";
 import { useFocusEffect } from "expo-router";
 import { formatDate } from "../helpers/formatDate";
+import {
+  buildProfit,
+  dayRows,
+  hourBreakdown,
+  paymentBreakdown,
+} from "../helpers/profit";
 
 export const PRESETS = [
   {
@@ -66,11 +72,20 @@ export const useReports = () => {
   const loadReport = useCallback(async (start: string, end: string) => {
     setIsLoading(true);
     try {
-      const [salesReport, expensesReport] = await Promise.all([
+      const [salesReport, expensesReport, detail] = await Promise.all([
         SalesService.getReportByRange(start, end),
         ExpensesService.getExpensesByRange(start, end),
+        SalesService.getProfitDetail(start, end),
       ]);
-      setReport({ ...salesReport, expenses: expensesReport });
+      setReport({
+        ...salesReport,
+        expenses: expensesReport,
+        detail,
+        profit: buildProfit(salesReport, detail, expensesReport),
+        days: dayRows(salesReport, detail),
+        payments: paymentBreakdown(salesReport.sales),
+        hours: hourBreakdown(salesReport.sales),
+      });
     } catch (err) {
       console.error(err);
     } finally {
@@ -104,57 +119,57 @@ export const useReports = () => {
 
   const [isExporting, setIsExporting] = useState<"pdf" | "excel" | null>(null);
 
-const handlePrintReport = async () => {
-  try {
-    if (!report) {
-      Alert.alert("Aviso", "No hay datos para imprimir en este rango.");
-      return;
+  const handlePrintReport = async () => {
+    try {
+      if (!report) {
+        Alert.alert("Aviso", "No hay datos para imprimir en este rango.");
+        return;
+      }
+
+      const cajaConfig = await PrinterService.getConfig("caja");
+      if (!cajaConfig.enabled) {
+        Alert.alert("Aviso", "La impresora de caja está apagada.");
+        return;
+      }
+
+      // Lo realmente cobrado por cada venta, separado en efectivo vs otros medios
+      let cash = 0;
+      let transfer = 0;
+      for (const s of report.sales ?? []) {
+        const method = String(s.payment_method ?? "cash").toLowerCase();
+        if (method === "deuda") continue;
+        const paid = s.total - (s.is_debt ? (s.debt_amount ?? 0) : 0);
+        if (method === "cash" || method === "efectivo") cash += paid;
+        else transfer += paid;
+      }
+
+      const reportPrintData = {
+        title: "REPORTE DE VENTAS / CIERRE",
+        dateRange: `${formatDate(startDate)} al ${formatDate(endDate)}`,
+        totalOrders: report.salesCount || 0,
+        averageTicket: report.salesCount
+          ? Math.round(report.totalSales / report.salesCount)
+          : 0,
+        methods: {
+          cash,
+          transfer,
+          debt: report.totalDebt || 0,
+        },
+        netProfit,
+        topProducts: report.topProducts || [],
+      };
+
+      const ticketCmds = PrinterService.generateReportTicket(reportPrintData);
+      await PrinterService.print("caja", ticketCmds);
+
+      Alert.alert("Listo", "Reporte enviado a la impresora.");
+    } catch (error) {
+      Alert.alert(
+        "Error",
+        "No se pudo imprimir el reporte: " + (error as Error).message,
+      );
     }
-
-    const cajaConfig = await PrinterService.getConfig("caja");
-    if (!cajaConfig.enabled) {
-      Alert.alert("Aviso", "La impresora de caja está apagada.");
-      return;
-    }
-
-    // Lo realmente cobrado por cada venta, separado en efectivo vs otros medios
-    let cash = 0;
-    let transfer = 0;
-    for (const s of report.sales ?? []) {
-      const method = String(s.payment_method ?? "cash").toLowerCase();
-      if (method === "deuda") continue;
-      const paid = s.total - (s.is_debt ? (s.debt_amount ?? 0) : 0);
-      if (method === "cash" || method === "efectivo") cash += paid;
-      else transfer += paid;
-    }
-
-    const reportPrintData = {
-      title: "REPORTE DE VENTAS / CIERRE",
-      dateRange: `${formatDate(startDate)} al ${formatDate(endDate)}`,
-      totalOrders: report.salesCount || 0,
-      averageTicket: report.salesCount
-        ? Math.round(report.totalSales / report.salesCount)
-        : 0,
-      methods: {
-        cash,
-        transfer,
-        debt: report.totalDebt || 0,
-      },
-      netProfit,
-      topProducts: report.topProducts || [],
-    };
-
-    const ticketCmds = PrinterService.generateReportTicket(reportPrintData);
-    await PrinterService.print("caja", ticketCmds);
-
-    Alert.alert("Listo", "Reporte enviado a la impresora.");
-  } catch (error) {
-    Alert.alert(
-      "Error",
-      "No se pudo imprimir el reporte: " + (error as Error).message,
-    );
-  }
-};
+  };
 
   const handleExport = async (type: "pdf" | "excel") => {
     if (!report) return;
@@ -174,7 +189,7 @@ const handlePrintReport = async () => {
     }
   };
 
-  const netProfit = report ? report.totalSales - report.expenses.total : 0;
+  const netProfit = report ? report.profit.net : 0;
 
   return {
     netProfit,

@@ -3,7 +3,28 @@ import { SaleType } from "../types/sale.type";
 import { v4 as uuidv4 } from "uuid";
 import { SyncService } from "@/src/shared/services/sync.service";
 import { OrderPro } from "../../orders/types/order.type";
-import { localRangeISO, toLocalDateStr } from "@/src/shared/helpers/date.helper";
+import {
+  localRangeISO,
+  toLocalDateStr,
+} from "@/src/shared/helpers/date.helper";
+
+const productCost = async (productId: string): Promise<number> => {
+  const r: any = await DATABASE.db.getFirstAsync(
+    "SELECT cost FROM products WHERE id = ?",
+    [productId],
+  );
+  return Number(r?.cost) || 0;
+};
+
+const recipeCost = async (recipeId: string): Promise<number> => {
+  const r: any = await DATABASE.db.getFirstAsync(
+    `SELECT COALESCE(SUM(ri.quantity * p.cost), 0) AS c
+       FROM recipe_ingredients ri JOIN products p ON p.id = ri.product_id
+      WHERE ri.recipe_id = ? AND ri.deleted_at IS NULL`,
+    [recipeId],
+  );
+  return Number(r?.c) || 0;
+};
 
 export const SalesService = {
   createSale: async (
@@ -41,18 +62,18 @@ export const SalesService = {
       for (const prod of products) {
         let prodId = uuidv4();
         await DATABASE.db.runAsync(
-          "INSERT INTO sale_products (id, sale_id, product_id, quantity, price, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+          "INSERT INTO sale_products (id, sale_id, product_id, quantity, price, cost, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
           [
             prodId,
             saleId,
             prod.product_id,
             prod.quantity,
             prod.price,
+            await productCost(prod.product_id),
             0,
             new Date().toISOString(),
           ],
         );
-
         // Deducir stock de productos
         await DATABASE.db.runAsync(
           "UPDATE products SET stock = stock - ?, sincronizado = 0, updated_at = ? WHERE id = ?",
@@ -65,13 +86,14 @@ export const SalesService = {
         for (const recipe of recipes) {
           let recipeId = uuidv4();
           await DATABASE.db.runAsync(
-            "INSERT INTO sale_recipes (id, sale_id, recipe_id, quantity, price, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO sale_recipes (id, sale_id, recipe_id, quantity, price, cost, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             [
               recipeId,
               saleId,
               recipe.recipe_id,
               recipe.quantity,
               recipe.price,
+              await recipeCost(recipe.recipe_id),
               0,
               new Date().toISOString(),
             ],
@@ -339,12 +361,11 @@ export const SalesService = {
     totalDebt: number;
     salesCount: number;
     allProducts: { name: string; quantity: number; total: number }[];
-totalUnits: number;
+    totalUnits: number;
     salesByDay: { dateStr: string; total: number; count: number }[];
     topProducts: { name: string; quantity: number; total: number }[];
     sales: SaleType[];
   }> => {
-
     const { startISO, endISO } = localRangeISO(startDate, endDate);
 
     const [rowTotal, rowPaid, rowDebt, rowCount, topProducts, salesRaw] =
@@ -366,7 +387,7 @@ totalUnits: number;
           [startISO, endISO],
         ),
         DATABASE.db.getAllAsync(
-  `SELECT name, SUM(quantity) AS quantity, SUM(total) AS total FROM (
+          `SELECT name, SUM(quantity) AS quantity, SUM(total) AS total FROM (
      SELECT p.name AS name, sp.quantity AS quantity, sp.quantity * sp.price AS total
        FROM sale_products sp
        JOIN products p ON p.id = sp.product_id
@@ -381,8 +402,8 @@ totalUnits: number;
       WHERE (s.status IS NULL OR s.status != 'cancelled') AND s.deleted_at IS NULL
         AND s.created_at BETWEEN ? AND ?
    ) GROUP BY name ORDER BY quantity DESC`,
-  [startISO, endISO, startISO, endISO],
-),
+          [startISO, endISO, startISO, endISO],
+        ),
         DATABASE.db.getAllAsync(
           `SELECT s.*, c.name as client_name 
            FROM sales s 
@@ -393,14 +414,21 @@ totalUnits: number;
         ),
       ]);
 
-      const map = new Map<string, { dateStr: string; total: number; count: number }>();
-for (const s of salesRaw as any[]) {
-  const d = toLocalDateStr(s.created_at);
-  const e = map.get(d) ?? { dateStr: d, total: 0, count: 0 };
-  e.total += s.total; e.count += 1; map.set(d, e);
-}
-const salesByDay = [...map.values()].sort((a, b) => a.dateStr.localeCompare(b.dateStr));
-const allItems = (topProducts || []) as any[];
+    const map = new Map<
+      string,
+      { dateStr: string; total: number; count: number }
+    >();
+    for (const s of salesRaw as any[]) {
+      const d = toLocalDateStr(s.created_at);
+      const e = map.get(d) ?? { dateStr: d, total: 0, count: 0 };
+      e.total += s.total;
+      e.count += 1;
+      map.set(d, e);
+    }
+    const salesByDay = [...map.values()].sort((a, b) =>
+      a.dateStr.localeCompare(b.dateStr),
+    );
+    const allItems = (topProducts || []) as any[];
 
     return {
       totalSales: (rowTotal as any)?.total || 0,
@@ -409,8 +437,8 @@ const allItems = (topProducts || []) as any[];
       salesCount: (rowCount as any)?.count || 0,
       salesByDay: (salesByDay || []) as any[],
       topProducts: allItems.slice(0, 5),
-allProducts: allItems,
-totalUnits: allItems.reduce((sum, p) => sum + Number(p.quantity), 0),
+      allProducts: allItems,
+      totalUnits: allItems.reduce((sum, p) => sum + Number(p.quantity), 0),
       sales: (salesRaw || []).map((s: any) => ({
         ...s,
         is_debt: Boolean(s.is_debt),
@@ -485,6 +513,52 @@ totalUnits: allItems.reduce((sum, p) => sum + Number(p.quantity), 0),
     };
   },
 
+  getProfitDetail: async (startDate: string, endDate: string) => {
+  const { startISO, endISO } = localRangeISO(startDate, endDate);
+  const rows: any[] = await DATABASE.db.getAllAsync(
+    `SELECT s.created_at, p.id AS item_id, p.name AS name, 0 AS is_recipe,
+            sp.quantity AS qty, sp.quantity * sp.price AS revenue, sp.quantity * sp.cost AS cost
+       FROM sale_products sp
+       JOIN products p ON p.id = sp.product_id
+       JOIN sales s ON s.id = sp.sale_id
+      WHERE (s.status IS NULL OR s.status != 'cancelled') AND s.deleted_at IS NULL
+        AND sp.deleted_at IS NULL AND s.created_at BETWEEN ? AND ?
+     UNION ALL
+     SELECT s.created_at, r.id, r.name, 1, sr.quantity, sr.quantity * sr.price, sr.quantity * sr.cost
+       FROM sale_recipes sr
+       JOIN recipes r ON r.id = sr.recipe_id
+       JOIN sales s ON s.id = sr.sale_id
+      WHERE (s.status IS NULL OR s.status != 'cancelled') AND s.deleted_at IS NULL
+        AND sr.deleted_at IS NULL AND s.created_at BETWEEN ? AND ?`,
+    [startISO, endISO, startISO, endISO],
+  );
+
+  const map = new Map<string, any>();
+  const costByDay: Record<string, number> = {};
+  let totalCost = 0, uncostedRevenue = 0;
+
+  for (const r of rows) {
+    const key = `${r.is_recipe}-${r.item_id}`;
+    const e = map.get(key) ?? {
+      name: r.is_recipe ? `${r.name} (receta)` : r.name,
+      quantity: 0, revenue: 0, cost: 0,
+    };
+    e.quantity += r.qty; e.revenue += r.revenue; e.cost += r.cost;
+    map.set(key, e);
+    totalCost += r.cost;
+    if (!r.cost) uncostedRevenue += r.revenue;       // vendido sin costo cargado
+    const d = toLocalDateStr(r.created_at);
+    costByDay[d] = (costByDay[d] ?? 0) + r.cost;
+  }
+
+  const products = [...map.values()]
+    .map((p) => ({ ...p, profit: p.revenue - p.cost,
+                   margin: p.revenue ? ((p.revenue - p.cost) / p.revenue) * 100 : 0 }))
+    .sort((a, b) => b.profit - a.profit);
+
+  return { totalCost, uncostedRevenue, products, costByDay };
+},
+
   updateSale: async (
     id: string,
     sale: Partial<SaleType> & {
@@ -493,39 +567,47 @@ totalUnits: allItems.reduce((sum, p) => sum + Number(p.quantity), 0),
     },
   ): Promise<void> => {
     await DATABASE.db.withTransactionAsync(async () => {
+      const now = new Date().toISOString();
       // ✅ 1. Si vienen productos, actualizar stock
       if (sale.products) {
-        // Obtener productos previos
         const prevProducts: any[] = await DATABASE.db.getAllAsync(
-          "SELECT product_id, quantity FROM sale_products WHERE sale_id = ?",
+          "SELECT product_id, quantity, cost FROM sale_products WHERE sale_id = ? AND deleted_at IS NULL",
           [id],
         );
 
-        // Devolver stock de productos previos
+        // Guardamos los costos históricos en un mapa: { product_id: cost }
+        const prevProductCosts = new Map<string, number>();
         for (const item of prevProducts) {
+          prevProductCosts.set(item.product_id, item.cost);
+
           await DATABASE.db.runAsync(
             "UPDATE products SET stock = stock + ?, sincronizado = 0, updated_at = ? WHERE id = ?",
-            [item.quantity, new Date().toISOString(), item.product_id],
+            [item.quantity, now, item.product_id],
           );
         }
 
-        // Eliminar productos previos
         await DATABASE.db.runAsync(
-          "DELETE FROM sale_products WHERE sale_id = ?",
-          [id],
+          "UPDATE sale_products SET deleted_at = ?, sincronizado = 0, updated_at = ? WHERE sale_id = ? AND deleted_at IS NULL",
+          [now, now, id],
         );
 
-        // Insertar nuevos productos
+        // Insertar productos
         for (const prod of sale.products) {
           let prodId = uuidv4();
+          // Si ya existía en esta venta, usa su costo guardado; si es nuevo, calcula el actual
+          const finalCost = prevProductCosts.has(prod.product_id)
+            ? prevProductCosts.get(prod.product_id)!
+            : await productCost(prod.product_id);
+
           await DATABASE.db.runAsync(
-            "INSERT INTO sale_products (id, sale_id, product_id, quantity, price, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO sale_products (id, sale_id, product_id, quantity, price, cost, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             [
               prodId,
               id,
               prod.product_id,
               prod.quantity,
               prod.price,
+              finalCost,
               0,
               new Date().toISOString(),
             ],
@@ -539,32 +621,46 @@ totalUnits: allItems.reduce((sum, p) => sum + Number(p.quantity), 0),
         }
       }
 
-      // ✅ 2. Si vienen recetas, actualizar sale_recipes (NUEVO!)
+      // ✅ 2. Si vienen recetas, actualizar sale_recipes y conservar costo histórico
       if (sale.recipes) {
-        // Eliminar recetas previas
-        await DATABASE.db.runAsync(
-          "DELETE FROM sale_recipes WHERE sale_id = ?",
+        const prevRecipes: any[] = await DATABASE.db.getAllAsync(
+          "SELECT recipe_id, cost FROM sale_recipes WHERE sale_id = ? AND deleted_at IS NULL",
           [id],
         );
 
-        // Insertar nuevas recetas
+        const prevRecipeCosts = new Map<string, number>();
+        for (const item of prevRecipes) {
+          prevRecipeCosts.set(item.recipe_id, item.cost);
+        }
+
+        // Eliminar recetas previas
+        await DATABASE.db.runAsync(
+          "UPDATE sale_recipes SET deleted_at = ?, sincronizado = 0, updated_at = ? WHERE sale_id = ? AND deleted_at IS NULL",
+          [now, now, id],
+        );
+
+        // Insertar recetas
         for (const recipe of sale.recipes) {
           let recipeId = uuidv4();
+          const finalCost = prevRecipeCosts.has(recipe.recipe_id)
+            ? prevRecipeCosts.get(recipe.recipe_id)!
+            : await recipeCost(recipe.recipe_id); // <-- Ajusta el nombre si tu helper de recetas se llama distinto
+
           await DATABASE.db.runAsync(
-            "INSERT INTO sale_recipes (id, sale_id, recipe_id, quantity, price, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO sale_recipes (id, sale_id, recipe_id, quantity, price, cost, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             [
               recipeId,
               id,
               recipe.recipe_id,
               recipe.quantity,
               recipe.price,
+              finalCost,
               0,
               new Date().toISOString(),
             ],
           );
         }
       }
-
       // ✅ 3. Actualizar campos de la venta
       const fields: string[] = [];
       const values: any[] = [];
@@ -629,9 +725,11 @@ totalUnits: allItems.reduce((sum, p) => sum + Number(p.quantity), 0),
 
   deleteSale: async (id: string, cancelReason?: string): Promise<void> => {
     await DATABASE.db.withTransactionAsync(async () => {
+      const now = new Date().toISOString();
+
       // Obtener productos para devolverlos al stock
       const saleProducts: any[] = await DATABASE.db.getAllAsync(
-        "SELECT product_id, quantity FROM sale_products WHERE sale_id = ?",
+        "SELECT product_id, quantity FROM sale_products WHERE sale_id = ? AND deleted_at IS NULL", // ← faltaba el filtro
         [id],
       );
 
@@ -639,19 +737,19 @@ totalUnits: allItems.reduce((sum, p) => sum + Number(p.quantity), 0),
       for (const item of saleProducts) {
         await DATABASE.db.runAsync(
           "UPDATE products SET stock = stock + ?, sincronizado = 0, updated_at = ? WHERE id = ?",
-          [item.quantity, new Date().toISOString(), item.product_id],
+          [item.quantity, now, item.product_id],
         );
       }
-
       // ✅ Eliminar registros de recetas (no se devuelven ingredientes al eliminar venta completa)
-      await DATABASE.db.runAsync("DELETE FROM sale_recipes WHERE sale_id = ?", [
-        id,
-      ]);
+      await DATABASE.db.runAsync(
+        "UPDATE sale_recipes SET deleted_at = ?, sincronizado = 0, updated_at = ? WHERE sale_id = ? AND deleted_at IS NULL",
+        [now, now, id],
+      );
 
       // Marcar la venta como anulada
       await DATABASE.db.runAsync(
         "UPDATE sales SET status = 'cancelled', cancel_reason = ?, sincronizado = 0, updated_at = ? WHERE id = ?",
-        [cancelReason || "", new Date().toISOString(), id],
+        [cancelReason || "", now, id],
       );
     });
 

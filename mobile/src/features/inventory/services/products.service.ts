@@ -76,12 +76,13 @@ export const ProductsService = {
     const now = new Date().toISOString();
 
     await DATABASE.db.runAsync(
-      "INSERT INTO products (id, image_url, name, price, stock, category_id, is_visible_menu, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO products (id, image_url, name, price, cost, stock, category_id, is_visible_menu, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [
         id,
         product.image_url || "",
         product.name,
         product.price,
+        product.cost ?? 0,
         product.stock || 0,
         product.category_id,
         product.is_visible_menu ?? 1,
@@ -137,6 +138,10 @@ export const ProductsService = {
     if (product.price !== undefined) {
       fields.push("price = ?");
       values.push(product.price);
+    }
+    if (product.cost !== undefined) {
+      fields.push("cost = ?");
+      values.push(product.cost);
     }
     if (product.stock !== undefined) {
       fields.push("stock = ?");

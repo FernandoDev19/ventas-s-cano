@@ -34,15 +34,6 @@ export default function ExpensesHeader({
   return (
     <View className="pt-4">
       {/* Header */}
-      <View className="px-4 mb-4">
-        <Text className="text-2xl font-extrabold text-neutral-900 dark:text-white">
-          Gastos
-        </Text>
-        <Text className="text-neutral-500 text-base">
-          {expenses.length} registro{expenses.length !== 1 ? "s" : ""}
-        </Text>
-      </View>
-
                   <View className="px-4 mb-4 flex-row justify-between items-center">
                     <View>
                       <Text

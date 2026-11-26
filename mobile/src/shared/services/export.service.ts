@@ -19,6 +19,10 @@ type ReportData = {
   topProducts: { name: string; quantity: number; total: number }[];
   salesByDay: { dateStr: string; total: number; count: number }[];
   sales: any[];
+  profit: any;
+  detail: any;
+  days: any;
+  payments: any;
 };
 
 function formatCOP(n: number) {
@@ -40,8 +44,8 @@ function formatDate(str: string) {
 export const ExportService = {
   // ─── PDF ───────────────────────────────────────────────
   exportPDF: async (data: ReportData): Promise<void> => {
-    const netProfit = data.totalSales - data.expenses.total;
-    const profitColor = netProfit >= 0 ? "#22c55e" : "#ef4444";
+    // const netProfit = data.totalSales - data.expenses.total;
+    // const profitColor = netProfit >= 0 ? "#22c55e" : "#ef4444";
 
     const topProductsRows = data.topProducts
       .map(
@@ -97,137 +101,100 @@ export const ExportService = {
       )
       .join("");
 
-    const html = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8"/>
-        <style>
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font-family: 'Helvetica Neue', Arial, sans-serif; color: #1a1a1a; background: #fff; padding: 40px; }
-          
-          .header { background: #ff5722; color: white; padding: 28px 32px; border-radius: 12px; margin-bottom: 32px; }
-          .header h1 { font-size: 28px; font-weight: 900; letter-spacing: -0.5px; }
-          .header p { opacity: 0.85; margin-top: 4px; font-size: 14px; }
-          
-          .kpi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 32px; }
-          .kpi { padding: 20px; border-radius: 12px; border: 1.5px solid #e5e7eb; }
-          .kpi label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #6b7280; font-weight: 700; }
-          .kpi .value { font-size: 26px; font-weight: 900; margin-top: 6px; }
-          .kpi.green { border-color: #bbf7d0; background: #f0fdf4; }
-          .kpi.green .value { color: #16a34a; }
-          .kpi.amber { border-color: #fde68a; background: #fffbeb; }
-          .kpi.amber .value { color: #d97706; }
-          .kpi.red { border-color: #fecaca; background: #fef2f2; }
-          .kpi.red .value { color: #dc2626; }
-          .kpi.primary { border-color: #fed7c3; background: #fff7f5; }
-          .kpi.primary .value { color: #ff5722; }
+    const esc = (s: any) =>
+      String(s ?? "").replace(
+        /[&<>"]/g,
+        (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!,
+      );
+    const p = data.profit;
+    const money = (n: number) => (n < 0 ? "-" : "") + formatCOP(Math.abs(n));
 
-          .section { margin-bottom: 32px; }
-          .section h2 { font-size: 16px; font-weight: 800; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 2px solid #f3f4f6; }
-          
-          table { width: 100%; border-collapse: collapse; font-size: 13px; }
-          th { background: #f9fafb; padding: 10px 12px; text-align: left; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #6b7280; border-bottom: 1.5px solid #e5e7eb; }
-          td { padding: 10px 12px; border-bottom: 1px solid #f3f4f6; }
-          tr:last-child td { border-bottom: none; }
-          .danger { color: #dc2626; font-weight: 700; }
+    const row = (label: string, value: string, cls = "") =>
+      `<tr class="${cls}"><td>${label}</td><td class="r">${value}</td></tr>`;
 
-          .profit-box { padding: 20px 24px; border-radius: 12px; background: ${netProfit >= 0 ? "#f0fdf4" : "#fef2f2"}; border: 2px solid ${netProfit >= 0 ? "#86efac" : "#fca5a5"}; margin-bottom: 32px; display: flex; justify-content: space-between; align-items: center; }
-          .profit-box .label { font-size: 13px; color: #6b7280; font-weight: 600; }
-          .profit-box .amount { font-size: 28px; font-weight: 900; color: ${profitColor}; }
+    const productRows = data.detail.products
+      .slice(0, 15)
+      .map(
+        (x: any, i: number) => `
+  <tr><td>${i + 1}</td><td>${esc(x.name)}</td><td class="c">${x.quantity}</td>
+  <td class="r">${formatCOP(x.revenue)}</td><td class="r">${formatCOP(x.cost)}</td>
+  <td class="r ${x.profit < 0 ? "neg" : "pos"}">${money(x.profit)}</td>
+  <td class="c">${x.margin.toFixed(0)}%</td></tr>`,
+      )
+      .join("");
 
-          .footer { text-align: center; color: #9ca3af; font-size: 11px; margin-top: 40px; padding-top: 20px; border-top: 1px solid #f3f4f6; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <h1>FASTPOS — Reporte de Ventas</h1>
-          <p>${formatDate(data.startDate)} al ${formatDate(data.endDate)}</p>
-        </div>
+    const dayRowsHtml = data.days
+      .map(
+        (d: any) => `
+  <tr><td>${formatDate(d.dateStr)}</td><td class="c">${d.count}</td>
+  <td class="r">${formatCOP(d.total)}</td><td class="r">${formatCOP(d.cost)}</td>
+  <td class="r ${d.profit < 0 ? "neg" : "pos"}">${money(d.profit)}</td></tr>`,
+      )
+      .join("");
 
-        <div class="kpi-grid">
-          <div class="kpi primary">
-            <label>Total Ventas</label>
-            <div class="value">${formatCOP(data.totalSales)}</div>
-            <p style="color:#9ca3af;font-size:12px;margin-top:4px">${data.salesCount} ventas</p>
-          </div>
-          <div class="kpi green">
-            <label>Cobrado</label>
-            <div class="value">${formatCOP(data.totalPaid)}</div>
-          </div>
-          <div class="kpi amber">
-            <label>Por cobrar (fiado)</label>
-            <div class="value">${formatCOP(data.totalDebt)}</div>
-          </div>
-          <div class="kpi red">
-            <label>Total Gastos</label>
-            <div class="value">-${formatCOP(data.expenses.total)}</div>
-          </div>
-        </div>
+    const payRows = Object.entries(data.payments)
+      .map(([k, v]) => row(k, formatCOP(v as number)))
+      .join("");
 
-        <div class="profit-box">
-          <span class="label">Ganancia Neta del Período</span>
-          <span class="amount">${netProfit >= 0 ? "" : "-"}${formatCOP(Math.abs(netProfit))}</span>
-        </div>
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Helvetica Neue',Arial,sans-serif;color:#1f2937;padding:36px;font-size:12px}
+  .top{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:3px solid #ff5722;padding-bottom:14px;margin-bottom:22px}
+  .top h1{font-size:24px;font-weight:900;color:#ff5722}
+  .top .meta{text-align:right;color:#6b7280;font-size:11px}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px}
+  .kpi{border:1px solid #e5e7eb;border-radius:10px;padding:12px}
+  .kpi label{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#6b7280;font-weight:700}
+  .kpi .v{font-size:18px;font-weight:900;margin-top:4px}
+  .kpi.net{background:${p.net >= 0 ? "#f0fdf4" : "#fef2f2"};border-color:${p.net >= 0 ? "#86efac" : "#fca5a5"}}
+  h2{font-size:13px;font-weight:800;margin:20px 0 8px;padding-bottom:5px;border-bottom:1px solid #e5e7eb;text-transform:uppercase;letter-spacing:.5px}
+  table{width:100%;border-collapse:collapse}
+  th{background:#f9fafb;padding:7px 8px;text-align:left;font-size:9px;text-transform:uppercase;color:#6b7280;border-bottom:1px solid #e5e7eb}
+  td{padding:7px 8px;border-bottom:1px solid #f3f4f6}
+  .r{text-align:right}.c{text-align:center}
+  .pos{color:#16a34a;font-weight:700}.neg{color:#dc2626;font-weight:700}
+  .total td{font-weight:800;background:#f9fafb;border-top:1.5px solid #d1d5db}
+  .memo td{color:#6b7280;font-style:italic}
+  .note{margin-top:8px;font-size:10px;color:#92400e;background:#fffbeb;border:1px solid #fde68a;padding:8px;border-radius:6px}
+  .footer{margin-top:28px;text-align:center;color:#9ca3af;font-size:10px;border-top:1px solid #f3f4f6;padding-top:12px}
+</style></head><body>
+  <div class="top">
+    <div><h1>Sabor Express</h1><div style="color:#6b7280">Reporte de gestión</div></div>
+    <div class="meta">${formatDate(data.startDate)} — ${formatDate(data.endDate)}<br/>${data.salesCount} ventas · ticket promedio ${formatCOP(p.avgTicket)}</div>
+  </div>
 
-        ${
-          data.topProducts.length > 0
-            ? `
-        <div class="section">
-          <h2>Top Productos</h2>
-          <table>
-            <thead><tr><th>#</th><th>Producto</th><th style="text-align:center">Unidades</th><th style="text-align:right">Total</th></tr></thead>
-            <tbody>${topProductsRows}</tbody>
-          </table>
-        </div>`
-            : ""
-        }
+  <div class="kpis">
+    <div class="kpi"><label>Ventas</label><div class="v">${formatCOP(p.revenue)}</div></div>
+    <div class="kpi"><label>Utilidad bruta · ${p.grossMargin.toFixed(1)}%</label><div class="v">${money(p.gross)}</div></div>
+    <div class="kpi"><label>Gastos operativos</label><div class="v">${formatCOP(p.opex)}</div></div>
+    <div class="kpi net"><label>Utilidad neta · ${p.netMargin.toFixed(1)}%</label><div class="v" style="color:${p.net >= 0 ? "#16a34a" : "#dc2626"}">${money(p.net)}</div></div>
+  </div>
 
-        ${
-          data.salesByDay.length > 0
-            ? `
-        <div class="section">
-          <h2>Ventas por Día</h2>
-          <table>
-            <thead><tr><th>Fecha</th><th style="text-align:center">Ventas</th><th style="text-align:right">Total</th></tr></thead>
-            <tbody>${salesByDayRows}</tbody>
-          </table>
-        </div>`
-            : ""
-        }
+  <h2>Estado de resultados</h2>
+  <table>
+    ${row("Ventas", formatCOP(p.revenue))}
+    ${row("(−) Costo de ventas", "-" + formatCOP(p.cost))}
+    ${row("= Utilidad bruta", money(p.gross), "total")}
+    ${row("(−) Gastos operativos (incluye nómina)", "-" + formatCOP(p.opex))}
+    ${row("= Utilidad neta", money(p.net), "total")}
+    ${row("Compras de inventario (ya incluidas en el costo al vender)", formatCOP(p.inventoryPurchases), "memo")}
+    ${row("Inversión en activos (no afecta la utilidad operativa)", formatCOP(p.inversion), "memo")}
+  </table>
+  ${p.uncostedPct > 0 ? `<div class="note">El ${p.uncostedPct.toFixed(0)}% de lo vendido no tiene costo cargado; la utilidad real es menor.</div>` : ""}
 
-        ${
-          data.expenses.byCategory.length > 0
-            ? `
-        <div class="section">
-          <h2>Gastos por Categoría</h2>
-          <table>
-            <thead><tr><th>Categoría</th><th style="text-align:right">Total</th></tr></thead>
-            <tbody>${expenseCatRows}</tbody>
-          </table>
-        </div>`
-            : ""
-        }
+  <h2>Rentabilidad por producto</h2>
+  <table><thead><tr><th>#</th><th>Producto</th><th class="c">Uds</th><th class="r">Vendido</th><th class="r">Costo</th><th class="r">Utilidad</th><th class="c">Margen</th></tr></thead>
+  <tbody>${productRows}</tbody></table>
 
-        ${
-          data.sales.length > 0
-            ? `
-        <div class="section">
-          <h2>Detalle de Ventas ${data.sales.length > 20 ? "(últimas 20)" : ""}</h2>
-          <table>
-            <thead><tr><th>#</th><th>Nota</th><th style="text-align:center">Estado</th><th style="text-align:right">Total</th></tr></thead>
-            <tbody>${salesRows}</tbody>
-          </table>
-        </div>`
-            : ""
-        }
+  <h2>Resultado por día</h2>
+  <table><thead><tr><th>Fecha</th><th class="c">Ventas</th><th class="r">Vendido</th><th class="r">Costo</th><th class="r">Utilidad</th></tr></thead>
+  <tbody>${dayRowsHtml}</tbody></table>
 
-        <div class="footer">
-          Generado por FASTPOS · ${new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "long", year: "numeric" })}
-        </div>
-      </body>
-      </html>
-    `;
+  <h2>Cobros por medio de pago</h2>
+  <table>${payRows}</table>
+
+  <div class="footer">Sabor Express · generado el ${new Date().toLocaleDateString("es-CO", { day: "2-digit", month: "long", year: "numeric" })}</div>
+</body></html>`;
 
     const { uri } = await Print.printToFileAsync({ html, base64: false });
 
@@ -244,18 +211,48 @@ export const ExportService = {
     const wb = XLSX.utils.book_new();
 
     // Hoja 1: Resumen
+    const p = data.profit;
     const resumen = [
-      ["FASTPOS — Reporte de Ventas"],
+      ["Sabor Express — Reporte de gestión"],
       [`Período: ${formatDate(data.startDate)} al ${formatDate(data.endDate)}`],
       [],
-      ["RESUMEN GENERAL"],
-      ["Total Ventas", data.totalSales],
-      ["Total Cobrado", data.totalPaid],
-      ["Total Fiado", data.totalDebt],
-      ["Total Gastos", data.expenses.total],
-      ["Ganancia Neta", data.totalSales - data.expenses.total],
-      ["Cantidad de Ventas", data.salesCount],
+      ["ESTADO DE RESULTADOS"],
+      ["Ventas", p.revenue],
+      ["(-) Costo de ventas", p.cost],
+      ["Utilidad bruta", p.gross],
+      ["Margen bruto %", Number(p.grossMargin.toFixed(1))],
+      ["(-) Gastos operativos", p.opex],
+      ["Utilidad neta", p.net],
+      ["Margen neto %", Number(p.netMargin.toFixed(1))],
+      [],
+      ["Cobrado", data.totalPaid],
+      ["Por cobrar (fiado)", data.totalDebt],
+      ["Compras de inventario (informativo)", p.inventoryPurchases],
+      ["Inversión (informativo)", p.inversion],
     ];
+
+    // hoja nueva
+    const wsProfit = XLSX.utils.aoa_to_sheet([
+      ["Producto", "Unidades", "Vendido", "Costo", "Utilidad", "Margen %"],
+      ...data.detail.products.map((x: any) => [
+        x.name,
+        x.quantity,
+        x.revenue,
+        x.cost,
+        x.profit,
+        Number(x.margin.toFixed(1)),
+      ]),
+    ]);
+    wsProfit["!cols"] = [
+      { wch: 30 },
+      { wch: 10 },
+      { wch: 14 },
+      { wch: 14 },
+      { wch: 14 },
+      { wch: 10 },
+    ];
+    XLSX.utils.book_append_sheet(wb, wsProfit, "Rentabilidad");
+
     const wsResumen = XLSX.utils.aoa_to_sheet(resumen);
 
     wsResumen["!cols"] = [{ wch: 30 }, { wch: 20 }];

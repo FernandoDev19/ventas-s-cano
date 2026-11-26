@@ -21,6 +21,7 @@ import CategoriesModal from "../../categories/components/CategoriesModal";
 import { SupabaseStorageService } from "@/src/shared/services/supabase-storage.service";
 import { v4 as uuidv4 } from "uuid";
 import { C } from "@/src/core/theme/palette";
+import CostField from "./CostField";
 
 type CreateProductModalProps = {
   visible: boolean;
@@ -45,12 +46,14 @@ export default function CreateProductModal({
   const [isVisibleMenu, setIsVisibleMenu] = useState(true);
   const [isCategoriesModalOpen, setIsCategoriesModalOpen] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [cost, setCost] = useState(""); 
 
   const { elegirImagenProducto } = useFiles();
 
   const reset = () => {
     setName("");
     setPrice("");
+     setCost("");
     setStock("0");
     setCategoryId(null);
     setImageUri(null);
@@ -116,6 +119,7 @@ export default function CreateProductModal({
       await ProductsService.createProduct({
         name: name.trim(),
         price: parsedPrice,
+        cost: parseFloat(cost.replace(/,/g, "")) || 0,
         stock: parseInt(stock) || 0,
         category_id: categoryId,
         image_url: imageUrl,
@@ -345,6 +349,8 @@ export default function CreateProductModal({
                 </View>
               </View>
             </View>
+
+            <CostField price={price} cost={cost} onChangeCost={setCost} />
 
             <View className="flex-row gap-3 mb-4">
               <View style={{ flex: 1 }}>

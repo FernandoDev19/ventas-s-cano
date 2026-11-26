@@ -5,6 +5,7 @@ export type RecipeIngredientType = {
   product_name?: string;
   product_image?: string;
   quantity: number;
+  product_cost?: number;
   sincronizado?: 0 | 1;
   updated_at?: string;
 };
@@ -14,6 +15,7 @@ export type RecipeType = {
   name: string;
   description?: string;
   image_url?: string;
+  cost?: number;  
   selling_price: number;
   category_id?: string | null;
   ingredients?: RecipeIngredientType[];

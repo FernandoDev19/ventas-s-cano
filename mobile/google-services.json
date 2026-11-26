@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "923746280230",
+    "project_id": "saborespress-27d57",
+    "storage_bucket": "saborespress-27d57.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:923746280230:android:09fa0578f410f6419557e7",
+        "android_client_info": {
+          "package_name": "com.fernando_cano.sabor_express"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA1-l5oBnSdMl3EAHvG2Ke0z0LN9Fj00CA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

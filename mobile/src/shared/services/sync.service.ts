@@ -18,7 +18,9 @@ const getTableColumns = (tableName: string): Set<string> => {
   let cols = tableColumnsCache.get(tableName);
   if (!cols) {
     try {
-      const info = DATABASE.db.getAllSync(`PRAGMA table_info(${tableName});`) as any[];
+      const info = DATABASE.db.getAllSync(
+        `PRAGMA table_info(${tableName});`,
+      ) as any[];
       cols = new Set(info.map((c) => c.name));
       tableColumnsCache.set(tableName, cols);
     } catch {
@@ -28,11 +30,29 @@ const getTableColumns = (tableName: string): Set<string> => {
   return cols;
 };
 
+let running = false,
+  queued = false;
+
 export const SyncService = {
   /**
    * Ejecuta la sincronización bidireccional completa (Pull -> Push)
    */
   run: async () => {
+    if (running) {
+      queued = true;
+      return;
+    }
+    running = true;
+    try {
+      do {
+        queued = false;
+        await SyncService._runOnce();
+      } while (queued);
+    } finally {
+      running = false;
+    }
+  },
+  _runOnce: async () => {
     try {
       // 1. Verificar si hay internet
       const network = await NetInfo.fetch();
@@ -93,6 +113,33 @@ export const SyncService = {
       }
     } catch (error) {
       console.error("❌ Error crítico en sincronización:", error);
+    }
+  },
+
+  applyRealtime: (table: string, payload: any) => {
+    DATABASE.db.execSync("PRAGMA foreign_keys = OFF;");
+    try {
+      if (payload.eventType === "DELETE") {
+        DATABASE.db.runSync(`DELETE FROM ${table} WHERE id = ?`, [
+          payload.old.id,
+        ]);
+        return;
+      }
+      const rec = payload.new;
+      const local: any = DATABASE.db.getFirstSync(
+        `SELECT updated_at, sincronizado FROM ${table} WHERE id = ?`,
+        [rec.id],
+      );
+      // no pisar cambios locales pendientes ni versiones más nuevas
+      if (
+        local &&
+        (local.sincronizado === 0 ||
+          new Date(local.updated_at) >= new Date(rec.updated_at))
+      )
+        return;
+      SyncService._insertRecord(table, rec);
+    } finally {
+      DATABASE.db.execSync("PRAGMA foreign_keys = ON;");
     }
   },
 
@@ -189,7 +236,7 @@ export const SyncService = {
   _insertRecord: (tableName: string, record: any) => {
     const validCols = getTableColumns(tableName);
     const keys = Object.keys(record).filter(
-      (k) => validCols.size === 0 || validCols.has(k)
+      (k) => validCols.size === 0 || validCols.has(k),
     );
     const hasSincronizado =
       validCols.size === 0 || validCols.has("sincronizado");

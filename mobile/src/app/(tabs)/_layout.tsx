@@ -1,5 +1,7 @@
 import { supabase } from "@/src/core/config/supabase";
 import { useTheme } from "@/src/core/theme/ThemeContext";
+import { useNotifications } from "@/src/shared/hooks/useNotifications";
+import { useRealtimeSync } from "@/src/shared/hooks/useRealtimeSync";
 import { useUserRole } from "@/src/shared/hooks/useUserRole";
 import { Ionicons } from "@expo/vector-icons";
 import { useAudioPlayer } from "expo-audio";
@@ -26,18 +28,73 @@ const activeColor = "#ff5722";
  * notificaciones) pero NO aparecen en la barra; se llegan desde "Más".
  */
 const tabs = [
-  { name: "index", title: "Vender", icon: "flash", roles: ["admin", "cashier", "kitchen"] },
-  { name: "(sales)/sales", title: "Ventas", icon: "receipt-outline", roles: ["admin", "cashier"] },
-  { name: "(orders)/orders", title: "Cocina", icon: "flame-outline", roles: ["kitchen"] },
-  { name: "(expenses)/expenses", title: "Gastos", icon: "cash-outline", roles: ["admin"] },
-  { name: "(cashier)/cashier", title: "Caja", icon: "wallet-outline", roles: ["cashier"] },
-  { name: "(more)/more", title: "Más", icon: "grid-outline", roles: ["admin", "cashier"] },
+  {
+    name: "index",
+    title: "Vender",
+    icon: "flash",
+    roles: ["admin", "cashier", "kitchen"],
+  },
+  {
+    name: "(sales)/sales",
+    title: "Ventas",
+    icon: "receipt-outline",
+    roles: ["admin", "cashier"],
+  },
+  {
+    name: "(orders)/orders",
+    title: "Cocina",
+    icon: "flame-outline",
+    roles: ["kitchen"],
+  },
+  {
+    name: "(expenses)/expenses",
+    title: "Gastos",
+    icon: "cash-outline",
+    roles: ["admin"],
+  },
+  {
+    name: "(cashier)/cashier",
+    title: "Caja",
+    icon: "wallet-outline",
+    roles: ["cashier"],
+  },
+  {
+    name: "(more)/more",
+    title: "Más",
+    icon: "grid-outline",
+    roles: ["admin", "cashier"],
+  },
   // Ocultas de la barra (se acceden desde "Más")
-  { name: "(inventory)/inventory", title: "Inventario", icon: "cube-outline", roles: [] as string[] },
-  { name: "(clients)/clients", title: "Clientes", icon: "people-outline", roles: [] as string[] },
-  { name: "(reports)/reports", title: "Reportes", icon: "stats-chart", roles: [] as string[] },
-  { name: "(employees)/employees", title: "Empleados", icon: "people-circle-outline", roles: [] as string[] },
-{ name: "(suppliers)/suppliers", title: "Proveedores", icon: "storefront-outline", roles: [] as string[] },
+  {
+    name: "(inventory)/inventory",
+    title: "Inventario",
+    icon: "cube-outline",
+    roles: [] as string[],
+  },
+  {
+    name: "(clients)/clients",
+    title: "Clientes",
+    icon: "people-outline",
+    roles: [] as string[],
+  },
+  {
+    name: "(reports)/reports",
+    title: "Reportes",
+    icon: "stats-chart",
+    roles: [] as string[],
+  },
+  {
+    name: "(employees)/employees",
+    title: "Empleados",
+    icon: "people-circle-outline",
+    roles: [] as string[],
+  },
+  {
+    name: "(suppliers)/suppliers",
+    title: "Proveedores",
+    icon: "storefront-outline",
+    roles: [] as string[],
+  },
 ];
 
 const audioSource = require("@/assets/sounds/alerta-notificacion.mp3");
@@ -47,6 +104,17 @@ export default function TabLayout() {
   const { c, scheme } = useTheme();
   const player = useAudioPlayer(audioSource);
   const router = useRouter();
+
+  const { notificationsConfigurate, listenToNotifications } =
+    useNotifications();
+  
+  useRealtimeSync(!!role);
+    
+  useEffect(() => {
+    if (!role) return;
+    notificationsConfigurate(role);
+    return listenToNotifications(role);
+  }, [role, notificationsConfigurate, listenToNotifications]);
 
   useEffect(() => {
     if (!role) return;
@@ -67,16 +135,21 @@ export default function TabLayout() {
         "postgres_changes",
         { event: "*", schema: "public", table: "orders" },
         (payload) => {
+          if (payload.eventType === "DELETE") return;
+
+          const newOrder = payload.new as any;
+          const oldOrder = (payload.old || {}) as any;
+
           // CASO 1: Nuevo pedido web -> avisar a caja/admin
           if (
             payload.eventType === "INSERT" &&
             role !== "kitchen" &&
-            payload.new.cashier_status === "pending"
+            newOrder.cashier_status === "pending"
           ) {
             playSound();
             Alert.alert(
               "¡PEDIDO NUEVO!",
-              `Llegó un pedido de ${payload.new.customer_name}.`,
+              `Llegó un pedido de ${newOrder.customer_name}.`,
               [
                 {
                   text: "Ver pedido",
@@ -92,15 +165,14 @@ export default function TabLayout() {
 
           // CASO 2: Caja aceptó -> avisar a cocina
           if (
-            payload.eventType === "UPDATE" &&
             role === "kitchen" &&
-            payload.new.kitchen_status === "pending" &&
-            payload.old.kitchen_status !== "pending"
+            newOrder.kitchen_status === "pending" &&
+            (payload.eventType === "INSERT" || oldOrder.kitchen_status !== "pending")
           ) {
             playSound();
             Alert.alert(
               "¡NUEVA COMANDA! 🍳",
-              `Preparar pedido para: ${payload.new.customer_name}`,
+              `Preparar pedido para: ${newOrder.customer_name}`,
             );
           }
 
@@ -108,14 +180,14 @@ export default function TabLayout() {
           if (
             payload.eventType === "UPDATE" &&
             role !== "kitchen" &&
-            payload.new.kitchen_status === "ready" &&
-            payload.old.kitchen_status !== "ready" &&
-            payload.new.status !== "ready"
+            newOrder.kitchen_status === "ready" &&
+            oldOrder.kitchen_status !== "ready" &&
+            newOrder.status !== "ready"
           ) {
             playSound();
             Alert.alert(
               "¡Pedido Listo! 🧑‍🍳",
-              `El pedido de ${payload.new.customer_name} ya está listo.`,
+              `El pedido de ${newOrder.customer_name} ya está listo.`,
             );
           }
 
@@ -125,7 +197,9 @@ export default function TabLayout() {
 
     channel.subscribe((status) => {
       if (status === "CHANNEL_ERROR") {
-        console.error("❌ Error de conexión en Realtime. Revisa las políticas RLS.");
+        console.error(
+          "❌ Error de conexión en Realtime. Revisa las políticas RLS.",
+        );
       }
     });
 
@@ -136,7 +210,14 @@ export default function TabLayout() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: c.bg, justifyContent: "center", alignItems: "center" }}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: c.bg,
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
         <ActivityIndicator size="small" color="#ff5722" />
       </View>
     );
@@ -163,7 +244,10 @@ export default function TabLayout() {
               visible
                 ? {
                     title: tab.title,
-                    tabBarStyle: { backgroundColor: c.card, borderTopColor: c.line },
+                    tabBarStyle: {
+                      backgroundColor: c.card,
+                      borderTopColor: c.line,
+                    },
                     tabBarActiveTintColor: activeColor,
                     tabBarButton: (props) => {
                       const isActive = props["aria-selected"];
@@ -182,8 +266,20 @@ export default function TabLayout() {
                             style={{ borderRadius: 10 }}
                             className="flex-col justify-center items-center rounded-lg py-2 w-full"
                           >
-                            <Ionicons name={tab.icon as any} size={22} color={iconColor} />
-                            <Text style={{ color: iconColor, fontSize: 11, fontWeight: isActive ? "700" : "500" }}>{tab.title}</Text>
+                            <Ionicons
+                              name={tab.icon as any}
+                              size={22}
+                              color={iconColor}
+                            />
+                            <Text
+                              style={{
+                                color: iconColor,
+                                fontSize: 11,
+                                fontWeight: isActive ? "700" : "500",
+                              }}
+                            >
+                              {tab.title}
+                            </Text>
                           </View>
                         </Pressable>
                       );

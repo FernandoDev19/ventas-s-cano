@@ -96,6 +96,10 @@ export default function RecipeCard({
           >
             {priceFormat(recipe.selling_price)}
           </Text>
+
+          <Text style={{ color: C.muted, fontSize: 12, marginTop: 2 }}>
+            Costo: {priceFormat(recipe.cost ?? 0)}
+          </Text>
         </View>
       </View>
 

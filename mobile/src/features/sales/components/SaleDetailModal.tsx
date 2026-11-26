@@ -190,8 +190,7 @@ export default function SaleDetailModal({
     for (const p of sale.products || []) {
       const existing = productsMap.get(p.product_id);
       if (existing) {
-        existing.quantity += p.quantity;
-        existing.price += p.price;
+        existing.quantity += p.quantity; // solo la cantidad
       } else {
         productsMap.set(p.product_id, {
           item_id: p.product_id,
@@ -208,8 +207,7 @@ export default function SaleDetailModal({
     for (const r of sale.recipes || []) {
       const existing = recipesMap.get(r.recipe_id);
       if (existing) {
-        existing.quantity += r.quantity;
-        existing.price += r.price;
+        existing.quantity += r.quantity; // solo la cantidad
       } else {
         recipesMap.set(r.recipe_id, {
           item_id: r.recipe_id,
@@ -1641,7 +1639,11 @@ export default function SaleDetailModal({
                   <View style={{ gap: 8, marginBottom: 16 }}>
                     {sale.products?.map((item, idx) => (
                       <View
-                        key={item.id ? `${item.id}-${idx}` : `p-${item.product_id}-${idx}`}
+                        key={
+                          item.id
+                            ? `${item.id}-${idx}`
+                            : `p-${item.product_id}-${idx}`
+                        }
                         style={{
                           flexDirection: "row",
                           backgroundColor: C.card,
@@ -1717,7 +1719,11 @@ export default function SaleDetailModal({
                       <View style={{ gap: 8, marginBottom: 16 }}>
                         {sale.recipes.map((item, idx) => (
                           <View
-                            key={item.id ? `${item.id}-${idx}` : `r-${item.recipe_id}-${idx}`}
+                            key={
+                              item.id
+                                ? `${item.id}-${idx}`
+                                : `r-${item.recipe_id}-${idx}`
+                            }
                             style={{
                               flexDirection: "row",
                               backgroundColor: C.card,

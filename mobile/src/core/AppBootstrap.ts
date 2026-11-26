@@ -6,25 +6,30 @@ import DATABASE from "./config/db";
 import { useEffect, useState } from "react";
 import { useNotifications } from "../shared/hooks/useNotifications";
 import NetInfo from "@react-native-community/netinfo";
+import { setAudioModeAsync } from "expo-audio";
 
 export const AppBootstrap = () => {
   const [isInitialized, setIsInitialized] = useState(false);
-  const { notificationsConfigurate, listenToNotifications } =
-    useNotifications();
 
+  // useEffect(() => {
+  //   // notificationsConfigurate();
 
-  useEffect(() => {
-    notificationsConfigurate();
+  //   const unsubscribeClicks = listenToNotifications();
 
-    const unsubscribeClicks = listenToNotifications();
-
-    // Limpieza obligatoria al desmontar el componente
-    return () => {
-      if (unsubscribeClicks) unsubscribeClicks();
-    };
-  }, [notificationsConfigurate, listenToNotifications]);
+  //   // Limpieza obligatoria al desmontar el componente
+  //   return () => {
+  //     if (unsubscribeClicks) unsubscribeClicks();
+  //   };
+  // }, [, listenToNotifications]);
 
   useEffect(() => {
+    setAudioModeAsync({
+      playsInSilentMode: true,
+      interruptionMode: "mixWithOthers", // iOS: mezcla con la música
+      interruptionModeAndroid: "duckOthers", // Android: baja un poco y vuelve
+      shouldPlayInBackground: false,
+    }).catch(() => {});
+
     let unsubscribeNetInfo: (() => void) | undefined;
 
     async function inicializarTodo() {

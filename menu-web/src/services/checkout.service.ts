@@ -2,7 +2,7 @@ import { supabase } from "../lib/supabase";
 import type { OrderCheckoutType } from "../types/order.type";
 
 export const CheckoutService = {
-  createOrder: async (data: OrderCheckoutType, tableId?: string) => {
+  createOrder: async (data: OrderCheckoutType, tableId?: string, orderId?: string) => {
     try {
       const totalPedido = data.items.reduce(
         (acc, item) => acc + item.price * item.quantity,
@@ -54,6 +54,7 @@ export const CheckoutService = {
         .from("orders")
         .insert([
           {
+            id: orderId,
             client_id: clientId,
             customer_name: data.nombre,
             customer_phone: celularValido ? data.celular : "",
@@ -75,6 +76,7 @@ export const CheckoutService = {
         .select("id")
         .single();
 
+      if (orderError?.code === "23505") return { success: true, orderId };
       if (orderError) throw orderError;
 
       // 3. REGISTRAR LOS PRODUCTOS DETALLADOS DE LA ORDEN

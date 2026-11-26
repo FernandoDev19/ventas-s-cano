@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useFocusEffect } from "expo-router";
 import { SaleType } from "../types/sale.type";
 import { FilterId } from "../components/SalesSummaryBar";
+import { useOnDataChanged } from "@/src/shared/hooks/useRealtimeSync";
 
 export type SalesScope = "shift" | "history";
 
@@ -17,6 +18,13 @@ export const useSales = () => {
   const [cutoff, setCutoff] = useState<string | null>(null);
   const [payingId, setPayingId] = useState<string | null>(null);
   const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
+
+  useOnDataChanged(
+    ["sales", "sale_products", "sale_recipes", "cashier_shifts"],
+    () => {
+      loadSales(true);
+    },
+  );
 
   const loadSales = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);

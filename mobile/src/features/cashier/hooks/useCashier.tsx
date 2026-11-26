@@ -4,6 +4,7 @@ import { Alert } from "react-native";
 import { CashierService } from "../services/cashier.service";
 import { CashierShiftType, CashMovement } from "../types/shift.type";
 import { useFocusEffect } from "expo-router";
+import { useOnDataChanged } from "@/src/shared/hooks/useRealtimeSync";
 
 export const useCashier = () => {
   const [currentShift, setCurrentShift] = useState<CashierShiftType | null>(
@@ -12,6 +13,12 @@ export const useCashier = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [movements, setMovements] = useState<CashMovement[]>([]);
   const [shiftHistory, setShiftHistory] = useState<CashierShiftType[]>([]);
+
+  useOnDataChanged(["cashier_shifts", "cash_movements", "sales", "expenses"], () => {
+  loadCurrentShift();
+  loadShiftHistory();
+});
+
 
   const loadCurrentShift = useCallback(async () => {
     try {
