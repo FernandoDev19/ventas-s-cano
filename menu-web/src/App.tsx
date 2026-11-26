@@ -185,7 +185,7 @@ export default function App() {
       {isConfirmationOpen && <CartConfirmation onNewOrder={fetchMenu} />}
       {isCheckoutOpen && <CheckoutModal tableId={tableId} />}
 
-      <a href="https://api.whatsapp.com/send/?phone=573013878360&text=Hola%21+Me+gustar%C3%ADa+realizar+un+pedido&type=phone_number&app_absent=0">
+      <a href="https://api.whatsapp.com/send/?phone=573016809936&text=Hola%21+Me+gustar%C3%ADa+realizar+un+pedido&type=phone_number&app_absent=0">
         <button className="fixed bottom-20 md:bottom-6 right-4 md:right-6 bg-green-500 text-white p-4 rounded-full shadow-xl border border-green-500/30 active:scale-98 transition-transform cursor-pointer">
           <svg
             xmlns="http://www.w3.org/2000/svg"
