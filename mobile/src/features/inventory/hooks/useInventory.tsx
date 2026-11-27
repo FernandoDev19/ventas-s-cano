@@ -94,11 +94,23 @@ export const useInventory = () => {
     return matchesSearch && matchesCat;
   });
 
-  const totalProducts = products.length;
-  const lowStock = products.filter(
-    (p) => p.stock <= STOCK_LOW_THRESHOLD,
-  ).length;
-  const totalValue = products.reduce((sum, p) => sum + p.price * p.stock, 0);
+  const scoped =
+    selectedCategory === null
+      ? products
+      : products.filter((p) => p.category_id === selectedCategory);
+  const sellable = scoped.filter((p) => !p.is_supply);
+  const costed = sellable.filter((p) => (p.cost ?? 0) > 0 && p.price > 0);
+
+  const totalProducts = scoped.length;
+  const lowStock = scoped.filter((p) => p.stock <= STOCK_LOW_THRESHOLD).length;
+  const stockCostValue = scoped.reduce((s, p) => s + (p.cost ?? 0) * p.stock, 0); // dinero invertido
+  const stockSaleValue = sellable.reduce((s, p) => s + p.price * p.stock, 0);
+  const potentialProfit = costed.reduce((s, p) => s + (p.price - p.cost!) * p.stock, 0);
+  const avgMargin = costed.length
+    ? (costed.reduce((s, p) => s + (p.price - p.cost!), 0) /
+      costed.reduce((s, p) => s + p.price, 0)) * 100
+    : 0;
+  const uncostedCount = sellable.filter((p) => !(p.cost ?? 0)).length;
 
   return {
     isLoading,
@@ -119,7 +131,11 @@ export const useInventory = () => {
     filteredProducts,
     totalProducts,
     lowStock,
-    totalValue,
+    stockCostValue,
+    stockSaleValue,
+    potentialProfit,
+    avgMargin,
+    uncostedCount,
     loadData,
   };
 };

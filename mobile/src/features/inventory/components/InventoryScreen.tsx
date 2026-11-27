@@ -35,7 +35,11 @@ export default function InventoryScreen({ activeTab, onChangeTab }: Props) {
     categories,
     totalProducts,
     lowStock,
-    totalValue,
+    stockCostValue,
+    stockSaleValue,
+    potentialProfit,
+    avgMargin,
+    uncostedCount,
     updatingId,
     handleAdjustStock,
     setShowCreate,
@@ -87,7 +91,11 @@ export default function InventoryScreen({ activeTab, onChangeTab }: Props) {
             categories={categories}
             totalProducts={totalProducts}
             lowStock={lowStock}
-            totalValue={totalValue}
+            stockCostValue={stockCostValue}
+            stockSaleValue={stockSaleValue}
+            potentialProfit={potentialProfit}
+            avgMargin={avgMargin}
+            uncostedCount={uncostedCount}
           />
         }
         renderItem={({ item }) => {

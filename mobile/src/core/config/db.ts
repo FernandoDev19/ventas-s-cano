@@ -225,6 +225,7 @@ const DATABASE = {
       await addCol("products", "cost", "REAL DEFAULT 0");
       await addCol("sale_products", "cost", "REAL DEFAULT 0");
       await addCol("sale_recipes", "cost", "REAL DEFAULT 0");
+      await addCol("products", "is_supply", "INTEGER DEFAULT 0");
 
       // Migración automática: aseguramos que la columna deleted_at existe en todas las tablas
       const tables = [

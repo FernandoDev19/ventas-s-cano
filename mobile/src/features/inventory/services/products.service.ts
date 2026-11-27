@@ -26,13 +26,13 @@ export const ProductsService = {
   }): Promise<ProductType[]> => {
     if (options?.category_id) {
       const products = await DATABASE.db.getAllAsync(
-        "SELECT * FROM products WHERE category_id = ? AND is_visible_menu = 1 AND deleted_at IS NULL",
+        "SELECT * FROM products WHERE category_id = ? AND is_visible_menu = 1 AND is_supply = 0 AND deleted_at IS NULL",
         [options.category_id],
       );
       return products as ProductType[];
     }
     const products = await DATABASE.db.getAllAsync(
-      "SELECT * FROM products WHERE deleted_at IS NULL",
+      "SELECT * FROM products WHERE is_visible_menu = 1 AND is_supply = 0 AND deleted_at IS NULL"
     );
     return products as ProductType[];
   },
@@ -76,18 +76,12 @@ export const ProductsService = {
     const now = new Date().toISOString();
 
     await DATABASE.db.runAsync(
-      "INSERT INTO products (id, image_url, name, price, cost, stock, category_id, is_visible_menu, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO products (id, image_url, name, price, cost, stock, category_id, is_visible_menu, is_supply, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [
-        id,
-        product.image_url || "",
-        product.name,
-        product.price,
-        product.cost ?? 0,
-        product.stock || 0,
-        product.category_id,
-        product.is_visible_menu ?? 1,
-        0,
-        now,
+        id, product.image_url || "", product.name, product.price, product.cost ?? 0,
+        product.stock || 0, product.category_id,
+        product.is_supply ? 0 : (product.is_visible_menu ?? 1),
+        product.is_supply ?? 0, 0, now,
       ],
     );
     // Ejecutar sincronización en segundo plano sin bloquear el hilo principal
@@ -154,6 +148,11 @@ export const ProductsService = {
     if (product.is_visible_menu !== undefined) {
       fields.push("is_visible_menu = ?");
       values.push(product.is_visible_menu);
+    }
+
+    if (product.is_supply !== undefined) {
+      fields.push("is_supply = ?");
+      values.push(product.is_supply);
     }
 
     if (fields.length === 0) return;

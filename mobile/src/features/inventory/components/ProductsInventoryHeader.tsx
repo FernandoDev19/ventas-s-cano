@@ -15,7 +15,11 @@ type Props = {
   categories: CategoryType[];
   totalProducts: number;
   lowStock: number;
-  totalValue: number;
+  stockCostValue: number;
+  stockSaleValue: number;
+  potentialProfit: number;
+  avgMargin: number;
+  uncostedCount: number;
 };
 
 export default function ProductsInventoryHeader({
@@ -26,14 +30,26 @@ export default function ProductsInventoryHeader({
   categories,
   totalProducts,
   lowStock,
-  totalValue,
+  stockCostValue,
+  stockSaleValue,
+  potentialProfit,
+  avgMargin,
+  uncostedCount,
 }: Props) {
+  const money = (n: number) =>
+    n >= 1_000_000 ? `$${(n / 1_000_000).toFixed(1)}M` : priceFormat(n);
+  const scopeName = selectedCategory
+    ? categories.find((c) => c.id === selectedCategory)?.name
+    : "Todos";
+
   return (
     <View className="pt-4">
       {/* Title */}
       <View className="px-4 mb-4 flex-row justify-between items-center">
         <View>
-          <Text style={{ color: C.text, fontSize: 24, fontWeight: "800" }}>Inventario</Text>
+          <Text style={{ color: C.text, fontSize: 24, fontWeight: "800" }}>
+            Inventario
+          </Text>
           <Text style={{ color: C.muted, fontSize: 16 }}>
             Gestión de productos y stock
           </Text>
@@ -115,7 +131,7 @@ export default function ProductsInventoryHeader({
         })}
       </ScrollView>
 
-      {/* KPI row */}
+      {/* Primera fila de KPIs */}
       <View className="flex-row mx-4 gap-3 mb-4">
         <View
           className="flex-1 p-3 rounded-xl"
@@ -154,20 +170,97 @@ export default function ProductsInventoryHeader({
             {String(lowStock).padStart(2, "0")}
           </Text>
         </View>
+      </View>
+
+      {/* Etiqueta de alcance */}
+      <Text
+        style={{
+          color: C.muted,
+          fontSize: 13,
+          paddingHorizontal: 16,
+          marginBottom: 6,
+        }}
+      >
+        Resumen de: {scopeName}
+      </Text>
+
+      {/* Segunda fila de KPIs */}
+      <View className="flex-row mx-4 gap-3 mb-4">
         <View
           className="flex-1 p-3 rounded-xl"
           style={{ backgroundColor: C.card }}
         >
           <Text className="text-neutral-500 text-[12px] uppercase tracking-wider">
-            Valor Total
+            Invertido (costo)
           </Text>
-          <Text className="text-neutral-900 dark:text-white text-2xl font-extrabold mt-1">
-            {totalValue >= 1_000_000
-              ? `$${(totalValue / 1_000_000).toFixed(1)}M`
-              : priceFormat(totalValue)}
+          <Text
+            style={{
+              color: C.text,
+              fontSize: 18,
+              fontWeight: "800",
+              marginTop: 4,
+            }}
+          >
+            {money(stockCostValue)}
+          </Text>
+        </View>
+        <View
+          className="flex-1 p-3 rounded-xl"
+          style={{ backgroundColor: C.card }}
+        >
+          <Text className="text-neutral-500 text-[12px] uppercase tracking-wider">
+            Venta potencial
+          </Text>
+          <Text
+            style={{
+              color: C.text,
+              fontSize: 18,
+              fontWeight: "800",
+              marginTop: 4,
+            }}
+          >
+            {money(stockSaleValue)}
+          </Text>
+        </View>
+        <View
+          className="flex-1 p-3 rounded-xl"
+          style={{
+            backgroundColor: "#22c55e15",
+            borderWidth: 1,
+            borderColor: "#22c55e44",
+          }}
+        >
+          <Text
+            style={{ color: "#22c55e", fontSize: 12, textTransform: "uppercase" }}
+          >
+            Ganancia · {avgMargin.toFixed(0)}%
+          </Text>
+          <Text
+            style={{
+              color: "#22c55e",
+              fontSize: 18,
+              fontWeight: "800",
+              marginTop: 4,
+            }}
+          >
+            {money(potentialProfit)}
           </Text>
         </View>
       </View>
+
+      {uncostedCount > 0 && (
+        <Text
+          style={{
+            color: C.warnText,
+            fontSize: 13,
+            paddingHorizontal: 16,
+            marginBottom: 8,
+          }}
+        >
+          {uncostedCount} producto{uncostedCount !== 1 ? "s" : ""} sin costo: el
+          margen real es distinto.
+        </Text>
+      )}
 
       {/* Section label */}
       <View className="px-4 mb-3 flex-row items-center gap-2">

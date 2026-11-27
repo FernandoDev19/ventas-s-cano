@@ -5,6 +5,7 @@ import React from "react";
 import { Image, Pressable, Text, View } from "react-native";
 import { RecipeType } from "../types/recipe.type";
 import { C } from "@/src/core/theme/palette";
+import { getMargin } from "@/src/shared/helpers/margin.helper";
 
 export default function RecipeCard({
   recipe,
@@ -97,9 +98,25 @@ export default function RecipeCard({
             {priceFormat(recipe.selling_price)}
           </Text>
 
-          <Text style={{ color: C.muted, fontSize: 12, marginTop: 2 }}>
-            Costo: {priceFormat(recipe.cost ?? 0)}
-          </Text>
+          {(() => {
+            const m = getMargin(recipe.selling_price, recipe.cost);
+            return m.hasCost ? (
+              <Text
+                style={{
+                  color: m.color,
+                  fontSize: 13,
+                  fontWeight: "700",
+                  marginTop: 2,
+                }}
+              >
+                Costo {priceFormat(recipe.cost!)} · ganas {priceFormat(m.profit)} ({m.pct.toFixed(0)}%)
+              </Text>
+            ) : (
+              <Text style={{ color: C.faint, fontSize: 12, marginTop: 2 }}>
+                Sin costo en ingredientes
+              </Text>
+            );
+          })()}
         </View>
       </View>
 

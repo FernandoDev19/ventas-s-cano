@@ -290,7 +290,13 @@ export const SyncService = {
       for (let i = 0; i < pending.length; i += 200) {
         const chunk = pending.slice(i, i + 200);
         // se sube TAMBIÉN deleted_at: el borrado viaja como un update
-        const payload = chunk.map(({ sincronizado, ...rest }) => rest);
+        const payload = chunk.map(({ sincronizado, ...rest }) => {
+          if (tableName === "sale_products") {
+            // created_at exists locally but not in the Supabase table.
+            delete rest.created_at;
+          }
+          return rest;
+        });
 
         const { error } = await supabase.from(tableName).upsert(payload);
         if (error) {

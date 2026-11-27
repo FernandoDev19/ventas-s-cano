@@ -14,6 +14,7 @@ import {
   TextInput,
   View,
   Platform,
+  Switch,
 } from "react-native";
 import { ProductsService } from "../services/products.service";
 import { Ionicons } from "@expo/vector-icons";
@@ -52,6 +53,8 @@ export default function EditProductModal({
   const [isCategoriesModalOpen, setIsCategoriesModalOpen] = useState(false);
   const [cost, setCost] = useState("");
 
+  const [isSupply, setIsSupply] = useState(false);
+
   const { elegirImagenProducto } = useFiles();
 
   // Pre-llenar campos cuando se abre el modal con un producto
@@ -64,6 +67,7 @@ export default function EditProductModal({
       setCategoryId(product.category_id);
       setImageUri(product.image_url || null);
       setIsVisibleMenu(product.is_visible_menu === 1 ? true : false);
+      setIsSupply(product.is_supply === 1)
     }
   }, [product]);
 
@@ -89,7 +93,7 @@ export default function EditProductModal({
       return;
     }
     const parsedPrice = parseFloat(price.replace(/,/g, ""));
-    if (!parsedPrice || parsedPrice <= 0) {
+    if (!isSupply && (!parsedPrice || parsedPrice <= 0)) {
       Alert.alert("Precio inválido", "Por favor ingresa un precio mayor a 0.");
       return;
     }
@@ -142,12 +146,13 @@ export default function EditProductModal({
 
       await ProductsService.updateProduct(product.id, {
         name: name.trim(),
-        price: parsedPrice,
+        price: isSupply ? 0 : parsedPrice,
         cost: parseFloat(cost.replace(/,/g, "")) || 0,
         stock: parseInt(stock) || 0,
         category_id: categoryId,
         image_url: finalImageUrl || "",
-        is_visible_menu: isVisibleMenu ? 1 : 0,
+        is_supply: isSupply ? 1 : 0,
+        is_visible_menu: isSupply ? 0 : (isVisibleMenu ? 1 : 0)
       });
 
       onUpdated();
@@ -481,17 +486,29 @@ export default function EditProductModal({
                 </View>
               </View>
 
-              <CostField price={price} cost={cost} onChangeCost={setCost} />
+              {!isSupply &&
+                <CostField price={price} cost={cost} onChangeCost={setCost} />}
+
+              <View className="flex-row gap-3 mb-4 items-center">
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: C.text, fontWeight: "700" }}>Es insumo / desechable</Text>
+                  <Text style={{ color: C.muted, fontSize: 13 }}>
+                    No se vende solo; se usa en recetas. No sale en el POS ni en el menú web.
+                  </Text>
+                </View>
+                <Switch value={isSupply} onValueChange={setIsSupply}
+                  trackColor={{ false: C.line, true: "#ff572233" }}
+                  thumbColor={isSupply ? "#ff5722" : C.soft} />
+              </View>
 
               <View className="flex-row gap-3 mb-4">
                 {/* Visible en el menú */}
                 <Pressable
                   onPress={() => setIsVisibleMenu(true)}
-                  className={`flex-row items-center gap-2 p-3 rounded-2xl ${
-                    isVisibleMenu
-                      ? "bg-orange-500/20 border border-orange-500/30"
-                      : "bg-white dark:bg-[#1a1a1a] border border-neutral-200 dark:border-[#2a2a2a]"
-                  }`}
+                  className={`flex-row items-center gap-2 p-3 rounded-2xl ${isVisibleMenu
+                    ? "bg-orange-500/20 border border-orange-500/30"
+                    : "bg-white dark:bg-[#1a1a1a] border border-neutral-200 dark:border-[#2a2a2a]"
+                    }`}
                 >
                   <Ionicons
                     name={isVisibleMenu ? "eye" : "eye-off"}
@@ -510,11 +527,10 @@ export default function EditProductModal({
                 {/* No visible en el menú */}
                 <Pressable
                   onPress={() => setIsVisibleMenu(false)}
-                  className={`flex-row items-center gap-2 p-3 rounded-2xl ${
-                    !isVisibleMenu
-                      ? "bg-orange-500/20 border border-orange-500/30"
-                      : "bg-white dark:bg-[#1a1a1a] border border-neutral-200 dark:border-[#2a2a2a]"
-                  }`}
+                  className={`flex-row items-center gap-2 p-3 rounded-2xl ${!isVisibleMenu
+                    ? "bg-orange-500/20 border border-orange-500/30"
+                    : "bg-white dark:bg-[#1a1a1a] border border-neutral-200 dark:border-[#2a2a2a]"
+                    }`}
                 >
                   <Ionicons
                     name={!isVisibleMenu ? "eye-off" : "eye"}

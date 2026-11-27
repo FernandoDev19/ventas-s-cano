@@ -8,6 +8,7 @@ import {
 } from "../helpers/stock-status.helper";
 import { ProductType } from "../types/product.type";
 import { C } from "@/src/core/theme/palette";
+import { getMargin } from "@/src/shared/helpers/margin.helper";
 
 type Props = {
   item: ProductType;
@@ -24,6 +25,9 @@ export default function InventoryItemCard({
   handleAdjustStock,
   openEdit,
 }: Props) {
+
+  const m = getMargin(item.price, item.cost);
+
   return (
     <View
       className="mx-4 mb-3 p-4 rounded-2xl"
@@ -59,7 +63,7 @@ export default function InventoryItemCard({
               {item.name}
             </Text>
             <Text className="text-neutral-500 text-sm mt-0.5">
-              {priceFormat(item.price)} / unidad
+              item.is_supply ? "No se vende" : `Precio ${priceFormat(item.price)} / unidad`
             </Text>
           </View>
         </View>
@@ -92,6 +96,20 @@ export default function InventoryItemCard({
           {status.label}
         </Text>
       </View>
+
+      {item.is_supply ? (
+        <Text style={{ color: C.muted, fontSize: 13, marginBottom: 10 }}>
+          Insumo · costo {priceFormat(item.cost ?? 0)} / unidad
+        </Text>
+      ) : m.hasCost ? (
+        <Text style={{ color: m.color, fontSize: 14, fontWeight: "700", marginBottom: 10 }}>
+          Costo {priceFormat(item.cost!)} · ganas {priceFormat(m.profit)} ({m.pct.toFixed(0)}%)
+        </Text>
+      ) : (
+        <Text style={{ color: C.faint, fontSize: 13, marginBottom: 10 }}>
+          Sin costo cargado
+        </Text>
+      )}
 
       {/* Actions row */}
       <View className="flex-row items-center justify-between">

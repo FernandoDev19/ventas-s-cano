@@ -46,14 +46,16 @@ export default function CreateProductModal({
   const [isVisibleMenu, setIsVisibleMenu] = useState(true);
   const [isCategoriesModalOpen, setIsCategoriesModalOpen] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [cost, setCost] = useState(""); 
+  const [cost, setCost] = useState("");
+
+  const [isSupply, setIsSupply] = useState(false);
 
   const { elegirImagenProducto } = useFiles();
 
   const reset = () => {
     setName("");
     setPrice("");
-     setCost("");
+    setCost("");
     setStock("0");
     setCategoryId(null);
     setImageUri(null);
@@ -81,7 +83,7 @@ export default function CreateProductModal({
       return;
     }
     const parsedPrice = parseFloat(price.replace(/,/g, ""));
-    if (!parsedPrice || parsedPrice <= 0) {
+    if (!isSupply && (!parsedPrice || parsedPrice <= 0)) {
       Alert.alert("Precio inválido", "Por favor ingresa un precio mayor a 0.");
       return;
     }
@@ -118,12 +120,13 @@ export default function CreateProductModal({
       // 2. Guardar el producto con la URL de la imagen
       await ProductsService.createProduct({
         name: name.trim(),
-        price: parsedPrice,
+        price: isSupply ? 0 : parsedPrice,
         cost: parseFloat(cost.replace(/,/g, "")) || 0,
         stock: parseInt(stock) || 0,
         category_id: categoryId,
         image_url: imageUrl,
-        is_visible_menu: isVisibleMenu ? 1 : 0,
+        is_supply: isSupply ? 1 : 0,
+        is_visible_menu: isSupply ? 0 : (isVisibleMenu ? 1 : 0)
       });
 
       reset();
@@ -350,7 +353,20 @@ export default function CreateProductModal({
               </View>
             </View>
 
-            <CostField price={price} cost={cost} onChangeCost={setCost} />
+            {!isSupply &&
+              <CostField price={price} cost={cost} onChangeCost={setCost} />}
+
+            <View className="flex-row gap-3 mb-4 items-center">
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: C.text, fontWeight: "700" }}>Es insumo / desechable</Text>
+                <Text style={{ color: C.muted, fontSize: 13 }}>
+                  No se vende solo; se usa en recetas. No sale en el POS ni en el menú web.
+                </Text>
+              </View>
+              <Switch value={isSupply} onValueChange={setIsSupply}
+                trackColor={{ false: C.line, true: "#ff572233" }}
+                thumbColor={isSupply ? "#ff5722" : C.soft} />
+            </View>
 
             <View className="flex-row gap-3 mb-4">
               <View style={{ flex: 1 }}>
