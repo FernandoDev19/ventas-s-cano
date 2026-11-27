@@ -33,6 +33,22 @@ const getTableColumns = (tableName: string): Set<string> => {
 let running = false,
   queued = false;
 
+const PAGE = 1000;
+const fetchAll = async (table: string) => {
+  const all: any[] = [];
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from(table)
+      .select("*")
+      .order("id", { ascending: true })
+      .range(from, from + PAGE - 1);
+    if (error) throw error;
+    all.push(...(data ?? []));
+    if (!data || data.length < PAGE) break;
+  }
+  return all;
+};
+
 export const SyncService = {
   /**
    * Ejecuta la sincronización bidireccional completa (Pull -> Push)
@@ -132,6 +148,7 @@ export const SyncService = {
       );
       // no pisar cambios locales pendientes ni versiones más nuevas
       if (
+        !rec.deleted_at &&
         local &&
         (local.sincronizado === 0 ||
           new Date(local.updated_at) >= new Date(rec.updated_at))
@@ -148,66 +165,36 @@ export const SyncService = {
       console.log(`📥 Descargando [${tableName}]...`);
 
       // 1. Traer todos los datos de Supabase
-      const { data: cloudRecords, error } = await supabase
-        .from(tableName)
-        .select("*");
-
-      if (error) {
-        console.error(`❌ Error descargando [${tableName}]:`, error.message);
-        return false;
-      }
-
-      if (!cloudRecords || cloudRecords.length === 0) {
-        return true;
-      }
+      const cloudRecords = await fetchAll(tableName); // si falla, cae al catch y retorna false
+      if (!cloudRecords || cloudRecords.length === 0) return true;
 
       // 2. Para cada registro, comparar timestamps
       DATABASE.db.execSync("PRAGMA foreign_keys = OFF;");
 
-      DATABASE.db.withTransactionSync(() => {
-        for (const cloudRecord of cloudRecords) {
-          // Obtener versión local
-          const localRecord: any = DATABASE.db.getFirstSync(
-            `SELECT * FROM ${tableName} WHERE id = ?`,
-            [cloudRecord.id],
-          );
+      try {
+        DATABASE.db.withTransactionSync(() => {
+          for (const cloudRecord of cloudRecords) {
+            // Obtener versión local
+            const localRecord: any = DATABASE.db.getFirstSync(
+              `SELECT * FROM ${tableName} WHERE id = ?`,
+              [cloudRecord.id],
+            );
 
-          if (!localRecord) {
-            // Nuevo registro de la nube → Insertar
-            SyncService._insertRecord(tableName, cloudRecord);
-          } else {
-            // Ambos existen → Comparar timestamps
-            const localUpdated = new Date(localRecord.updated_at || 0);
-            const cloudUpdated = new Date(cloudRecord.updated_at || 0);
-
-            if (cloudUpdated > localUpdated) {
-              // Cloud es más reciente → Traer cloud (REEMPLAZAR)
+            if (cloudRecord.deleted_at) {
               SyncService._insertRecord(tableName, cloudRecord);
-              SYNC_LOG.push({
-                table: tableName,
-                recordId: cloudRecord.id,
-                localVersion: localRecord,
-                cloudVersion: cloudRecord,
-                resolution: "cloud",
-              });
-              console.log(
-                `  ⚠️  [${tableName}:${cloudRecord.id}] Cloud es más nuevo (${cloudUpdated.getTime()} vs ${localUpdated.getTime()})`,
-              );
-            } else if (localUpdated > cloudUpdated) {
-              // Local es más reciente → Mantener local (NO TOCAR)
-              SYNC_LOG.push({
-                table: tableName,
-                recordId: cloudRecord.id,
-                localVersion: localRecord,
-                cloudVersion: cloudRecord,
-                resolution: "local",
-              });
-              console.log(
-                `  ✓ [${tableName}:${cloudRecord.id}] Local es más nuevo, manteniendo cambios`,
-              );
+              continue;
+            }
+
+            if (!localRecord) {
+              // Nuevo registro de la nube → Insertar
+              SyncService._insertRecord(tableName, cloudRecord);
             } else {
-              // Misma fecha → "Last-Write-Wins" por content hash o cloud wins
-              if (JSON.stringify(localRecord) !== JSON.stringify(cloudRecord)) {
+              // Ambos existen → Comparar timestamps
+              const localUpdated = new Date(localRecord.updated_at || 0);
+              const cloudUpdated = new Date(cloudRecord.updated_at || 0);
+
+              if (cloudUpdated > localUpdated) {
+                // Cloud es más reciente → Traer cloud (REEMPLAZAR)
                 SyncService._insertRecord(tableName, cloudRecord);
                 SYNC_LOG.push({
                   table: tableName,
@@ -217,16 +204,56 @@ export const SyncService = {
                   resolution: "cloud",
                 });
                 console.log(
-                  `  🔀 [${tableName}:${cloudRecord.id}] Timestamps iguales pero contenido diferente → Usando Cloud`,
+                  `  ⚠️  [${tableName}:${cloudRecord.id}] Cloud es más nuevo (${cloudUpdated.getTime()} vs ${localUpdated.getTime()})`,
                 );
+              } else if (localUpdated > cloudUpdated) {
+                // Local es más reciente → Mantener local (NO TOCAR)
+                SYNC_LOG.push({
+                  table: tableName,
+                  recordId: cloudRecord.id,
+                  localVersion: localRecord,
+                  cloudVersion: cloudRecord,
+                  resolution: "local",
+                });
+                console.log(
+                  `  ✓ [${tableName}:${cloudRecord.id}] Local es más nuevo, manteniendo cambios`,
+                );
+              } else {
+                // Misma fecha → "Last-Write-Wins" por content hash o cloud wins
+                if (JSON.stringify(localRecord) !== JSON.stringify(cloudRecord)) {
+                  SyncService._insertRecord(tableName, cloudRecord);
+                  SYNC_LOG.push({
+                    table: tableName,
+                    recordId: cloudRecord.id,
+                    localVersion: localRecord,
+                    cloudVersion: cloudRecord,
+                    resolution: "cloud",
+                  });
+                  console.log(
+                    `  🔀 [${tableName}:${cloudRecord.id}] Timestamps iguales pero contenido diferente → Usando Cloud`,
+                  );
+                }
               }
             }
           }
-        }
-      });
 
-      DATABASE.db.execSync("PRAGMA foreign_keys = ON;");
-      return true;
+          const cloudIds = new Set(cloudRecords.map((r: any) => String(r.id)));
+          const synced: { id: string }[] = DATABASE.db.getAllSync(
+            `SELECT id FROM ${tableName} WHERE sincronizado = 1`,
+          );
+          for (const { id } of synced) {
+            if (!cloudIds.has(String(id))) {
+              DATABASE.db.runSync(`DELETE FROM ${tableName} WHERE id = ?`, [id]);
+            }
+          }
+        });
+        return true;
+      } catch (err) {
+        console.error(`❌ Error en mergePullTable [${tableName}]:`, err);
+        return false;
+      } finally {
+        DATABASE.db.execSync("PRAGMA foreign_keys = ON;");
+      }
     } catch (err) {
       console.error(`❌ Error en mergePullTable [${tableName}]:`, err);
       return false;
@@ -253,158 +280,43 @@ export const SyncService = {
   },
 
   pushTable: async (tableName: string): Promise<boolean> => {
-    const pendingRecords: any[] = DATABASE.db.getAllSync(
+    const pending: any[] = DATABASE.db.getAllSync(
       `SELECT * FROM ${tableName} WHERE sincronizado = 0`,
     );
+    if (pending.length === 0) return true;
 
-    if (pendingRecords.length === 0) {
-      return true; // Nada que pushear
-    }
-
-    console.log(
-      `📤 Pusheando ${pendingRecords.length} cambios de [${tableName}]...`,
-    );
-
+    console.log(`📤 Pusheando ${pending.length} cambios de [${tableName}]...`);
     try {
-      // 1. Separar registros a eliminar vs actualizar
-      const recordsToDelete = pendingRecords.filter(
-        (r) => r.deleted_at !== null,
-      );
-      const recordsToUpsert = pendingRecords.filter(
-        (r) => r.deleted_at === null,
-      );
+      for (let i = 0; i < pending.length; i += 200) {
+        const chunk = pending.slice(i, i + 200);
+        // se sube TAMBIÉN deleted_at: el borrado viaja como un update
+        const payload = chunk.map(({ sincronizado, ...rest }) => rest);
 
-      // 2. Eliminar registros marcados como deleted
-      if (recordsToDelete.length > 0) {
-        const idsToDelete = recordsToDelete.map((r) => r.id);
-
-        // VALIDACIÓN: Verificar que en la nube existen y no han sido modificados
-        const { data: cloudVersions, error: fetchError } = await supabase
-          .from(tableName)
-          .select("id, updated_at")
-          .in("id", idsToDelete);
-
-        if (fetchError) {
-          console.error(
-            `❌ Error validando eliminaciones en [${tableName}]:`,
-            fetchError.message,
-          );
+        const { error } = await supabase.from(tableName).upsert(payload);
+        if (error) {
+          console.error(`❌ Error en upsert [${tableName}]:`, error.message);
           return false;
         }
-
-        // Verificar que no han sido modificados DESPUÉS de nuestro deleted_at
-        for (const cloudRec of cloudVersions || []) {
-          const localRec = recordsToDelete.find((r) => r.id === cloudRec.id);
-          if (localRec) {
-            const cloudUpdated = new Date(cloudRec.updated_at || 0);
-            const localDeleted = new Date(localRec.deleted_at || 0);
-
-            if (cloudUpdated > localDeleted) {
-              console.warn(
-                `⚠️  [${tableName}:${cloudRec.id}] Conflicto: Cloud modificado DESPUÉS de nuestro delete. Ignorando.`,
-              );
-              // NO borrar si la nube lo modificó después
-              continue;
-            }
-          }
-        }
-
-        // Ejecutar eliminación
-        const { error: deleteError } = await supabase
-          .from(tableName)
-          .delete()
-          .in("id", idsToDelete);
-
-        if (deleteError) {
-          console.error(
-            `❌ Error eliminando en [${tableName}]:`,
-            deleteError.message,
-          );
-          return false;
-        }
-
-        // Actualizar local como sincronizado
-        const formattedIds = idsToDelete.map((id) => `'${id}'`).join(",");
-        DATABASE.db.execSync("PRAGMA foreign_keys = OFF;");
-        DATABASE.db.execSync(
-          `DELETE FROM ${tableName} WHERE id IN (${formattedIds})`,
+        const ids = chunk.map((r) => r.id);
+        DATABASE.db.runSync(
+          `UPDATE ${tableName} SET sincronizado = 1 WHERE id IN (${ids.map(() => "?").join(",")})`,
+          ids,
         );
-        DATABASE.db.execSync("PRAGMA foreign_keys = ON;");
       }
-
-      // 3. Upsert registros (crear o actualizar)
-      if (recordsToUpsert.length > 0) {
-        const cleanRecords = recordsToUpsert.map(
-          ({ sincronizado, deleted_at, ...rest }) => rest,
-        );
-
-        // VALIDACIÓN PRE-UPSERT: Revisar conflictos
-        const recordIds = recordsToUpsert.map((r) => r.id);
-        const { data: cloudVersions, error: fetchError } = await supabase
-          .from(tableName)
-          .select("id, updated_at, *")
-          .in("id", recordIds);
-
-        if (fetchError) {
-          console.error(
-            `❌ Error validando upserts en [${tableName}]:`,
-            fetchError.message,
-          );
-          return false;
-        }
-
-        // Detectar conflictos: cloud más nuevo que local
-        const conflictingIds: string[] = [];
-        for (const cloudRec of cloudVersions || []) {
-          const localRec = recordsToUpsert.find((r) => r.id === cloudRec.id);
-          if (localRec) {
-            const cloudUpdated = new Date(cloudRec.updated_at || 0);
-            const localUpdated = new Date(localRec.updated_at || 0);
-
-            if (cloudUpdated > localUpdated) {
-              console.warn(
-                `⚠️  [${tableName}:${cloudRec.id}] No subiendo: Cloud es más nuevo`,
-              );
-              conflictingIds.push(cloudRec.id);
-            }
-          }
-        }
-
-        // Filtrar registros conflictivos
-        const validRecords = cleanRecords.filter(
-          (r: any) => !conflictingIds.includes(r.id),
-        );
-
-        // Ejecutar upsert
-        if (validRecords.length > 0) {
-          const { error: upsertError } = await supabase
-            .from(tableName)
-            .upsert(validRecords);
-
-          if (upsertError) {
-            console.error(
-              `❌ Error en upsert [${tableName}]:`,
-              upsertError.message,
-            );
-            // ROLLBACK: NO marcar como sincronizado
-            return false;
-          }
-
-          // Marcar solo los que se subieron exitosamente
-          const formattedIds = validRecords
-            .map((r: any) => `'${r.id}'`)
-            .join(",");
-          DATABASE.db.execSync(
-            `UPDATE ${tableName} SET sincronizado = 1 WHERE id IN (${formattedIds})`,
-          );
-        }
-      }
-
       console.log(`✅ [${tableName}] Push completado`);
       return true;
     } catch (err) {
       console.error(`❌ Error en pushTable [${tableName}]:`, err);
       return false;
     }
+  },
+
+  forceRepush: async () => {
+    const now = new Date().toISOString();
+    for (const t of ["categories", "products", "recipes", "recipe_ingredients", "clients",
+      "sales", "sale_products", "sale_recipes", "expenses", "expense_items"]) {
+      DATABASE.db.runSync(`UPDATE ${t} SET sincronizado = 0, updated_at = ?`, [now]);
+    }
+    await SyncService.run();
   },
 };

@@ -24,6 +24,7 @@ export const MenuService = {
       const { data: products, error: prodError } = await supabase
         .from("products")
         .select("id, name, image_url, price, stock, category_id")
+        .is("deleted_at", null)
         .eq("category_id", categoryId)
         .eq("is_visible_menu", true);
 
@@ -33,6 +34,7 @@ export const MenuService = {
       const { data: recipes, error: recError } = await supabase
         .from("recipes")
         .select("id, name, description, image_url, selling_price, category_id")
+        .is("deleted_at", null)
         .eq("category_id", categoryId);
 
       if (recError) throw recError;
@@ -77,6 +79,7 @@ export const MenuService = {
       const { data: products, error: prodError } = await supabase
         .from("products")
         .select("id, name, image_url, price, stock, category_id")
+        .is("deleted_at", null)
         .eq("is_visible_menu", true);
 
       if (prodError) throw prodError;
@@ -84,7 +87,7 @@ export const MenuService = {
       // 2. Consultar Recetas (Combos)
       const { data: recipes, error: recError } = await supabase
         .from("recipes")
-        .select("id, name, description, image_url, selling_price, category_id");
+        .select("id, name, description, image_url, selling_price, category_id").is("deleted_at", null);
 
       if (recError) throw recError;
 
@@ -122,7 +125,7 @@ export const MenuService = {
     }
   },
 
-    async getPopularKeys(limit = 6): Promise<string[]> {
+  async getPopularKeys(limit = 6): Promise<string[]> {
     const { data, error } = await supabase.rpc("get_popular_items", {
       limit_n: limit,
     });
@@ -142,23 +145,19 @@ export const MenuService = {
         .from("categories")
         .select(
           `
-        id, 
-        name,
-        products(id, is_visible_menu),
-        recipes(id)
+       id, name, products(id, is_visible_menu, deleted_at), recipes(id, deleted_at)
       `,
         )
-        .order("name", { ascending: true });
+        .order("name", { ascending: true }).is("deleted_at", null);
 
       if (error) throw error;
 
       const categoriasActivas = (categories || []).filter((cat) => {
         // Verifica si tiene al menos un producto visible
         const tieneProductosVisibles = cat.products?.some(
-          (p) => p.is_visible_menu === true,
+          (p) => p.is_visible_menu === true && !p.deleted_at,
         );
-        // Verifica si tiene al menos una receta (como no tiene bandera, si hay registro, cuenta)
-        const tieneRecetas = cat.recipes && cat.recipes.length > 0;
+        const tieneRecetas = cat.recipes?.some((r) => !r.deleted_at);
 
         return tieneProductosVisibles || tieneRecetas;
       });

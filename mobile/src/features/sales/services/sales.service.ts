@@ -181,16 +181,8 @@ export const SalesService = {
             // Es un producto individual
             await DATABASE.db.runAsync(
               "INSERT INTO sale_products (id, sale_id, product_id, quantity, price, cost, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-              [
-                uuidv4(),
-                saleId,
-                item.product_id,
-                item.quantity,
-                item.price_at_time,
-                await productCost(item.product_id),
-                0,
-                hoy,
-              ],
+              [uuidv4(), saleId, item.product_id, item.quantity, item.price_at_time,
+              await productCost(item.product_id), 0, hoy],
             );
 
             // Deducir stock del producto local
@@ -204,16 +196,8 @@ export const SalesService = {
 
             await DATABASE.db.runAsync(
               "INSERT INTO sale_recipes (id, sale_id, recipe_id, quantity, price, cost, sincronizado, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-              [
-                uuidv4(),
-                saleId,
-                item.recipe_id,
-                item.quantity,
-                item.price_at_time,
-                costoReceta,
-                0,
-                hoy,
-              ],
+              [uuidv4(), saleId, item.recipe_id, item.quantity, item.price_at_time,
+              await recipeCost(item.recipe_id), 0, hoy],
             );
 
             const ingredientes = await DATABASE.db.getAllAsync<{
@@ -254,17 +238,17 @@ export const SalesService = {
   getSales: async (): Promise<SaleType[]> => {
     const sales = await DATABASE.db.getAllAsync(
       `SELECT s.*, c.name as client_name,
-        (SELECT group_concat(sp.quantity || 'x ' || p.name, ', ')
-           FROM sale_products sp JOIN products p ON p.id = sp.product_id
+        (SELECT group_concat(sp.quantity || 'x ' || COALESCE(p.name,'Producto eliminado'), ', ')
+          FROM sale_products sp LEFT JOIN products p ON p.id = sp.product_id
           WHERE sp.sale_id = s.id AND sp.deleted_at IS NULL) as products_summary,
-        (SELECT group_concat(sr.quantity || 'x ' || r.name, ', ')
-           FROM sale_recipes sr JOIN recipes r ON r.id = sr.recipe_id
+        (SELECT group_concat(sr.quantity || 'x ' || COALESCE(r.name,'Receta eliminada'), ', ')
+          FROM sale_recipes sr LEFT JOIN recipes r ON r.id = sr.recipe_id
           WHERE sr.sale_id = s.id AND sr.deleted_at IS NULL) as recipes_summary,
-        (SELECT COALESCE(SUM(sp.quantity), 0) FROM sale_products sp WHERE sp.sale_id = s.id AND sp.deleted_at IS NULL)
-        + (SELECT COALESCE(SUM(sr.quantity), 0) FROM sale_recipes sr WHERE sr.sale_id = s.id AND sr.deleted_at IS NULL) as items_count
+        (SELECT COALESCE(SUM(quantity),0) FROM sale_products WHERE sale_id = s.id AND deleted_at IS NULL)
+        + (SELECT COALESCE(SUM(quantity),0) FROM sale_recipes WHERE sale_id = s.id AND deleted_at IS NULL) as items_count
        FROM sales s
        LEFT JOIN clients c ON s.client_id = c.id
-       WHERE s.status IS NULL OR s.status != 'cancelled'
+      WHERE (s.status IS NULL OR s.status != 'cancelled') AND s.deleted_at IS NULL
        ORDER BY s.created_at DESC`,
     );
 
@@ -342,9 +326,9 @@ export const SalesService = {
       debt_date: sale.debt_date ? parseLocalDate(sale.debt_date) : null,
       client: sale.client_id
         ? {
-            id: sale.client_id,
-            name: sale.client_name,
-          }
+          id: sale.client_id,
+          name: sale.client_name,
+        }
         : null,
     }));
 
@@ -394,17 +378,17 @@ export const SalesService = {
         ),
         DATABASE.db.getAllAsync(
           `SELECT name, SUM(quantity) AS quantity, SUM(total) AS total FROM (
-            SELECT p.name AS name, sp.quantity AS quantity, sp.quantity * sp.price AS total
+            SELECT COALESCE(p.name,'Producto eliminado') AS name, sp.quantity AS quantity, sp.quantity * sp.price AS total
               FROM sale_products sp
-              JOIN products p ON p.id = sp.product_id
+              LEFT JOIN products p ON p.id = sp.product_id
               JOIN sales s ON s.id = sp.sale_id
               WHERE (s.status IS NULL OR s.status != 'cancelled') AND s.deleted_at IS NULL
                 AND sp.deleted_at IS NULL
                 AND s.created_at BETWEEN ? AND ?
             UNION ALL
-            SELECT r.name || ' (receta)', sr.quantity, sr.quantity * sr.price
+            SELECT COALESCE(r.name,'Receta eliminada') || ' (receta)', sr.quantity, sr.quantity * sr.price
               FROM sale_recipes sr
-              JOIN recipes r ON r.id = sr.recipe_id
+              LEFT JOIN recipes r ON r.id = sr.recipe_id
               JOIN sales s ON s.id = sr.sale_id
               WHERE (s.status IS NULL OR s.status != 'cancelled') AND s.deleted_at IS NULL
                 AND sr.deleted_at IS NULL
@@ -454,9 +438,9 @@ export const SalesService = {
         debt_date: s.debt_date ? new Date(s.debt_date) : null,
         client: s.client_id
           ? {
-              id: s.client_id,
-              name: s.client_name,
-            }
+            id: s.client_id,
+            name: s.client_name,
+          }
           : null,
       })),
     };
@@ -466,10 +450,10 @@ export const SalesService = {
     id: string,
   ): Promise<
     | (SaleType & {
-        products: any[];
-        recipes: any[];
-        client: { id: string; name: string; phone?: string | null } | null;
-      })
+      products: any[];
+      recipes: any[];
+      client: { id: string; name: string; phone?: string | null } | null;
+    })
     | null
   > => {
     const sale: any = await DATABASE.db.getFirstAsync(
@@ -480,7 +464,7 @@ export const SalesService = {
         c.phone as client_phone
         FROM sales s
         LEFT JOIN clients c ON s.client_id = c.id
-        WHERE s.id = ?`,
+        WHERE s.id = ? AND s.deleted_at IS NULL`,
       [id],
     );
 
@@ -488,19 +472,17 @@ export const SalesService = {
 
     // Obtener productos vendidos
     const products = await DATABASE.db.getAllAsync(
-      `SELECT sp.*, p.name as product_name, p.image_url as product_image 
-       FROM sale_products sp
-       JOIN products p ON sp.product_id = p.id
-       WHERE sp.sale_id = ? AND sp.deleted_at IS NULL`,
+      `SELECT sp.*, COALESCE(p.name,'Producto eliminado') as product_name, p.image_url as product_image
+        FROM sale_products sp LEFT JOIN products p ON sp.product_id = p.id
+        WHERE sp.sale_id = ? AND sp.deleted_at IS NULL`,
       [id],
     );
 
     // Obtener recetas vendidas
     const recipes = await DATABASE.db.getAllAsync(
-      `SELECT sr.*, r.name as recipe_name, r.image_url as recipe_image
-       FROM sale_recipes sr
-       JOIN recipes r ON sr.recipe_id = r.id
-       WHERE sr.sale_id = ? AND sr.deleted_at IS NULL`,
+      `SELECT sr.*, COALESCE(r.name,'Receta eliminada') as recipe_name, r.image_url as recipe_image
+        FROM sale_recipes sr LEFT JOIN recipes r ON sr.recipe_id = r.id
+        WHERE sr.sale_id = ? AND sr.deleted_at IS NULL`,
       [id],
     );
 
@@ -513,10 +495,10 @@ export const SalesService = {
       recipes,
       client: sale.client_id
         ? {
-            id: sale.client_id,
-            name: sale.client_name,
-            phone: sale.client_phone,
-          }
+          id: sale.client_id,
+          name: sale.client_name,
+          phone: sale.client_phone,
+        }
         : null,
     };
   },
@@ -524,17 +506,17 @@ export const SalesService = {
   getProfitDetail: async (startDate: string, endDate: string) => {
     const { startISO, endISO } = localRangeISO(startDate, endDate);
     const rows: any[] = await DATABASE.db.getAllAsync(
-      `SELECT s.created_at, p.id AS item_id, p.name AS name, 0 AS is_recipe,
+      `SELECT s.created_at, sp.product_id AS item_id, COALESCE(p.name,'Producto eliminado') AS name, 0 AS is_recipe,
             sp.quantity AS qty, sp.quantity * sp.price AS revenue, sp.quantity * sp.cost AS cost
        FROM sale_products sp
-       JOIN products p ON p.id = sp.product_id
+       LEFT JOIN products p ON p.id = sp.product_id
        JOIN sales s ON s.id = sp.sale_id
       WHERE (s.status IS NULL OR s.status != 'cancelled') AND s.deleted_at IS NULL
         AND sp.deleted_at IS NULL AND s.created_at BETWEEN ? AND ?
      UNION ALL
-     SELECT s.created_at, r.id, r.name, 1, sr.quantity, sr.quantity * sr.price, sr.quantity * sr.cost
+     SELECT s.created_at, sr.recipe_id, COALESCE(r.name,'Receta eliminada'), 1, sr.quantity, sr.quantity * sr.price, sr.quantity * sr.cost
        FROM sale_recipes sr
-       JOIN recipes r ON r.id = sr.recipe_id
+       LEFT JOIN recipes r ON r.id = sr.recipe_id
        JOIN sales s ON s.id = sr.sale_id
       WHERE (s.status IS NULL OR s.status != 'cancelled') AND s.deleted_at IS NULL
         AND sr.deleted_at IS NULL AND s.created_at BETWEEN ? AND ?`,
@@ -790,9 +772,9 @@ export const SalesService = {
       debt_date: sale.debt_date ? parseLocalDate(sale.debt_date) : null,
       client: sale.client_id
         ? {
-            id: sale.client_id,
-            name: sale.client_name,
-          }
+          id: sale.client_id,
+          name: sale.client_name,
+        }
         : null,
     }));
   },
@@ -812,9 +794,9 @@ export const SalesService = {
       debt_date: sale.debt_date ? parseLocalDate(sale.debt_date) : null,
       client: sale.client_id
         ? {
-            id: sale.client_id,
-            name: sale.client_name,
-          }
+          id: sale.client_id,
+          name: sale.client_name,
+        }
         : null,
     }));
   },

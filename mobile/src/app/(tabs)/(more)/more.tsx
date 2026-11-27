@@ -9,6 +9,7 @@ import { ThemeToggle } from "@/src/core/theme/ThemeToggle";
 import { useTheme } from "@/src/core/theme/ThemeContext";
 import { useSettings } from "@/src/core/context/SettingsContext";
 import NequiPaymentSettingsModal from "@/src/shared/components/NequiPaymentSettingsModal";
+import { SyncService } from "@/src/shared/services/sync.service";
 
 type Item = {
   title: string;
@@ -83,6 +84,17 @@ export default function MoreTab() {
       icon: "storefront-outline",
       roles: ["admin"],
       onPress: () => router.push("/(tabs)/(suppliers)/suppliers"),
+    },
+    {
+      title: "Reparar sincronización",
+      subtitle: "Sube lo de este cel a la nube",
+      icon: "cloud-upload-outline",
+      roles: ["admin"],
+      onPress: () =>
+        Alert.alert("Subir todo", "Úsalo solo en el cel con los datos correctos.", [
+          { text: "Cancelar", style: "cancel" },
+          { text: "Subir", onPress: () => SyncService.forceRepush() },
+        ]),
     },
   ];
 
